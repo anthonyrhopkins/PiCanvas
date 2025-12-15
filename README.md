@@ -657,3 +657,5 @@ Based on [Modern Hillbilly Tabs](http://www.markrackley.net/2022/06/29/the-retur
 ## License
 
 MIT - See [LICENSE](LICENSE) for details.
+
+<img src="https://m365-visitor-stats.azurewebsites.net/sp-dev-fx-webparts/samples/react-tabbed-page-sections" />
