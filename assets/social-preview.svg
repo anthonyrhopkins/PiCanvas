@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0078d4"/>
+      <stop offset="100%" style="stop-color:#00bcf2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.05">
+    <line x1="0" y1="160" x2="1280" y2="160" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="320" x2="1280" y2="320" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="480" x2="1280" y2="480" stroke="#fff" stroke-width="1"/>
+    <line x1="320" y1="0" x2="320" y2="640" stroke="#fff" stroke-width="1"/>
+    <line x1="640" y1="0" x2="640" y2="640" stroke="#fff" stroke-width="1"/>
+    <line x1="960" y1="0" x2="960" y2="640" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <!-- Decorative tab shapes in background -->
+  <g opacity="0.1">
+    <rect x="80" y="450" width="120" height="40" rx="8" fill="#0078d4"/>
+    <rect x="210" y="450" width="120" height="40" rx="8" fill="#00bcf2"/>
+    <rect x="340" y="450" width="120" height="40" rx="8" fill="#0078d4"/>
+
+    <rect x="820" y="150" width="100" height="35" rx="6" fill="#0078d4"/>
+    <rect x="930" y="150" width="100" height="35" rx="6" fill="#00bcf2"/>
+    <rect x="1040" y="150" width="100" height="35" rx="6" fill="#0078d4"/>
+  </g>
+
+  <!-- Main content area -->
+  <g transform="translate(640, 280)">
+    <!-- Easel icon (scaled up) -->
+    <g transform="translate(-200, -80) scale(5)">
+      <line x1="6" y1="28" x2="16" y2="6" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+      <line x1="26" y1="28" x2="16" y2="6" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+      <line x1="9" y1="20" x2="23" y2="20" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+      <rect x="7" y="5" width="18" height="14" rx="1" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+      <text x="16" y="15.5" font-family="Georgia, serif" font-size="10" font-weight="bold" fill="#ffffff" text-anchor="middle">π</text>
+    </g>
+
+    <!-- Title -->
+    <text x="40" y="-20" font-family="Segoe UI, -apple-system, sans-serif" font-size="72" font-weight="600" fill="#ffffff">PiCanvas</text>
+
+    <!-- Tagline -->
+    <text x="40" y="50" font-family="Segoe UI, -apple-system, sans-serif" font-size="28" fill="#a0aec0">Organize SharePoint web parts into tabs</text>
+
+    <!-- Feature pills -->
+    <g transform="translate(40, 90)">
+      <rect x="0" y="0" width="160" height="36" rx="18" fill="url(#accent)" opacity="0.9"/>
+      <text x="80" y="24" font-family="Segoe UI, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">SPFx 1.21.1</text>
+
+      <rect x="175" y="0" width="140" height="36" rx="18" fill="url(#accent)" opacity="0.9"/>
+      <text x="245" y="24" font-family="Segoe UI, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">Permissions</text>
+
+      <rect x="330" y="0" width="130" height="36" rx="18" fill="url(#accent)" opacity="0.9"/>
+      <text x="395" y="24" font-family="Segoe UI, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">Templates</text>
+    </g>
+  </g>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="630" width="1280" height="10" fill="url(#accent)"/>
+</svg>
