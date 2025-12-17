@@ -1,10 +1,4 @@
-<p align="center">
-  <img src="assets/picanvas-icon.png" alt="PiCanvas Logo" width="96" height="96">
-</p>
-
-# PiCanvas
-
-Organize SharePoint web parts into tabs. Consolidate pages, reduce scrolling, build simple app-like experiences.
+![PiCanvas - Organize SharePoint web parts into tabs](assets/picanvas-social.png)
 
 ![Version](https://img.shields.io/badge/Version-2.0.21.1-blue.svg)
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.21.1-green.svg)
