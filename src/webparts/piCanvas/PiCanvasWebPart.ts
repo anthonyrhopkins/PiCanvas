@@ -17,6 +17,13 @@ import * as strings from 'PiCanvasWebPartStrings';
 import { PropertyPaneTabPreview } from './PropertyPaneTabPreview';
 
 import * as $ from 'jquery';
+
+// Make jQuery available globally for AddTabs.js which expects jQuery/$ on window
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).jQuery = $;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).$ = $;
+
 import PnPTelemetry from '@pnp/telemetry-js';
 
 // Template imports
