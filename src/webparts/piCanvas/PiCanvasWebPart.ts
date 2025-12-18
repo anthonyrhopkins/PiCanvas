@@ -17,6 +17,17 @@ import * as strings from 'PiCanvasWebPartStrings';
 import { PropertyPaneTabPreview } from './PropertyPaneTabPreview';
 
 import * as $ from 'jquery';
+
+// Extend Window interface for jQuery globals
+interface WindowWithJQuery extends Window {
+  jQuery?: typeof $;
+  $?: typeof $;
+}
+
+// Make jQuery available globally for AddTabs.js which expects jQuery/$ on window
+(window as WindowWithJQuery).jQuery = $;
+(window as WindowWithJQuery).$ = $;
+
 import PnPTelemetry from '@pnp/telemetry-js';
 
 // Template imports
@@ -123,7 +134,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
    */
   private encodeHtml(str: string): string {
     if (!str) return '';
-    return str
+    // Safety: ensure we have a string, not an object
+    const safeStr = typeof str === 'string' ? str : String(str);
+    return safeStr
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -704,6 +717,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       this.domElement.innerHTML = `<div data-addui='tabs' data-tab-style='${tabStyle}' data-tab-alignment='${tabAlignment}' ${orientationAttrs} ${transitionsAttr} ${unlimitedImageAttr}><div role='tabs' id='${tabsDiv}'></div><div role='contents' id='${contentsDiv}'></div></div>`;
 
+      // IMPORTANT: Call getSections() to mark DOM elements with data-hillbilly-section-id
+      // and data-hillbilly-column-id BEFORE we try to find them in the render loop
+      this.getSections();
+
       // Build tabData from dynamic properties if tabData is empty or not set
       const thisTabData = this.getTabDataFromProperties();
       for(const x in thisTabData)
@@ -811,27 +828,49 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               </div>
             </div>`);
           } else {
-            // Check if this is a section selection (starts with "SECTION:")
+            // Check if this is a section or column selection
             const isSection = thisTabData[x].WebPartID.indexOf("SECTION:") === 0;
+            const isColumn = thisTabData[x].WebPartID.indexOf("COLUMN:") === 0;
 
-            // Use different classes for sections (preserve layout) vs individual webparts (full width)
-            const contentClass = isSection ? 'hillbilly-tab-content hillbilly-section-content' : 'hillbilly-tab-content hillbilly-single-webpart';
+            // Use different classes for sections/columns (preserve layout) vs individual webparts (full width)
+            const contentClass = (isSection || isColumn) ? 'hillbilly-tab-content hillbilly-section-content' : 'hillbilly-tab-content hillbilly-single-webpart';
             tabContentContainer = $(`<div class='${contentClass}'></div>`);
 
             if (isSection) {
               const sectionId = thisTabData[x].WebPartID.substring(8); // Remove "SECTION:" prefix
-              // Find the section and move the ENTIRE section (preserving column layout)
-              let $section = $(`[data-automation-id="${sectionId}"]`);
+              // Find the section
+              let $section = $(`[data-hillbilly-section-id="${sectionId}"]`);
+              if (!$section.length) {
+                $section = $(`[data-automation-id="${sectionId}"]`);
+              }
               if (!$section.length) {
                 $section = $(`#${sectionId}`);
               }
-              if (!$section.length) {
-                $section = $(`[data-hillbilly-section-id="${sectionId}"]`);
-              }
+
               if ($section.length) {
-                // Move the entire section element to preserve column structure
-                // This keeps the SharePoint grid layout (2-column, 3-column, etc.)
+                // Always move the entire section to preserve its internal grid/flex structure
+                // The section container (CanvasZone) provides the layout context for its columns
                 tabContentContainer.append($section);
+
+                // Fallback: if container ended up empty, move all webparts inside the section
+                if (tabContentContainer.children().length === 0) {
+                  const $webpartsInSection = $section.find('.ControlZone, [data-automation-id="CanvasControl"]');
+                  $webpartsInSection.each((_i, wp) => { tabContentContainer.append(wp); });
+                }
+              }
+            } else if (isColumn) {
+              const columnId = thisTabData[x].WebPartID.substring(7); // Remove "COLUMN:" prefix
+              // Find the column and move just that column
+              let $column = $(`[data-hillbilly-column-id="${columnId}"]`);
+              if (!$column.length) {
+                $column = $(`[data-automation-id="${columnId}"]`);
+              }
+              if (!$column.length) {
+                $column = $(`#${columnId}`);
+              }
+              if ($column.length) {
+                // Move just this column (single column from multi-column layout)
+                tabContentContainer.append($column);
               }
             } else {
               // Individual webpart - move it into the tab container (full width)
@@ -1371,13 +1410,19 @@ Vertical Layout:
     const tabData: ITabDataItem[] = [];
     const numTabs = this.properties.tabCount || 2;
 
+    // Helper to safely get string property (prevents [object Object])
+    const safeString = (val: unknown): string => {
+      if (!val) return '';
+      return typeof val === 'string' ? val : String(val);
+    };
+
     // Check configured tabs (label is optional - will default to "Tab N")
     for (let i = 1; i <= numTabs; i++) {
       const webPartIDKey = `tab${i}WebPartID`;
       const labelKey = `tab${i}Label`;
 
-      const webPartID = this.properties[webPartIDKey] as string;
-      const label = this.properties[labelKey] as string;
+      const webPartID = safeString(this.properties[webPartIDKey]);
+      const label = safeString(this.properties[labelKey]);
 
       // Only require WebPartID - label is optional and will default in render
       if (webPartID) {
@@ -1387,7 +1432,7 @@ Vertical Layout:
           const showPlaceholder = this.properties[`tab${i}PermissionPlaceholder`] as boolean;
           if (showPlaceholder) {
             // Add as placeholder tab (visible but disabled)
-            const placeholderText = (this.properties[`tab${i}PermissionPlaceholderText`] as string) || strings.PermissionPlaceholderDefault;
+            const placeholderText = safeString(this.properties[`tab${i}PermissionPlaceholderText`]) || strings.PermissionPlaceholderDefault;
             tabData.push({
               WebPartID: '', // No content for placeholder
               TabLabel: label || `Tab ${i}`,
@@ -1621,50 +1666,161 @@ Vertical Layout:
   }
 
   /**
-   * Get all sections on the page with their IDs
-   * Returns array of [sectionId, sectionLabel, sectionNumber]
+   * Get all sections (rows) and columns on the page with their IDs
+   * Returns array of [id, label, sectionNumber]
+   *
+   * Modern SharePoint DOM structure:
+   * - Sections: elements with data-automation-id="CanvasSection" (or configurable class)
+   * - Columns: elements with data-automation-id="CanvasColumn" inside a section
+   * - Web parts: ControlZone / CanvasControl inside columns
+   *
+   * This method returns both:
+   * - SECTION: entries for entire sections (all columns combined)
+   * - COLUMN: entries for individual columns within multi-column sections
    */
   private getSections(): Array<[string, string, number]> {
-    const sections = new Array<[string, string, number]>();
-    const tabWebPartSection = $(this.domElement).closest("div." + this.properties.sectionClass);
+    const results = new Array<[string, string, number]>();
 
-    // Get the index of the section containing the tab webpart
-    const allSections = $("div." + this.properties.sectionClass);
-    let tabWebPartSectionIndex = -1;
-    allSections.each((index: number, element: HTMLElement) => {
-      if ($(element).is(tabWebPartSection)) {
-        tabWebPartSectionIndex = index;
-        return false; // break
-      }
+    // Find the PiCanvas web part to avoid moving itself
+    const tabWebPartElement = $(this.domElement).closest("div." + this.properties.webpartClass);
+    const tabWebPartZone = tabWebPartElement.closest('[data-automation-id="CanvasZone"]');
+    const tabWebPartSection = tabWebPartElement.closest('[data-automation-id="CanvasSection"], div.' + this.properties.sectionClass);
+    const tabWebPartColumn = tabWebPartElement.closest('[data-automation-id="CanvasColumn"], div.CanvasColumn, [data-automation-id="CanvasSection"], div.' + this.properties.sectionClass);
+
+    // --- Primary strategy: modern pages where CanvasZone is the row and CanvasSection are columns ---
+    const rowContainers = $('[data-automation-id="CanvasZone"]').filter((_idx: number, el: HTMLElement) => {
+      const $el = $(el);
+      const hasSection = $el.find('[data-automation-id="CanvasSection"]').length > 0;
+      const hasControlZone = $el.find('.ControlZone, [data-automation-id="CanvasControl"]').length > 0;
+      const isNested = $el.parent().closest('[data-automation-id="CanvasZone"]').length > 0;
+      return (hasSection || hasControlZone) && !isNested;
     });
 
-    allSections.each((index: number, element: HTMLElement) => {
-      const $element = $(element);
+    if (rowContainers.length > 0) {
+      rowContainers.each((rowIndex: number, element: HTMLElement) => {
+        const $row = $(element);
+        const sectionNum = rowIndex + 1;
 
-      // Don't include the section containing this tab webpart (compare by index)
-      if (index !== tabWebPartSectionIndex) {
-        const sectionNum = index + 1;
-        // Count web parts using multiple selectors for compatibility with different SharePoint versions
-        // Use the maximum count from different selector strategies
-        const countByClass = $element.find("div." + this.properties.webpartClass).length;
-        const countByDataAttr = $element.find('[data-automation-id="CanvasControl"]').length;
-        const countByNested = $element.find('.CanvasZone .ControlZone, .CanvasZone [data-automation-id="CanvasControl"]').length;
-        const webpartCount = Math.max(countByClass, countByDataAttr, countByNested);
+        // Count ALL web parts in this row (across all columns), excluding PiCanvas
+        const allWebparts = $row.find('.ControlZone, [data-automation-id="CanvasControl"]')
+          .filter((_i, wp: HTMLElement) => !tabWebPartElement.is(wp));
+        const totalWebpartCount = allWebparts.length;
 
-        // Only include sections that have webparts
-        if (webpartCount > 0) {
-          // Use index-based ID for consistent identification
-          const sectionId = `hillbilly-section-${index}`;
-          // Store it on the element for later reference during render
-          $element.attr("data-hillbilly-section-id", sectionId);
-
-          const sectionLabel = `>> Section ${sectionNum} (${webpartCount} web part${webpartCount !== 1 ? 's' : ''})`;
-          sections.push([`SECTION:${sectionId}`, sectionLabel, sectionNum]);
+        if (totalWebpartCount === 0) {
+          return; // continue
         }
+
+        // Mark the row so render() can find it later
+        const sectionId = `hillbilly-section-${rowIndex}`;
+        $row.attr("data-hillbilly-section-id", sectionId);
+
+        // Add the whole row as a SECTION option unless it contains PiCanvas
+        if (!$row.is(tabWebPartZone)) {
+          const sectionLabel = `▦ Section ${sectionNum} (${totalWebpartCount} web part${totalWebpartCount !== 1 ? 's' : ''})`;
+          results.push([`SECTION:${sectionId}`, sectionLabel, sectionNum]);
+        }
+
+        // Columns: commonly CanvasSection within the row. Also allow CanvasColumn just in case.
+        let columns = $row.find('[data-automation-id="CanvasSection"]');
+        if (columns.length === 0) {
+          columns = $row.find('[data-automation-id="CanvasColumn"], div.CanvasColumn');
+        }
+
+        // Only expose columns when there is more than one
+        if (columns.length > 1) {
+          columns.each((colIndex: number, colElement: HTMLElement) => {
+            const $col = $(colElement);
+
+            // Skip the column containing PiCanvas
+            if ($col.is(tabWebPartColumn)) {
+              return;
+            }
+
+            const colWebparts = $col.find('.ControlZone, [data-automation-id="CanvasControl"]')
+              .filter((_i, wp: HTMLElement) => !tabWebPartElement.is(wp));
+
+            if (colWebparts.length === 0) {
+              return;
+            }
+
+            const columnId = `hillbilly-column-${rowIndex}-${colIndex}`;
+            $col.attr("data-hillbilly-column-id", columnId);
+
+            const columnName = this.getColumnPositionName(colIndex, columns.length);
+            const columnLabel = `  ├ ${columnName} (${colWebparts.length} web part${colWebparts.length !== 1 ? 's' : ''})`;
+            results.push([`COLUMN:${columnId}`, columnLabel, sectionNum]);
+          });
+        }
+      });
+
+      return results;
+    }
+
+    // --- Fallback strategy: treat CanvasSection as sections directly (older or variant DOM) ---
+    const sections = $('[data-automation-id="CanvasSection"], div.' + this.properties.sectionClass);
+
+    sections.each((sectionIndex: number, element: HTMLElement) => {
+      const $section = $(element);
+      const sectionNum = sectionIndex + 1;
+
+      const sectionId = `hillbilly-section-${sectionIndex}`;
+      $section.attr("data-hillbilly-section-id", sectionId);
+
+      const allSectionWebparts = $section.find('.ControlZone, [data-automation-id="CanvasControl"]')
+        .filter((_i, wp: HTMLElement) => !tabWebPartElement.is(wp));
+      const webpartCount = allSectionWebparts.length;
+
+      if (webpartCount > 0 && !$section.is(tabWebPartSection)) {
+        const sectionLabel = `▦ Section ${sectionNum} (${webpartCount} web part${webpartCount !== 1 ? 's' : ''})`;
+        results.push([`SECTION:${sectionId}`, sectionLabel, sectionNum]);
+      }
+
+      // Columns inside the section (if present)
+      let columns = $section.find('[data-automation-id="CanvasColumn"], div.CanvasColumn');
+      if (columns.length === 0) {
+        columns = $section.find('[data-automation-id="CanvasSection"]');
+      }
+
+      if (columns.length > 1) {
+        columns.each((colIndex: number, colElement: HTMLElement) => {
+          const $col = $(colElement);
+          if ($col.is(tabWebPartColumn)) {
+            return;
+          }
+
+          const colWebparts = $col.find('.ControlZone, [data-automation-id="CanvasControl"]')
+            .filter((_i, wp: HTMLElement) => !tabWebPartElement.is(wp));
+
+          if (colWebparts.length === 0) {
+            return;
+          }
+
+          const columnId = `hillbilly-column-${sectionIndex}-${colIndex}`;
+          $col.attr("data-hillbilly-column-id", columnId);
+
+          const columnName = this.getColumnPositionName(colIndex, columns.length);
+          const columnLabel = `  ├ ${columnName} (${colWebparts.length} web part${colWebparts.length !== 1 ? 's' : ''})`;
+          results.push([`COLUMN:${columnId}`, columnLabel, sectionNum]);
+        });
       }
     });
 
-    return sections;
+    return results;
+  }
+
+  /**
+   * Get a human-readable name for a column position
+   */
+  private getColumnPositionName(colIndex: number, totalColumns: number): string {
+    if (totalColumns === 2) {
+      return colIndex === 0 ? 'Left Column' : 'Right Column';
+    } else if (totalColumns === 3) {
+      if (colIndex === 0) return 'Left Column';
+      if (colIndex === 1) return 'Center Column';
+      return 'Right Column';
+    } else {
+      return `Column ${colIndex + 1}`;
+    }
   }
 
   private getZones(): Array<[string, string, number]> {

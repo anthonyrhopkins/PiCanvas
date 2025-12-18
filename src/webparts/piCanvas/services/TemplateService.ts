@@ -20,10 +20,22 @@ export class TemplateService {
 
   private context: WebPartContext;
   private siteUrl: string;
+  private isWorkbench: boolean;
 
   constructor(context: WebPartContext) {
     this.context = context;
     this.siteUrl = context.pageContext.web.absoluteUrl;
+    // Detect workbench environment to avoid API calls that will fail
+    this.isWorkbench = this.detectWorkbenchEnvironment();
+  }
+
+  /**
+   * Detect if running in SharePoint workbench (local or online)
+   * API calls typically fail in workbench, so we skip them
+   */
+  private detectWorkbenchEnvironment(): boolean {
+    const url = window.location.href.toLowerCase();
+    return url.indexOf('workbench') !== -1 || url.indexOf('localhost') !== -1;
   }
 
   /**
@@ -100,6 +112,11 @@ export class TemplateService {
    * Check if Site Assets is accessible
    */
   public async checkSiteAssetsAccess(): Promise<boolean> {
+    // Skip API call in workbench - it will fail
+    if (this.isWorkbench) {
+      return false;
+    }
+
     try {
       const checkUrl = `${this.siteUrl}/_api/web/lists/getbytitle('Site Assets')`;
       const response = await this.context.spHttpClient.get(
@@ -191,6 +208,11 @@ export class TemplateService {
         fileName: `${t.templateId}.json`
       });
     });
+
+    // In workbench mode, only return built-in templates (skip API calls)
+    if (this.isWorkbench) {
+      return templates;
+    }
 
     // Load saved templates from Site Assets
     try {
