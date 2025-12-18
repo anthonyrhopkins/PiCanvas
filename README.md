@@ -1,6 +1,6 @@
 ![PiCanvas - Organize SharePoint web parts into tabs](assets/picanvas-social.png)
 
-![Version](https://img.shields.io/badge/Version-2.0.21.1-blue.svg)
+![Version](https://img.shields.io/badge/Version-2.1.21.1-blue.svg)
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.21.1-green.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2020%2B-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
@@ -20,11 +20,11 @@
 
 PiCanvas uses the format **2.x.yy.z** where:
 - **2** = Major version (this is a v2 upgrade of [Mark Rackley's Hillbilly Tabs](http://www.markrackley.net/2022/06/29/the-return-of-hillbilly-tabs/))
-- **x.yy.z** = Aligned with SPFx version (e.g., 2.0.21.1 = SPFx 1.21.1)
+- **x.yy.z** = Aligned with SPFx version (e.g., 2.1.21.1 = SPFx 1.21.1)
 
 This versioning honors the original author while indicating which SharePoint Framework version the solution is built on.
 
-**[Download Latest Release (v2.0.21.1)](https://github.com/anthonyrhopkins/PiCanvas/releases/download/v2.0.21.1/pi-canvas.sppkg)**
+**[Download Latest Release (v2.1.21.1)](https://github.com/anthonyrhopkins/PiCanvas/releases/download/v2.1.21.1/pi-canvas.sppkg)**
 
 ![PiCanvas Interface](docs/images/picanvas-hero.png)
 
@@ -462,7 +462,7 @@ All styling uses CSS custom properties for easy theming and overrides:
 
 ### Deploy to SharePoint
 
-1. **[Download pi-canvas.sppkg](https://github.com/anthonyrhopkins/PiCanvas/releases/download/v2.0.21.1/pi-canvas.sppkg)** from GitHub Releases
+1. **[Download pi-canvas.sppkg](https://github.com/anthonyrhopkins/PiCanvas/releases/download/v2.1.21.1/pi-canvas.sppkg)** from GitHub Releases
 2. Upload to your **App Catalog** > **Apps for SharePoint**
 3. Click **Deploy** when prompted
 4. Add the app to your site from **Site Contents > New > App**
