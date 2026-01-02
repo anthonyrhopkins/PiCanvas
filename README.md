@@ -1,9 +1,8 @@
 ![PiCanvas - Organize SharePoint web parts into tabs](assets/picanvas-social.png)
 
-![Version](https://img.shields.io/badge/Version-2.1.21.1-blue.svg)
-![SPFx Version](https://img.shields.io/badge/SPFx-1.21.1-green.svg)
-![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2020%2B-green.svg)
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Version](https://img.shields.io/badge/Version-2.3.0.0-blue.svg)
+![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
+![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2022%2B-green.svg)
 
 ## Table of Contents
 
@@ -20,11 +19,9 @@
 
 PiCanvas uses the format **2.x.yy.z** where:
 - **2** = Major version (this is a v2 upgrade of [Mark Rackley's Hillbilly Tabs](http://www.markrackley.net/2022/06/29/the-return-of-hillbilly-tabs/))
-- **x.yy.z** = Aligned with SPFx version (e.g., 2.1.21.1 = SPFx 1.21.1)
+- **x.yy.z** = Aligned with SPFx version (e.g., 2.2.22.0 = SPFx 1.22.0)
 
 This versioning honors the original author while indicating which SharePoint Framework version the solution is built on.
-
-**[Download Latest Release (v2.1.21.1)](https://github.com/anthonyrhopkins/PiCanvas/releases/download/v2.1.21.1/pi-canvas.sppkg)**
 
 ![PiCanvas Interface](docs/images/picanvas-hero.png)
 
@@ -79,6 +76,8 @@ Control every aspect of your tabs:
 
 <details>
 <summary>View Settings Panels</summary>
+
+Open the web part property pane and use the Colors, Typography, and Borders & Effects groups to reach these panels.
 
 | Colors | Typography | Borders & Effects |
 |--------|------------|-------------------|
@@ -203,6 +202,12 @@ Export and import PiCanvas configurations for consistent deployments across site
 
 ![Template Settings](docs/images/settings-templates.png)
 
+**How to use templates:**
+1. Open the web part property pane and expand **Templates**
+2. Choose a built-in template to apply it to the current web part
+3. Use the export/import controls to download or load a JSON template
+4. Optionally save templates to Site Assets for reuse across pages
+
 **Built-in Templates:**
 
 | Template | Tabs | Style | Description |
@@ -231,11 +236,11 @@ PiCanvas is a complete modernization of [Mark Rackley's Modern Hillbilly Tabs](h
 
 | Aspect | Original (Hillbilly Tabs) | PiCanvas 2.x |
 |--------|--------------------------|--------------|
-| SPFx Version | 1.13.1 (2021) | 1.21.1 (2025) |
-| Node.js | 14.x / 16.x | 18.x / 20.x / 22.x |
-| TypeScript | 3.9 | 5.3 |
+| SPFx Version | 1.13.1 (2021) | 1.22.0 (2026) |
+| Node.js | 14.x / 16.x | 18.17.1+ / 22.14+ |
+| TypeScript | 3.9 | 5.6 |
 | Linting | TSLint (deprecated) | ESLint |
-| Build Speed | Standard gulp | fast-serve (hot reload) |
+| Build Speed | Standard gulp | Heft build-watch |
 | Theme Support | None | Auto light/dark detection |
 | Tab Styles | 1 (default only) | 4 (default, pills, underline, boxed) |
 | Tab Alignment | None | 4 (left, center, right, stretch) |
@@ -439,9 +444,9 @@ All styling uses CSS custom properties for easy theming and overrides:
 | Improvement | Details |
 |-------------|---------|
 | **CSS Custom Properties** | 25+ `--pi-*` variables for complete theming |
-| **fast-serve** | Hot module replacement, ~2 second rebuilds |
+| **Heft dev server** | build-watch with HTTPS and manifest hosting |
 | **ESLint** | Modern linting with security rules (TSLint deprecated) |
-| **TypeScript 5.3** | Latest features with strict null checks enabled |
+| **TypeScript 5.6** | Latest features with strict null checks enabled |
 | **Web Part Detection** | Uses aria-labels, automation IDs, DOM analysis |
 | **Column Preservation** | CSS media queries maintain SharePoint grids |
 | **Responsive Breakpoints** | 640px (columns), 768px (vertical tabs) |
@@ -459,11 +464,17 @@ All styling uses CSS custom properties for easy theming and overrides:
 - SharePoint Online or SharePoint 2019+
 - Site Collection App Catalog or Tenant App Catalog
 - Site Collection Administrator permissions
+- Node.js 18.17.1+ or 22.14+
 
 ### Deploy to SharePoint
 
-1. **[Download pi-canvas.sppkg](https://github.com/anthonyrhopkins/PiCanvas/releases/download/v2.1.21.1/pi-canvas.sppkg)** from GitHub Releases
-2. Upload to your **App Catalog** > **Apps for SharePoint**
+Prebuilt packages are not provided; build the `.sppkg` locally.
+
+1. Build the package from source:
+   - `npm install`
+   - `npx heft build --production`
+   - `npx heft package-solution --production`
+2. Upload `sharepoint/solution/pi-canvas.sppkg` to your **App Catalog** > **Apps for SharePoint**
 3. Click **Deploy** when prompted
 4. Add the app to your site from **Site Contents > New > App**
 
@@ -502,7 +513,7 @@ m365 login
 m365 spo site appcatalog add --siteUrl https://zava.sharepoint.com/sites/yoursite
 ```
 
-Once provisioned, upload the `.sppkg` to the site's **Apps for SharePoint** library.
+Once provisioned, upload the packaged `.sppkg` from `sharepoint/solution/` to the site's **Apps for SharePoint** library.
 
 ### Add to a Page
 
@@ -521,10 +532,7 @@ Once provisioned, upload the `.sppkg` to the site's **Apps for SharePoint** libr
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18.17.1+ or v20+
-- [Gulp CLI](https://gulpjs.com/) - either:
-  - Use `npx gulp` (no install needed), or
-  - Install globally: `npm install -g gulp-cli`
+- [Node.js](https://nodejs.org/) v18.17.1+ or v22.14+
 
 ### Getting Started
 
@@ -540,31 +548,28 @@ npm install
 # Edit config/serve.json and set your SharePoint site URL:
 # "initialPage": "https://your-tenant.sharepoint.com/_layouts/15/workbench.aspx"
 
-# Start development server (fast-serve - recommended)
+# Start development server (Heft)
 npm run serve
-
-# Or use standard gulp serve
-npx gulp serve
 ```
 
-> **Note:** The `config/serve.json` file contains the workbench URL for local development. Update this to your own SharePoint tenant before running `npm run serve`.
+> **Note:** The `config/serve.json` file contains the workbench URL for local development. Update this to your own SharePoint tenant before running `npm run serve`. Heft serves the debug manifests from `/temp/build/manifests.js`.
+
+> **First run:** If prompted, run `npx heft trust-dev-cert` and trust the local certificate.
 
 ### Build for Production
 
 ```bash
 # Bundle for production
-npx gulp bundle --ship
+npx heft build --production
 
 # Create SharePoint package
-npx gulp package-solution --ship
+npx heft package-solution --production
 
 # Or as a one-liner
-npm install && npx gulp bundle --ship && npx gulp package-solution --ship
+npm install && npx heft build --production && npx heft package-solution --production
 ```
 
 The `.sppkg` file will be in `sharepoint/solution/`.
-
-> **Note:** If you installed gulp globally, you can use `gulp` instead of `npx gulp`.
 
 ### Project Structure
 
@@ -580,9 +585,11 @@ PiCanvas/
 │           └── loc/                         # Localization
 ├── config/
 │   ├── config.json                          # External dependencies
+│   ├── heft.json                            # Heft build pipeline
 │   ├── package-solution.json                # Solution packaging
+│   ├── rig.json                             # Heft rig definition
 │   └── serve.json                           # Dev server config
-├── fast-serve/                              # Fast development server
+│   └── webpack-patch/                       # Webpack customization
 └── package.json
 ```
 
@@ -631,6 +638,67 @@ PiCanvas/
 
 This is fixed in v2.1.0. The `AddTabs.js` now handles nested clickable elements properly with `preventDefault()` and `stopPropagation()`.
 
+### Mermaid diagrams not rendering (v2.2.21.2 fix)
+
+**Problem:** Mermaid diagrams failed to render with CSS selector errors like `Failed to execute 'querySelector' on 'Document': '#mermaid-xxx=' is not a valid selector`.
+
+**Cause:** The tab container IDs (used as part of mermaid element IDs) contained base64 characters including `=`, `+`, and `/` which are invalid in CSS selectors.
+
+**Solution:** Added `makeCssSafeId()` function in `ContentRenderer.ts` that sanitizes IDs by:
+- Replacing non-alphanumeric characters (except `-` and `_`) with hyphens
+- Ensuring IDs start with a letter (prefix `m-` if starting with digit)
+- Removing consecutive/leading/trailing hyphens
+
+```typescript
+// ContentRenderer.ts - CSS-safe ID generation
+private static makeCssSafeId(str: string): string {
+  let safeId = str.replace(/[^a-zA-Z0-9_-]/g, '-');
+  if (/^[0-9]/.test(safeId)) safeId = 'm-' + safeId;
+  return safeId.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+}
+```
+
+### "Error Unknown" popup in development workbench (v2.2.21.2 fix)
+
+**Problem:** When using `npm run serve` and testing in the SharePoint workbench, clicking "Add a new section" or performing other edit operations caused an "Error Unknown - rejectionHandler" popup from webpack-dev-server.
+
+**Cause:** This is **NOT a PiCanvas bug** - it's SharePoint's internal workbench code throwing unhandled Promise rejections. The errors originate from:
+- `sp-mysitecache` - SharePoint's personal cache API (`/_api/SP.UserProfiles.PersonalCache`)
+- `sp-webpart-workbench` - Workbench internal operations
+- `sp-canvas-legacy` - Canvas edit operations
+
+These are Microsoft's internal APIs failing when certain data isn't available in the workbench environment.
+
+**Solution:** Added comprehensive error suppression in `PiCanvasWebPart.ts` that only runs in DEBUG mode:
+
+1. **Event listener with capture phase** - Catches rejections before webpack's handler
+2. **Property descriptor override** - Wraps `window.onunhandledrejection`
+3. **Error event listener** - Catches additional error types
+4. **MutationObserver** - Removes overlay elements if they appear
+
+```typescript
+// Only active in development (DEBUG flag)
+if (DEBUG) {
+  window.addEventListener('unhandledrejection', (event) => {
+    if (isSharePointInternalError(event.reason)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      console.warn('[PiCanvas] Suppressed SharePoint internal error:', event.reason);
+    }
+  }, { capture: true });
+}
+```
+
+**Important:** These suppressions only affect development mode. Production builds don't include the DEBUG code, and real SharePoint pages don't have these issues because they have proper page context.
+
+### "Cannot read properties of undefined" in workbench preview
+
+**Problem:** Clicking "Preview" in the workbench shows "Something went wrong" with error `Cannot read properties of undefined (reading 'getPageBasicInfo')`.
+
+**Cause:** This is a SharePoint workbench bug in `sp-title-region-webpart`. The workbench doesn't have full page metadata, so internal SharePoint code fails when accessing page properties.
+
+**Solution:** No fix needed - this only affects the workbench preview mode, not real SharePoint pages. Test on actual SharePoint pages for accurate preview behavior.
+
 ---
 
 ## Table of Contents
@@ -644,12 +712,62 @@ This is fixed in v2.1.0. The `AddTabs.js` now handles nested clickable elements 
 
 ---
 
+## Changelog
+
+### v2.3.0.0 (January 2026)
+
+**Toolchain Upgrade:**
+- **SPFx 1.22.0** - Updated all SPFx packages and manifests
+- **Heft build system** - Replaced Gulp/fast-serve with RushStack Heft
+- **Webpack patches** - Migrated custom webpack changes into `config/webpack-patch/`
+
+**Developer Experience:**
+- `heft start` dev server with `/temp/build/manifests.js`
+- Heft rig configuration via `config/rig.json` and `config/heft.json`
+- jQuery import updated for `esModuleInterop`
+
+### v2.2.21.2 (December 2024)
+
+**Bug Fixes:**
+- **Mermaid CSS selector fix** - Fixed mermaid diagrams failing to render when tab container IDs contained base64 characters (`=`, `+`, `/`). Added `makeCssSafeId()` function to sanitize element IDs for CSS selector compatibility.
+- **Development workbench error suppression** - Added comprehensive suppression for SharePoint workbench internal errors that caused "Error Unknown - rejectionHandler" popups during development. These errors originate from Microsoft's internal APIs (`sp-mysitecache`, `sp-webpart-workbench`, `sp-canvas-legacy`) and are not PiCanvas bugs.
+
+**Technical Changes:**
+- `ContentRenderer.ts` - New `makeCssSafeId()` method for generating CSS-safe element IDs
+- `PiCanvasWebPart.ts` - Added DEBUG-only error suppression using:
+  - `unhandledrejection` event listener (capture phase)
+  - `window.onunhandledrejection` property descriptor override
+  - `error` event listener
+  - MutationObserver to remove webpack overlay elements
+- `fast-serve/webpack.extend.js` - Disabled error overlay (`overlay: false`)
+- `fast-serve/config.json` - Set `fullScreenErrors: false`
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| `src/webparts/piCanvas/services/ContentRenderer.ts` | Added `makeCssSafeId()` for CSS-safe mermaid IDs |
+| `src/webparts/piCanvas/PiCanvasWebPart.ts` | Added SharePoint workbench error suppression |
+| `fast-serve/webpack.extend.js` | Disabled webpack-dev-server overlay |
+| `fast-serve/config.json` | Disabled full-screen errors |
+
+### v2.1.21.1 (November 2024)
+
+- Initial public release
+- Full SPFx 1.21.1 compatibility
+- Permission-based tab visibility
+- Template system with export/import
+- Mermaid diagram support
+- 4 tab styles, vertical layouts
+- Theme auto-detection
+
+---
+
 ## Credits
 
 Based on [Modern Hillbilly Tabs](http://www.markrackley.net/2022/06/29/the-return-of-hillbilly-tabs/) by [Mark Rackley](http://www.markrackley.net/). Modernized and expanded by [@anthonyrhopkins](https://linkedin.com/in/anthonyrhopkins).
 
 ## License
 
-MIT - See [LICENSE](LICENSE) for details.
+MIT - This sample is licensed under the repository root MIT license.
 
 <img src="https://m365-visitor-stats.azurewebsites.net/sp-dev-fx-webparts/samples/react-tabbed-page-sections" />
