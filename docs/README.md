@@ -100,6 +100,16 @@ Vertical Layout:
 
 ---
 
+## Reuse Across Tabs and Instances
+
+PiCanvas can reuse the same web part in multiple tabs or across multiple PiCanvas web parts on the same page. It auto-clones the DOM and removes duplicate IDs to avoid conflicts, so you can build alternate views without duplicating content.
+
+**Typical uses:**
+- Show the same report under different tab labels
+- Include a shared "Overview" tab in multiple PiCanvas instances
+
+---
+
 ## Section Support
 
 Group entire page sections into single tabs.

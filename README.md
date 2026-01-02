@@ -32,6 +32,7 @@ This versioning honors the original author while indicating which SharePoint Fra
 - Build team hubs, dashboards, help desks, training portals
 - Group entire page sections (multi-column layouts) into tabs
 - Add multiple PiCanvas instances to one page for different tabbed areas
+- Reuse the same web part across multiple tabs or PiCanvas instances (auto-cloned)
 - **Show/hide tabs based on user permissions** (Owners, Members, Visitors, custom groups)
 - **Export/import configurations** with templates for consistent deployments
 
@@ -347,7 +348,7 @@ When selecting web parts in the property pane, they're highlighted on the page:
 | Feature | Description |
 |---------|-------------|
 | **Web Part as Label** | Use Image, Text, or any web part as tab header |
-| **Reuse Web Parts** | Same web part for label AND content (auto-clones) |
+| **Reuse Web Parts** | Reuse the same web part across tabs or instances (auto-clones) |
 | **Tab Dividers** | Gradient separators between tabs |
 | **Vertical Tabs** | Left/right side with responsive stacking |
 | **Icon Picker** | 30+ emoji icons (🏠 📅 📄 📊 ⚙️ etc.) |
