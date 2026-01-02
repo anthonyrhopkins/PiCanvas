@@ -741,17 +741,6 @@ if (DEBUG) {
 
 ---
 
-## Table of Contents
-
-- [Features](#features) — Tabbed layouts, customization, permissions, templates
-- [What's New in v2.x](#whats-new-in-v2x) — Version comparison, new capabilities
-- [Installation](#installation) — Deploy to SharePoint, guest user access
-- [Development](#development) — Local setup, build commands, project structure
-- [Configuration Reference](#configuration-reference) — Property pane groups, CSS variables
-- [Troubleshooting](#troubleshooting) — Common issues and solutions
-
----
-
 ## Changelog
 
 ### v2.3.0.0 (January 2026)
@@ -789,21 +778,7 @@ if (DEBUG) {
 
 **Technical Changes:**
 - `ContentRenderer.ts` - New `makeCssSafeId()` method for generating CSS-safe element IDs
-- `PiCanvasWebPart.ts` - Added DEBUG-only error suppression using:
-  - `unhandledrejection` event listener (capture phase)
-  - `window.onunhandledrejection` property descriptor override
-  - `error` event listener
-  - MutationObserver to remove webpack overlay elements
-- `fast-serve/webpack.extend.js` - Disabled error overlay (`overlay: false`)
-- `fast-serve/config.json` - Set `fullScreenErrors: false`
-
-**Files Modified:**
-| File | Change |
-|------|--------|
-| `src/webparts/piCanvas/services/ContentRenderer.ts` | Added `makeCssSafeId()` for CSS-safe mermaid IDs |
-| `src/webparts/piCanvas/PiCanvasWebPart.ts` | Added SharePoint workbench error suppression |
-| `fast-serve/webpack.extend.js` | Disabled webpack-dev-server overlay |
-| `fast-serve/config.json` | Disabled full-screen errors |
+- `PiCanvasWebPart.ts` - Added DEBUG-only error suppression for SharePoint workbench errors
 
 ### v2.1.21.1 (November 2024)
 
