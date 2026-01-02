@@ -1,4 +1,4 @@
-![PiCanvas - Organize SharePoint web parts into tabs](assets/picanvas-social.png)
+# PiCanvas
 
 ![Version](https://img.shields.io/badge/Version-2.3.0.0-blue.svg)
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
