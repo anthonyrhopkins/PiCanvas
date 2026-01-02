@@ -569,7 +569,6 @@ Save and share PiCanvas configurations across sites.
 | **Navigation Dock** | 5 | Pills | Vertical sidebar |
 | **Portal Hub** | 4 | Boxed | Department categories |
 | **Minimal** | 3 | Underline | Light, clean design |
-| **Dark Mode** | 3 | Pills | Pre-configured dark theme |
 
 ### Template Features
 
@@ -578,6 +577,7 @@ Save and share PiCanvas configurations across sites.
 - **Save to Site Assets** - Store templates in SharePoint for team sharing
 - **Includes all settings** - Tab labels, icons, images, permissions, styling, colors
 - **Content mapping preserved** - Web part assignments stay with templates
+- **Dark Mode preset** - Pre-configured dark theme
 
 ---
 

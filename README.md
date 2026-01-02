@@ -217,7 +217,6 @@ Export and import PiCanvas configurations for consistent deployments across site
 | Navigation Dock | 5 | Pills | Vertical left sidebar navigation |
 | Portal Hub | 4 | Boxed | Department hub with category tabs |
 | Minimal | 3 | Underline | Light, minimal design |
-| Dark Mode | 3 | Pills | Pre-configured dark theme |
 
 **Template Features:**
 - **Export to JSON** - Download complete configuration as JSON file
@@ -225,6 +224,7 @@ Export and import PiCanvas configurations for consistent deployments across site
 - **Save to Site Assets** - Store templates in SharePoint for team sharing
 - **Includes all settings** - Tab labels, icons, images, permissions, styling, colors
 - **Content mapping preserved** - Web part assignments stay with templates
+- **Dark Mode preset** - Pre-configured dark theme
 
 ---
 
