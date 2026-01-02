@@ -1,0 +1,146 @@
+{
+  "timestamp": "2025-12-19T12:49:23.624977",
+  "url": "https://pispace.sharepoint.com/_layouts/15/workbench.aspx",
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "duration_ms": 24899.546000000002
+  },
+  "tests": [
+    {
+      "name": "mermaid_content_type",
+      "passed": false,
+      "duration_ms": 24899.546000000002,
+      "error": null,
+      "screenshot": "screenshots/mermaid_content_type_20251219_124923.png",
+      "details": {
+        "content_type_found": false,
+        "mermaid_selected": false,
+        "v3_features_available": false,
+        "property_pane_open": true,
+        "labels_found": [
+          "Apply pre-built templates or export/import your configuration",
+          "\u26a0\ufe0f Site Assets not accessible. Saving templates to SharePoint is disabled, but you can still use Export/Import.",
+          "Apply Template",
+          "\u2500\u2500\u2500 Export / Import \u2500\u2500\u2500",
+          "Configure Tabs (1 web part detected)",
+          "\u2501\u2501\u2501 Tab 1 \u2501\u2501\u2501",
+          "Web Part",
+          "Label Type",
+          "Label",
+          "Add Icon"
+        ],
+        "debug_manifest": {
+          "debugManifestsPresent": true,
+          "manifestCount": 17,
+          "expectedFound": true,
+          "piCanvasAliases": [
+            "PiCanvasWebPart"
+          ],
+          "piCanvasIds": [
+            "6ea21f5d-41a3-4b5f-8744-3eea168ac88a"
+          ],
+          "error": null
+        }
+      }
+    }
+  ],
+  "console_errors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "time": "12:48:54"
+    },
+    {
+      "type": "pageerror",
+      "text": "login_required: AADSTS50058: A silent sign-in request was sent but none of the currently signed in user(s) match the requested login hint. Trace ID: 9573cb0e-54c9-4503-8ec3-2d3eb6806600 Correlation ID: cd9b9eff-3dce-4c2e-8df6-b6a6e457f1d3 Timestamp: 2025-12-19 17:49:08Z",
+      "time": "12:49:08"
+    },
+    {
+      "type": "pageerror",
+      "text": "undefined",
+      "time": "12:49:09"
+    },
+    {
+      "type": "pageerror",
+      "text": "undefined",
+      "time": "12:49:09"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:12"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:12"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:12"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:12"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:12"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:12"
+    },
+    {
+      "type": "error",
+      "text": "WebSocket connection to 'ws://localhost:4321/ws' failed: Connection closed before receiving a handshake response",
+      "time": "12:49:16"
+    },
+    {
+      "type": "error",
+      "text": "[webpack-dev-server] Event",
+      "time": "12:49:16"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 ()",
+      "time": "12:49:16"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:19"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:19"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:19"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:19"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:19"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "12:49:19"
+    }
+  ]
+}

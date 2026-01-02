@@ -1,0 +1,89 @@
+{
+  "timestamp": "2025-12-19T11:52:55.123427",
+  "url": "https://pispace.sharepoint.com/_layouts/15/workbench.aspx",
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "duration_ms": 7529.998
+  },
+  "tests": [
+    {
+      "name": "mermaid_content_type",
+      "passed": false,
+      "duration_ms": 7529.998,
+      "error": null,
+      "screenshot": "screenshots/mermaid_content_type_20251219_115254.png",
+      "details": {
+        "content_type_found": false,
+        "mermaid_selected": false,
+        "v3_features_available": false,
+        "property_pane_open": true,
+        "labels_found": [
+          "Apply pre-built templates or export/import your configuration",
+          "\u26a0\ufe0f Site Assets not accessible. Saving templates to SharePoint is disabled, but you can still use Export/Import.",
+          "Apply Template",
+          "\u2500\u2500\u2500 Export / Import \u2500\u2500\u2500",
+          "Configure Tabs (0 web parts detected)",
+          "\u2501\u2501\u2501 Tab 1 \u2501\u2501\u2501",
+          "Web Part",
+          "Label Type",
+          "Label",
+          "Add Icon"
+        ]
+      }
+    }
+  ],
+  "console_errors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "time": "11:52:40"
+    },
+    {
+      "type": "pageerror",
+      "text": "login_required: AADSTS50058: A silent sign-in request was sent but none of the currently signed in user(s) match the requested login hint. Trace ID: 79160439-1969-4729-a9f7-25d5f2de5f00 Correlation ID: e920dc12-71ca-45d1-a9d9-bedf48f064e0 Timestamp: 2025-12-19 16:52:48Z",
+      "time": "11:52:48"
+    },
+    {
+      "type": "pageerror",
+      "text": "undefined",
+      "time": "11:52:49"
+    },
+    {
+      "type": "pageerror",
+      "text": "undefined",
+      "time": "11:52:51"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "11:52:51"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "11:52:51"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "11:52:51"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "11:52:51"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "11:52:51"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "11:52:51"
+    }
+  ]
+}

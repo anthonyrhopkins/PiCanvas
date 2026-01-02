@@ -1,0 +1,96 @@
+{
+  "timestamp": "2025-12-18T01:51:35.964852",
+  "url": "https://pispace.sharepoint.com/_layouts/15/workbench.aspx",
+  "summary": {
+    "total": 4,
+    "passed": 3,
+    "failed": 1,
+    "duration_ms": 48282.451
+  },
+  "tests": [
+    {
+      "name": "workbench_loads",
+      "passed": true,
+      "duration_ms": 2096.652,
+      "error": null,
+      "screenshot": "screenshots/workbench_loads_20251218_015042.png",
+      "details": {
+        "inspection": {
+          "totalSections": 1,
+          "totalWebparts": 0,
+          "picanvasFound": false,
+          "details": [
+            {
+              "section": 1,
+              "columns": 1,
+              "webparts": 0,
+              "hillbillyId": null
+            }
+          ]
+        },
+        "unknown_errors": 0,
+        "total_errors": 6
+      }
+    },
+    {
+      "name": "add_section",
+      "passed": true,
+      "duration_ms": 3014.101,
+      "error": null,
+      "screenshot": "screenshots/add_section_20251218_015047.png",
+      "details": {
+        "sections_before": 1,
+        "sections_after": 2
+      }
+    },
+    {
+      "name": "section_as_tab",
+      "passed": true,
+      "duration_ms": 13110.322999999999,
+      "error": null,
+      "screenshot": "screenshots/section_as_tab_20251218_015103.png",
+      "details": {
+        "inspection": {
+          "totalSections": 4,
+          "totalWebparts": 3,
+          "picanvasFound": true,
+          "details": [
+            {
+              "section": 1,
+              "columns": 1,
+              "webparts": 0,
+              "hillbillyId": null
+            },
+            {
+              "section": 2,
+              "columns": 2,
+              "webparts": 3,
+              "hillbillyId": null
+            },
+            {
+              "section": 3,
+              "columns": 2,
+              "webparts": 0,
+              "hillbillyId": null
+            },
+            {
+              "section": 4,
+              "columns": 1,
+              "webparts": 0,
+              "hillbillyId": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "preview_mode",
+      "passed": false,
+      "duration_ms": 30061.375,
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"button:has-text('Preview')\")\n    - locator resolved to <button type=\"button\" name=\"Preview\" role=\"menuitem\" aria-label=\"Preview\" data-is-focusable=\"true\" data-sp-a11y-id=\"previewButton\" id=\"commandbar-item-preview-6-6106\" data-automationid=\"workbench-command-bar-preview\" data-automation-id=\"workbench-command-bar-preview\" title=\"Use to switch from edit mode to preview mode.\" class=\"fui-Button r1alrhcs ms-Button root-43 ms-Button--commandBar ms-ButtonShim--commandBar ms-CommandBarShimItem-button ms-CommandBarItem-link ms-CommandBarShimItem-link ___icf05d0 f\u2026>\u2026</button>\n  - attempting click action\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div aria-hidden=\"true\" class=\"fui-DialogSurface__backdrop r1e18s3l\"></div> from <div dir=\"ltr\" data-portal-node=\"true\" class=\"fui-FluentProvider17 ___1uxlrft f1euv43f f15twtuk f1vgc2s3 f1e31b4d f494woh\">\u2026</div> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div aria-hidden=\"true\" class=\"fui-DialogSurface__backdrop r1e18s3l\"></div> from <div dir=\"ltr\" data-portal-node=\"true\" class=\"fui-FluentProvider17 ___1uxlrft f1euv43f f15twtuk f1vgc2s3 f1e31b4d f494woh\">\u2026</div> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <div aria-hidden=\"true\" class=\"fui-DialogSurface__backdrop r1e18s3l\"></div> from <div dir=\"ltr\" data-portal-node=\"true\" class=\"fui-FluentProvider17 ___1uxlrft f1euv43f f15twtuk f1vgc2s3 f1e31b4d f494woh\">\u2026</div> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n",
+      "screenshot": null,
+      "details": {}
+    }
+  ],
+  "console_errors": []
+}

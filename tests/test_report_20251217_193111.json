@@ -1,0 +1,69 @@
+{
+  "timestamp": "2025-12-17T19:31:11.937310",
+  "url": "https://pispace.sharepoint.com/_layouts/15/workbench.aspx",
+  "summary": {
+    "total": 4,
+    "passed": 2,
+    "failed": 2,
+    "duration_ms": 188027.421
+  },
+  "tests": [
+    {
+      "name": "workbench_loads",
+      "passed": true,
+      "duration_ms": 2044.8529999999998,
+      "error": null,
+      "screenshot": "screenshots/workbench_loads_20251217_192701.png",
+      "details": {
+        "inspection": {
+          "totalSections": 1,
+          "totalWebparts": 0,
+          "picanvasFound": false,
+          "details": [
+            {
+              "section": 1,
+              "columns": 1,
+              "webparts": 0,
+              "hillbillyId": null
+            }
+          ]
+        },
+        "unknown_errors": 0,
+        "total_errors": 7
+      }
+    },
+    {
+      "name": "add_section",
+      "passed": false,
+      "duration_ms": 91217.146,
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"button[aria-label*='Add a new section']\").last\n    - locator resolved to <button aria-haspopup=\"true\" data-drag-hidden=\"true\" aria-label=\"Add a new section\" data-sp-a11y-class=\"ToolboxHint\" data-automation-id=\"toolboxHint-zone\" class=\"CanvasToolboxHint is-visible ZoneHint\">\u2026</button>\n  - attempting click action\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    59 \u00d7 waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n",
+      "screenshot": "screenshots/add_section_error_20251217_192836.png",
+      "details": {}
+    },
+    {
+      "name": "section_as_tab",
+      "passed": false,
+      "duration_ms": 91587.833,
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"button[aria-label*='Add a new section']\").last\n    - locator resolved to <button aria-haspopup=\"true\" data-drag-hidden=\"true\" aria-label=\"Add a new section\" data-sp-a11y-class=\"ToolboxHint\" data-automation-id=\"toolboxHint-zone\" class=\"CanvasToolboxHint is-visible ZoneHint\">\u2026</button>\n  - attempting click action\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    56 \u00d7 waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n    - waiting for\" https://pispace.sharepoint.com/_layouts/15/workbench.aspx\" navigation to finish...\n    - navigated to \"https://pispace.sharepoint.com/_layouts/15/workbench.aspx\"\n",
+      "screenshot": "screenshots/section_as_tab_error_20251217_193013.png",
+      "details": {}
+    },
+    {
+      "name": "preview_mode",
+      "passed": true,
+      "duration_ms": 3177.5890000000004,
+      "error": null,
+      "screenshot": "screenshots/preview_mode_20251217_193110.png",
+      "details": {
+        "preview_mode_detected": false
+      }
+    }
+  ],
+  "console_errors": [
+    {
+      "type": "error",
+      "text": "SyntaxError: Unexpected token 'T', \"The web pa\"... is not valid JSON\n    at JSON.parse (<anonymous>)\n    at de.render (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:296:27670)\n    at Ko (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:71449)\n    at Go (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:71248)\n    at Ks (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:111993)\n    at wc (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:98219)\n    at Cc (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:98147)\n    at xc (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:98010)\n    at hc (https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:94997)\n    at https://res-1.cdn.office.net/files/sp-client/sp-webpart-workbench-assembly_en-us_95f18de81cae5bb2c05e1324f6cdb35c.js:102:44853",
+      "time": "19:31:08"
+    }
+  ]
+}

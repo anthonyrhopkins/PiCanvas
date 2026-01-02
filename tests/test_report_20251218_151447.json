@@ -1,0 +1,79 @@
+{
+  "timestamp": "2025-12-18T15:14:47.978179",
+  "url": "https://pispace.sharepoint.com/_layouts/15/workbench.aspx",
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "duration_ms": 7573.146000000001
+  },
+  "tests": [
+    {
+      "name": "mermaid_content_type",
+      "passed": false,
+      "duration_ms": 7573.146000000001,
+      "error": null,
+      "screenshot": "screenshots/mermaid_content_type_20251218_151447.png",
+      "details": {
+        "content_type_found": false,
+        "mermaid_selected": false,
+        "v3_features_available": false,
+        "property_pane_open": true,
+        "labels_found": [
+          "Apply pre-built templates or export/import your configuration",
+          "\u26a0\ufe0f Site Assets not accessible. Saving templates to SharePoint is disabled, but you can still use Export/Import.",
+          "Apply Template",
+          "\u2500\u2500\u2500 Export / Import \u2500\u2500\u2500",
+          "Configure Tabs (0 web parts detected)",
+          "\u2501\u2501\u2501 Tab 1 \u2501\u2501\u2501",
+          "Web Part",
+          "Label Type",
+          "Label",
+          "Add Icon"
+        ]
+      }
+    }
+  ],
+  "console_errors": [
+    {
+      "type": "pageerror",
+      "text": "undefined",
+      "time": "15:14:42"
+    },
+    {
+      "type": "pageerror",
+      "text": "undefined",
+      "time": "15:14:44"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "15:14:44"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "15:14:44"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "15:14:44"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "15:14:44"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "15:14:44"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 406 ()",
+      "time": "15:14:44"
+    }
+  ]
+}
