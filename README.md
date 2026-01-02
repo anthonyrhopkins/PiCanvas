@@ -1,6 +1,6 @@
 # PiCanvas
 
-![Version](https://img.shields.io/badge/Version-2.3.0.0-blue.svg)
+![Version](https://img.shields.io/badge/Version-2.3-blue.svg)
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2022%2B-green.svg)
 
@@ -17,11 +17,7 @@
 
 ### Versioning
 
-PiCanvas uses the format **2.x.yy.z** where:
-- **2** = Major version (this is a v2 upgrade of [Mark Rackley's Hillbilly Tabs](http://www.markrackley.net/2022/06/29/the-return-of-hillbilly-tabs/))
-- **x.yy.z** = Aligned with SPFx version (e.g., 2.2.22.0 = SPFx 1.22.0)
-
-This versioning honors the original author while indicating which SharePoint Framework version the solution is built on.
+PiCanvas v2.x is a complete modernization of [Mark Rackley's Hillbilly Tabs](http://www.markrackley.net/2022/06/29/the-return-of-hillbilly-tabs/). The major version "2" honors the original author, while minor versions track feature releases.
 
 ![PiCanvas Interface](docs/images/picanvas-hero.png)
 
@@ -678,7 +674,7 @@ The Troubleshooting section in the property pane provides diagnostic tools when 
 
 This is fixed in v2.1.0. The `AddTabs.js` now handles nested clickable elements properly with `preventDefault()` and `stopPropagation()`.
 
-### Mermaid diagrams not rendering (v2.2.21.2 fix)
+### Mermaid diagrams not rendering (v2.2 fix)
 
 **Problem:** Mermaid diagrams failed to render with CSS selector errors like `Failed to execute 'querySelector' on 'Document': '#mermaid-xxx=' is not a valid selector`.
 
@@ -698,7 +694,7 @@ private static makeCssSafeId(str: string): string {
 }
 ```
 
-### "Error Unknown" popup in development workbench (v2.2.21.2 fix)
+### "Error Unknown" popup in development workbench (v2.2 fix)
 
 **Problem:** When using `npm run serve` and testing in the SharePoint workbench, clicking "Add a new section" or performing other edit operations caused an "Error Unknown - rejectionHandler" popup from webpack-dev-server.
 
@@ -743,7 +739,7 @@ if (DEBUG) {
 
 ## Changelog
 
-### v2.3.0.0 (January 2026)
+### v2.3 (January 2026)
 
 **New Features:**
 - **Multi-Instance Web Part Sharing** - Reuse the same web part across multiple PiCanvas instances on the same page. When a second PiCanvas references a web part already in use by another instance, PiCanvas automatically clones the DOM content. This enables scenarios like showing the same dashboard in different tab layouts across the page.
@@ -770,7 +766,7 @@ if (DEBUG) {
 - **Lazy loading compatibility** - Cloned images force-load by copying computed background styles, triggering resize events, and removing lazy-loading attributes
 - **Instance isolation** - Each PiCanvas instance maintains its own local registry while sharing a global registry for cross-instance coordination
 
-### v2.2.21.2 (December 2024)
+### v2.2 (December 2024)
 
 **Bug Fixes:**
 - **Mermaid CSS selector fix** - Fixed mermaid diagrams failing to render when tab container IDs contained base64 characters (`=`, `+`, `/`). Added `makeCssSafeId()` function to sanitize element IDs for CSS selector compatibility.
@@ -780,7 +776,7 @@ if (DEBUG) {
 - `ContentRenderer.ts` - New `makeCssSafeId()` method for generating CSS-safe element IDs
 - `PiCanvasWebPart.ts` - Added DEBUG-only error suppression for SharePoint workbench errors
 
-### v2.1.21.1 (November 2024)
+### v2.1 (November 2024)
 
 - Initial public release
 - Full SPFx 1.21.1 compatibility

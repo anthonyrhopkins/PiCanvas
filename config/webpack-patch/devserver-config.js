@@ -58,7 +58,7 @@ module.exports = function(webpackConfig) {
 
     // Health check endpoint
     devServer.app.get('/health', (req, res) => {
-      res.json({ status: 'ok', version: '2.3.0.0', toolchain: 'heft' });
+      res.json({ status: 'ok', version: '2.3.0', toolchain: 'heft' });
     });
 
     // Call existing middlewares if any
