@@ -1546,7 +1546,6 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                     // FORCE IMAGE LOADING: SharePoint uses lazy loading that doesn't trigger for cloned elements
                     // Copy ALL computed background-image styles from original to clone (not just inline)
                     $originalWebpart.find('*').each(function(i) {
-                      const $origEl = $(this);
                       const bgImage = window.getComputedStyle(this).backgroundImage;
                       if (bgImage && bgImage !== 'none') {
                         const $cloneEl = $clonedWebpart.find('*').eq(i);

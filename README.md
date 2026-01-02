@@ -197,6 +197,38 @@ Control which tabs users see based on their SharePoint group membership:
 - **Placeholder option** - Show disabled tab instead of hiding (configurable per tab)
 - **OR logic** - User in ANY specified group can see the tab
 
+### Multi-Instance Web Part Sharing
+
+Reuse the same web part across multiple PiCanvas instances or tabs on the same page:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Page with Two PiCanvas Instances                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────────────────────┐  ┌─────────────────────────────┐  │
+│  │ PiCanvas #1                 │  │ PiCanvas #2                 │  │
+│  │ [Overview] [Details]        │  │ [Summary] [Charts]          │  │
+│  │ ┌─────────────────────────┐ │  │ ┌─────────────────────────┐ │  │
+│  │ │ Image Web Part          │ │  │ │ Same Image (cloned)     │ │  │
+│  │ │ (original)              │ │  │ │                         │ │  │
+│  │ └─────────────────────────┘ │  │ └─────────────────────────┘ │  │
+│  └─────────────────────────────┘  └─────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**How it works:**
+- **First instance owns the original** - The web part moves to the first PiCanvas that references it
+- **Other instances receive clones** - Subsequent references get DOM clones with sanitized IDs
+- **Images auto-load** - Cloned images force-load by copying computed styles and triggering browser events
+- **No React state** - Cloning works for static content (images, text, dividers); interactive React components won't retain state
+
+**Use cases:**
+- Show the same dashboard image in different tab layouts
+- Display a company logo across multiple PiCanvas navigation areas
+- Reuse informational content without duplicating web parts
+
 ### Template System
 
 Export and import PiCanvas configurations for consistent deployments across sites:
@@ -348,7 +380,8 @@ When selecting web parts in the property pane, they're highlighted on the page:
 | Feature | Description |
 |---------|-------------|
 | **Web Part as Label** | Use Image, Text, or any web part as tab header |
-| **Reuse Web Parts** | Reuse the same web part across tabs or instances (auto-clones) |
+| **Multi-Instance Sharing** | Reuse web parts across multiple PiCanvas instances (auto-clones) |
+| **Cross-Tab Reuse** | Same web part can appear in multiple tabs within one PiCanvas |
 | **Tab Dividers** | Gradient separators between tabs |
 | **Vertical Tabs** | Left/right side with responsive stacking |
 | **Icon Picker** | 30+ emoji icons (🏠 📅 📄 📊 ⚙️ etc.) |
@@ -626,6 +659,8 @@ PiCanvas/
 
 ## Troubleshooting
 
+The Troubleshooting section in the property pane provides diagnostic tools when web parts aren't detected correctly. It includes Section Selector and Web Part Selector dropdowns to try different DOM query strategies, plus Reset buttons to restore defaults.
+
 ![Troubleshooting Settings](docs/images/settings-troubleshooting.png)
 
 ### Web parts not detected
@@ -717,15 +752,30 @@ if (DEBUG) {
 
 ### v2.3.0.0 (January 2026)
 
+**New Features:**
+- **Multi-Instance Web Part Sharing** - Reuse the same web part across multiple PiCanvas instances on the same page. When a second PiCanvas references a web part already in use by another instance, PiCanvas automatically clones the DOM content. This enables scenarios like showing the same dashboard in different tab layouts across the page.
+- **Cross-Tab Web Part Reuse** - Within a single PiCanvas, the same web part can now appear in multiple tabs. PiCanvas uses a "move first, share second" approach where the first tab owns the original element and subsequent tabs receive cloned copies.
+
 **Toolchain Upgrade:**
-- **SPFx 1.22.0** - Updated all SPFx packages and manifests
-- **Heft build system** - Replaced Gulp/fast-serve with RushStack Heft
-- **Webpack patches** - Migrated custom webpack changes into `config/webpack-patch/`
+- **SPFx 1.22.0** - Updated all SPFx packages and manifests to the latest SharePoint Framework version
+- **Heft build system** - Replaced Gulp and fast-serve with RushStack Heft for faster, more reliable builds
+- **Node.js 22.14+** - Added support for Node.js 22 LTS (Node 18.17.1+ still supported)
+- **TypeScript 5.6** - Updated to the latest TypeScript version with stricter type checking
+- **Webpack patches** - Migrated custom webpack changes into `config/webpack-patch/` for cleaner configuration
 
 **Developer Experience:**
-- `heft start` dev server with `/temp/build/manifests.js`
+- `npm run serve` now uses `heft build-watch --serve` with HTTPS manifest hosting
+- Debug manifests served from `/temp/build/manifests.js`
 - Heft rig configuration via `config/rig.json` and `config/heft.json`
-- jQuery import updated for `esModuleInterop`
+- jQuery import updated for `esModuleInterop` compatibility
+- Removed deprecated fast-serve and gulp dependencies
+- Cleaner project structure with Heft pipeline
+
+**Technical Improvements:**
+- **Global web part registry** - Static registry tracks which web parts are owned by which PiCanvas instance
+- **DOM cloning with ID sanitization** - Cloned elements receive unique ID suffixes to prevent conflicts
+- **Lazy loading compatibility** - Cloned images force-load by copying computed background styles, triggering resize events, and removing lazy-loading attributes
+- **Instance isolation** - Each PiCanvas instance maintains its own local registry while sharing a global registry for cross-instance coordination
 
 ### v2.2.21.2 (December 2024)
 

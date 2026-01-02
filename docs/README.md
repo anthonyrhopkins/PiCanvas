@@ -215,6 +215,8 @@ PiCanvas uses CSS custom properties for consistent theming:
 
 Control tab visibility based on SharePoint group membership.
 
+The Permission Settings panel in the property pane shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior (Hide completely or Show Placeholder).
+
 ![Permission Settings](images/settings-permissions.png)
 
 ### How It Works
@@ -561,6 +563,8 @@ kanban
 
 Save and share PiCanvas configurations across sites.
 
+The Templates panel in the property pane shows a dropdown of built-in templates (Classic, Dashboard, Navigation Dock, Portal Hub, Minimal), plus Export and Import buttons for JSON configuration files, and a "Save to Site Assets" option for team sharing.
+
 ![Template Settings](images/settings-templates.png)
 
 ### How to Use Templates
@@ -626,6 +630,8 @@ Prebuilt packages are not provided; build the `.sppkg` locally.
 
 ## Troubleshooting
 
+The Troubleshooting section in the property pane provides diagnostic tools when web parts aren't detected correctly. It includes Section Selector and Web Part Selector dropdowns to try different DOM query strategies, plus Reset buttons to restore defaults.
+
 ![Troubleshooting Settings](images/settings-troubleshooting.png)
 
 ### Web Parts Not Detected
@@ -676,6 +682,8 @@ Prebuilt packages are not provided; build the `.sppkg` locally.
 
 ### Colors
 
+The Colors panel provides color pickers for Accent Color, Tab Text Color, Active Tab Text Color, Tab Background, Active Tab Background, and Hover Background. Each setting has a color swatch preview and hex input field.
+
 ![Colors Settings](images/settings-colors.png)
 
 | Setting | Description |
@@ -689,6 +697,8 @@ Prebuilt packages are not provided; build the `.sppkg` locally.
 
 ### Typography & Spacing
 
+The Typography & Spacing panel contains sliders for Font Size (12-20px), Font Weight (400-700), Vertical Padding, Horizontal Padding, and Gap Between Tabs. Each slider shows the current value and updates the preview in real-time.
+
 ![Typography Settings](images/settings-typography.png)
 
 | Setting | Range | Default |
@@ -700,6 +710,8 @@ Prebuilt packages are not provided; build the `.sppkg` locally.
 | **Gap Between Tabs** | 0px - 20px | 0px |
 
 ### Borders & Effects
+
+The Borders & Effects panel includes sliders for Corner Radius and Active Indicator Width, a color picker for Indicator Color, a dropdown for Shadow Effect presets, and toggles for Show Tab Separators and Enable Animations.
 
 ![Borders Settings](images/settings-borders.png)
 
