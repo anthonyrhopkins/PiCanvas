@@ -163,6 +163,8 @@ Control which tabs users see based on their SharePoint group membership:
    - **Show Placeholder** - Tab visible but disabled with custom message
 6. Save changes - permissions apply immediately
 
+The Permission Settings panel shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior.
+
 ![Permission Settings](docs/images/settings-permissions.png)
 
 **Visibility Options:**
@@ -231,7 +233,9 @@ Reuse the same web part across multiple PiCanvas instances or tabs on the same p
 
 ### Template System
 
-Export and import PiCanvas configurations for consistent deployments across sites:
+Export and import PiCanvas configurations for consistent deployments across sites.
+
+The Templates panel in the property pane provides a dropdown of built-in templates (Classic, Dashboard, Navigation Dock, Portal Hub, Minimal), Export and Import buttons for JSON configuration files, and a "Save to Site Assets" option for team sharing.
 
 ![Template Settings](docs/images/settings-templates.png)
 
