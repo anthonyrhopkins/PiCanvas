@@ -587,11 +587,12 @@
    5. "Overlap" - image with overlapping text box
 */
 
-/* Base Banner container - must fill full width */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"],
-.hillbilly-tab-content [class*="bannerWebPart"],
-.hillbilly-tab-content [class*="BannerWebPart"],
-.hillbilly-tab-content .picanvas-banner-fixed {
+/* Base Banner container - must fill full width ONLY when NOT in contained mode */
+/* Use :not([data-fullwidth-banner="false"]) on parent to exclude contained banners */
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="BannerWebPart"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 100% !important;
@@ -600,21 +601,21 @@
   display: block !important;
 }
 
-/* CRITICAL: Force ALL nested elements within Banner to fill full width */
+/* CRITICAL: Force ALL nested elements within Banner to fill full width - ONLY in full-width mode */
 /* The JavaScript clears inline styles, CSS ensures they stay full width */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] *,
-.hillbilly-tab-content [class*="bannerWebPart"] *,
-.hillbilly-tab-content [class*="BannerWebPart"] *,
-.hillbilly-tab-content .picanvas-banner-fixed * {
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] *,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] *,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="BannerWebPart"] *,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed * {
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* All divs within Banner need explicit width reset */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] div,
-.hillbilly-tab-content [class*="bannerWebPart"] div,
-.hillbilly-tab-content [class*="BannerWebPart"] div,
-.hillbilly-tab-content .picanvas-banner-fixed div {
+/* All divs within Banner need explicit width reset - ONLY in full-width mode */
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] div,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] div,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="BannerWebPart"] div,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed div {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important; /* Allow flex items to shrink */
@@ -622,10 +623,10 @@
   flex-basis: 100% !important;
 }
 
-/* Background images must cover full container */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [style*="background-image"],
-.hillbilly-tab-content [class*="bannerWebPart"] [style*="background-image"],
-.hillbilly-tab-content .picanvas-banner-fixed [style*="background-image"] {
+/* Background images must cover full container - ONLY in full-width mode */
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [style*="background-image"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [style*="background-image"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed [style*="background-image"] {
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -633,48 +634,48 @@
   width: 100% !important;
 }
 
-/* Banner layout containers - handle all configuration types */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="root"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="container"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="wrapper"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="content"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="layout"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Layout"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="image"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Image"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="banner"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Banner"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="heading"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Heading"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="text"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Text"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="root"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="container"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="wrapper"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="content"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="layout"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Layout"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="image"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Image"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="banner"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Banner"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="heading"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Heading"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="text"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Text"] {
+/* Banner layout containers - handle all configuration types - ONLY in full-width mode */
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="root"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="container"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="wrapper"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="content"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="layout"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Layout"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="image"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Image"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="banner"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Banner"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="heading"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Heading"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="text"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Text"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="root"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="container"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="wrapper"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="content"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="layout"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Layout"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="image"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Image"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="banner"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Banner"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="heading"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Heading"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="text"],
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Text"] {
   width: 100% !important;
   max-width: 100% !important;
   flex: 1 1 100% !important;
   flex-basis: 100% !important;
 }
 
-/* Fix Banner picture/img elements to fill container */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] picture,
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] img,
-.hillbilly-tab-content [class*="bannerWebPart"] picture,
-.hillbilly-tab-content [class*="bannerWebPart"] img,
-.hillbilly-tab-content .picanvas-banner-fixed picture,
-.hillbilly-tab-content .picanvas-banner-fixed img {
+/* Fix Banner picture/img elements to fill container - ONLY in full-width mode */
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] picture,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] img,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] picture,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] img,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed picture,
+.hillbilly-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed img {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
@@ -950,7 +951,7 @@
   min-width: 0 !important;
   width: auto !important;
   padding: 16px;
-  overflow: auto;
+  overflow: visible;
 }
 
 /* ===== VERTICAL MODE STYLE ADJUSTMENTS ===== */
@@ -1598,4 +1599,172 @@
 .addui-Tabs-tab.hidden-label-tab,
 .addui-Tabs-tab[data-hidden-label="true"] {
   display: none !important;
+}
+
+/* ===== GLOBAL BANNER/HERO/PAGE TITLE FIXES ===== */
+/* These fixes apply to ALL Banner, Hero, and PageTitle webparts on pages
+   where PiCanvas is loaded, not just those inside tabs.
+
+   The issue: SharePoint uses max-width constraints on section containers
+   that prevent fullWidthImageLayout from actually being full width.
+
+   Key selectors discovered:
+   - CanvasZone-SectionContainer: Has max-width constraint (e.g. 1236px)
+   - CanvasSection: Inherits the constrained width
+   - CanvasControl: Further constrains
+   - fullWidthImageLayout: The actual image container */
+
+/* CRITICAL: Remove max-width constraint from section containers that have fullWidthImageLayout
+   ONLY when the banner is NOT in contained mode (picanvas-contained-banner class) */
+[data-automation-id="CanvasZone-SectionContainer"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-automation-id="CanvasSection"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-automation-id="CanvasControl"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* ControlZone containers that hold banner/title webparts - ONLY when NOT in contained mode */
+.ControlZone--control:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+.ControlZone:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* PageTitle / Banner with fullWidthImageLayout - ONLY when NOT in contained mode */
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+}
+
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) > div,
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) img {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Gradient overlay box - ensure it covers full width (only in full-width mode) */
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) [data-automation-id="gradientBox"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Force ALL parent containers of fullWidthImageLayout to be full width - ONLY when NOT contained */
+div:has(> [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Global Banner width fix - ensures banners fill their container - ONLY when NOT contained */
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner),
+[class*="bannerWebPart"]:not(.picanvas-contained-banner),
+[class*="BannerWebPart"]:not(.picanvas-contained-banner) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Clear stale width calculations from Banner nested containers - ONLY when NOT contained */
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div,
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div > div,
+[class*="bannerWebPart"]:not(.picanvas-contained-banner) > div,
+[class*="bannerWebPart"]:not(.picanvas-contained-banner) > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 100% !important;
+}
+
+/* Ensure Banner background images cover full width - ONLY when NOT contained */
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"],
+[class*="bannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"] {
+  width: 100% !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+/* Global Hero width fix */
+[data-automation-id="HeroWebPart"],
+[class*="heroWebPart"],
+[class*="HeroWebPart"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+[data-automation-id="HeroWebPart"] > div,
+[data-automation-id="HeroWebPart"] > div > div,
+[class*="heroWebPart"] > div,
+[class*="heroWebPart"] > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 100% !important;
+}
+
+/* ===== CONTAINED BANNER MODE ===== */
+/* When Banner Layout is set to "Contained (with margins)",
+   we constrain the banner to SharePoint's standard content width (1236px).
+
+   PROBLEM SOLVED: When PiCanvas is in a full-width section with supportsFlexibleLayout,
+   the tab content container expands to 100% viewport width. The previous scaling
+   approach (transform: scale()) didn't work because:
+   - scaleFactor = containerWidth / viewportWidth ≈ 1.0 when both are full-width
+   - This resulted in barely visible 3% reduction instead of proper containment
+
+   SOLUTION: Apply explicit max-width constraint matching SharePoint's standard
+   contained section width, regardless of the parent container's actual width. */
+
+/* Contained banner mode - constrain tab content to SharePoint's standard 1236px width */
+.hillbilly-tab-content[data-fullwidth-banner="false"] {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  max-width: 1236px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  overflow: hidden !important;
+  position: relative !important; /* Create containing block for absolutely positioned children */
+}
+
+/* CRITICAL: Override SharePoint's viewport-width tricks in contained mode */
+/* SharePoint banners use "width: 100vw; margin-left: calc(-50vw + 50%)" to escape containers */
+/* We must force them to use 100% of their container instead */
+.picanvas-contained-banner,
+.hillbilly-tab-content[data-fullwidth-banner="false"] [data-automation-id="fullWidthImageLayout"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
+}
+
+/* Force ALL nested elements to respect container width, not viewport */
+.hillbilly-tab-content[data-fullwidth-banner="false"] [data-automation-id="fullWidthImageLayout"] *,
+.hillbilly-tab-content[data-fullwidth-banner="false"] .picanvas-contained-banner * {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Override any calc() or vw-based widths in contained mode */
+.hillbilly-tab-content[data-fullwidth-banner="false"] [style*="100vw"],
+.hillbilly-tab-content[data-fullwidth-banner="false"] [style*="calc("] {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  left: 0 !important;
+  transform: none !important;
 }

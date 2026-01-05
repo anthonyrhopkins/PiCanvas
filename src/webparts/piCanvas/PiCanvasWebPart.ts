@@ -102,6 +102,7 @@ export interface IPiCanvasWebPartProps {
   // Features (v3.0.0+)
   enableDeepLinking: boolean;   // URL hash navigation (default: true)
   enableLazyLoading: boolean;   // Lazy load tab content (default: true)
+  enableFullWidthFix: boolean;  // Force banners to full-width (default: true) - set false for contained layout
 
   // Dynamic properties for tab configuration (tab1WebPartID, tab1Label, tab2WebPartID, tab2Label, etc.)
   // Also supports per-tab images: tab1Image (URL string), tab1ImagePosition, etc.
@@ -138,6 +139,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'PermissionPlaceholder',
     'PermissionPlaceholderText'
   ];
+
+  // LocalStorage key for PiCanvasLoader Application Customizer communication
+  private static readonly PICANVAS_STORAGE_KEY = 'picanvas-connected-webparts';
+  // CSS style ID injected by PiCanvasLoader to pre-hide webparts
+  private static readonly PREHIDE_STYLE_ID = 'picanvas-pre-hide-styles';
 
   private _zonesCache: Array<[string, string]> = [];
   private _currentHighlightedElement: HTMLElement | null = null;
@@ -187,6 +193,149 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   /**
+   * Inject CSS to hide connected webparts IMMEDIATELY in onInit().
+   * This runs before render() and prevents the flash of webparts at their original position.
+   */
+  private injectEarlyHidingStyles(): void {
+    try {
+      // Collect all webpart IDs from properties
+      const webpartIds: string[] = [];
+      const numTabs = this.properties.tabCount || 2;
+
+      for (let i = 1; i <= numTabs; i++) {
+        const webPartID = this.properties[`tab${i}WebPartID`] as string;
+        if (webPartID && webPartID.trim().length > 0) {
+          webpartIds.push(webPartID.trim());
+        }
+        // Also check label webpart IDs
+        const labelWebPartID = this.properties[`tab${i}LabelWebPartID`] as string;
+        if (labelWebPartID && labelWebPartID.trim().length > 0) {
+          webpartIds.push(labelWebPartID.trim());
+        }
+      }
+
+      if (webpartIds.length === 0) {
+        return;
+      }
+
+      console.log('[PiCanvas] Hiding webparts early:', webpartIds);
+
+      // Build CSS selectors - SharePoint uses these IDs directly on elements
+      const selectors = webpartIds.map(id => {
+        // Handle section/column references
+        if (id.startsWith('SECTION:') || id.startsWith('COLUMN:')) {
+          const parts = id.split(':');
+          if (parts[0] === 'SECTION') {
+            return `[data-hillbilly-section-id="${parts[1]}"]`;
+          } else {
+            return `[data-hillbilly-column-id="${parts[1]}"]`;
+          }
+        }
+        // Regular webpart ID
+        return `#${CSS.escape(id)}`;
+      });
+
+      // Create hiding CSS - use visibility:hidden to preserve layout space
+      // The webpart will be moved to tabs, then this style removed
+      const styleId = `picanvas-prehide-${this.instanceId}`;
+      let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+
+      const css = `
+        /* PiCanvas Pre-Hide: ${this.instanceId} */
+        ${selectors.join(',\n        ')} {
+          visibility: hidden !important;
+          opacity: 0 !important;
+        }
+      `;
+
+      if (styleElement) {
+        styleElement.textContent = css;
+      } else {
+        styleElement = document.createElement('style');
+        styleElement.id = styleId;
+        styleElement.textContent = css;
+        // Insert at top of head
+        const head = document.head || document.getElementsByTagName('head')[0];
+        if (head.firstChild) {
+          head.insertBefore(styleElement, head.firstChild);
+        } else {
+          head.appendChild(styleElement);
+        }
+      }
+    } catch (error) {
+      console.warn('[PiCanvas] Failed to inject early hiding styles:', error);
+    }
+  }
+
+  /**
+   * Save connected webpart IDs to localStorage for PiCanvasLoader Application Customizer.
+   * The customizer reads this on page load to pre-hide webparts before they render.
+   * @param webpartIds Array of webpart IDs connected to this PiCanvas instance
+   */
+  private saveConnectedWebpartsToStorage(webpartIds: string[]): void {
+    try {
+      const pageUrl = this.normalizePageUrl(window.location.pathname);
+      let allConnections: Record<string, string[]> = {};
+
+      // Read existing connections
+      const existing = localStorage.getItem(PiCanvasWebPart.PICANVAS_STORAGE_KEY);
+      if (existing) {
+        try {
+          allConnections = JSON.parse(existing);
+        } catch {
+          // Invalid JSON, reset
+          allConnections = {};
+        }
+      }
+
+      // Update connections for this page
+      // Merge with any existing connections from other PiCanvas instances on the same page
+      const existingIds = allConnections[pageUrl] || [];
+      const mergedIds = [...new Set([...existingIds, ...webpartIds])];
+      allConnections[pageUrl] = mergedIds.filter(id => id && id.trim().length > 0);
+
+      // Save back to localStorage
+      localStorage.setItem(PiCanvasWebPart.PICANVAS_STORAGE_KEY, JSON.stringify(allConnections));
+      console.log('[PiCanvas] Saved connected webparts to localStorage:', allConnections[pageUrl]);
+    } catch (error) {
+      // LocalStorage might be unavailable (private browsing, quota exceeded, etc.)
+      console.warn('[PiCanvas] Could not save connected webparts to localStorage:', error);
+    }
+  }
+
+  /**
+   * Normalize page URL for consistent localStorage key matching
+   */
+  private normalizePageUrl(url: string): string {
+    let normalized = url.split('?')[0].split('#')[0];
+    if (normalized.endsWith('/')) {
+      normalized = normalized.slice(0, -1);
+    }
+    return normalized.toLowerCase();
+  }
+
+  /**
+   * Remove pre-hide styles after webparts have been moved into tabs.
+   * This makes the webparts visible in their new location.
+   */
+  private removePreHideStyles(): void {
+    // Remove instance-specific pre-hide styles (from onInit)
+    const instanceStyleId = `picanvas-prehide-${this.instanceId}`;
+    const instanceStyle = document.getElementById(instanceStyleId);
+    if (instanceStyle) {
+      instanceStyle.remove();
+      console.log('[PiCanvas] Removed pre-hide styles for instance:', this.instanceId);
+    }
+
+    // Also remove any Application Customizer styles (if extension is used)
+    const extensionStyle = document.getElementById(PiCanvasWebPart.PREHIDE_STYLE_ID);
+    if (extensionStyle) {
+      extensionStyle.remove();
+      console.log('[PiCanvas] Removed extension pre-hide styles');
+    }
+  }
+
+  /**
    * Security: Validate and sanitize image URLs
    * Only allows http, https, and data URIs (for base64 images)
    * @param url - The URL to validate
@@ -208,6 +357,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   protected async onInit(): Promise<void> {
+    // IMMEDIATELY hide connected webparts before they render visibly
+    // This prevents the "flash" of webparts at their original position
+    this.injectEarlyHidingStyles();
+
     // Suppress unhandled promise rejections from SharePoint workbench internal code
     // These are not PiCanvas errors but trigger webpack-dev-server's error overlay
     // Only active in development mode (DEBUG flag is set by build process)
@@ -349,11 +502,6 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     // Load available templates in background (don't block init)
     this.loadAvailableTemplates().catch(err => {
       console.warn('Failed to load templates:', err);
-    });
-
-    // Load site-level embed allow list for custom content embeds (v3.0)
-    ContentRenderer.loadSiteAllowList(this.context).catch(err => {
-      console.warn('Failed to load embed allow list:', err);
     });
 
     // Wait for permission data to load before render (for correct filtering on first render)
@@ -940,6 +1088,298 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   /**
+   * Fix all Banner/Hero/PageTitle webparts on the page, not just those inside tabs.
+   * SharePoint webparts have inline flex styles with calculated pixel widths
+   * that cause gray gaps when container sizes change.
+   * This method clears those stale width calculations globally.
+   */
+  private fixGlobalBannerWebparts(): void {
+    const enableFullWidth = this.properties.enableFullWidthFix !== false;
+    console.log(`[PiCanvas] fixGlobalBannerWebparts: Mode=${enableFullWidth ? 'Full Width' : 'Contained'}`);
+
+    // Fix fullWidthImageLayout (used by PageTitle/Banner webparts) - CRITICAL
+    // IMPORTANT: Only fix elements OUTSIDE of PiCanvas tabs - elements inside tabs should
+    // be constrained to their tab container width, not expanded to full page width
+    const $fullWidthLayouts = $('[data-automation-id="fullWidthImageLayout"]');
+    let fixedCount = 0;
+    let containedCount = 0;
+
+    $fullWidthLayouts.each(function() {
+      const $layout = $(this);
+
+      // Check if this element is inside a PiCanvas tab
+      const $tabContent = $layout.closest('.hillbilly-tab-content');
+      const isInsideTab = $tabContent.length > 0;
+
+      // Determine if full-width should be applied:
+      // - For elements inside tabs: check the per-tab data-fullwidth-banner attribute
+      // - For elements outside tabs: use the global enableFullWidthFix setting
+      let shouldApplyFullWidth: boolean;
+
+      if (isInsideTab) {
+        // Per-tab setting: check data attribute (defaults to true if not set)
+        const tabFullWidthAttr = $tabContent.attr('data-fullwidth-banner');
+        shouldApplyFullWidth = tabFullWidthAttr !== 'false';
+      } else {
+        // Global setting for elements outside tabs
+        shouldApplyFullWidth = enableFullWidth;
+      }
+
+      // If full-width mode is DISABLED, ACTIVELY constrain the banner
+      // SharePoint banners default to full-width, so we must ADD containment styles
+      if (!shouldApplyFullWidth) {
+        containedCount++;
+
+        // CONTAINED MODE: Add CSS class AND clear viewport-relative inline styles
+        // SharePoint banners use tricks like "width: 100vw; margin-left: calc(-50vw + 50%)"
+        // to escape their container. We must clear these for CSS containment to work.
+        $layout.removeClass('picanvas-fullwidth-fixed');
+        $layout.addClass('picanvas-contained-banner');
+
+        // Clear viewport-relative styles from the layout element itself
+        const layoutEl = $layout[0] as HTMLElement;
+        const layoutWidth = layoutEl.style.width;
+        if (layoutWidth && (layoutWidth.includes('vw') || layoutWidth.includes('calc'))) {
+          layoutEl.style.removeProperty('width');
+        }
+        const layoutMarginLeft = layoutEl.style.marginLeft;
+        if (layoutMarginLeft && (layoutMarginLeft.includes('vw') || layoutMarginLeft.includes('calc'))) {
+          layoutEl.style.removeProperty('margin-left');
+        }
+        if (layoutEl.style.transform && layoutEl.style.transform.includes('translate')) {
+          layoutEl.style.removeProperty('transform');
+        }
+
+        // Clear viewport-relative styles from ALL nested elements
+        $layout.find('*').each(function() {
+          const el = this as HTMLElement;
+          const w = el.style.width;
+          if (w && (w.includes('vw') || w.includes('calc'))) {
+            el.style.removeProperty('width');
+          }
+          const ml = el.style.marginLeft;
+          if (ml && (ml.includes('vw') || ml.includes('calc'))) {
+            el.style.removeProperty('margin-left');
+          }
+          const mr = el.style.marginRight;
+          if (mr && (mr.includes('vw') || mr.includes('calc'))) {
+            el.style.removeProperty('margin-right');
+          }
+          if (el.style.transform && el.style.transform.includes('translate')) {
+            el.style.removeProperty('transform');
+          }
+          // Also clear left positioning that might be viewport-relative
+          const left = el.style.left;
+          if (left && (left.includes('vw') || left.includes('calc'))) {
+            el.style.removeProperty('left');
+          }
+        });
+
+        return; // Skip to next element (don't apply full-width fixes)
+      }
+
+      fixedCount++;
+
+      // Clear any containment class from when it was in contained mode
+      $layout.removeClass('picanvas-contained-banner');
+      // Remove containment-specific inline styles from layout element (including scaling styles)
+      const layoutEl = $layout[0] as HTMLElement;
+      if (layoutEl.style.getPropertyValue('overflow') === 'hidden') layoutEl.style.removeProperty('overflow');
+      if (layoutEl.style.getPropertyValue('transform')) layoutEl.style.removeProperty('transform');
+      if (layoutEl.style.getPropertyValue('transform-origin')) layoutEl.style.removeProperty('transform-origin');
+      if (layoutEl.style.getPropertyValue('width')) layoutEl.style.removeProperty('width');
+      if (layoutEl.style.getPropertyValue('max-width')) layoutEl.style.removeProperty('max-width');
+      if (layoutEl.style.getPropertyValue('position') === 'relative') layoutEl.style.removeProperty('position');
+      if (layoutEl.style.getPropertyValue('left') === '0') layoutEl.style.removeProperty('left');
+      if (layoutEl.style.getPropertyValue('right') === '0') layoutEl.style.removeProperty('right');
+
+      // Also clear parent's scaling-related styles (height, flexbox, overflow)
+      const parentEl = layoutEl.parentElement;
+      if (parentEl) {
+        if (parentEl.style.getPropertyValue('height')) parentEl.style.removeProperty('height');
+        if (parentEl.style.getPropertyValue('overflow') === 'hidden') parentEl.style.removeProperty('overflow');
+        if (parentEl.style.getPropertyValue('display') === 'flex') parentEl.style.removeProperty('display');
+        if (parentEl.style.getPropertyValue('justify-content')) parentEl.style.removeProperty('justify-content');
+      }
+
+      // Clear containment-specific styles from titleRegionBackgroundImage
+      $layout.find('[data-automation-id="titleRegionBackgroundImage"]').each(function() {
+        const bgEl = this as HTMLElement;
+        if (bgEl.style.getPropertyValue('position') === 'relative') bgEl.style.removeProperty('position');
+        if (bgEl.style.getPropertyValue('left') === '0px' || bgEl.style.getPropertyValue('left') === '0') bgEl.style.removeProperty('left');
+        if (bgEl.style.getPropertyValue('right') === '0px' || bgEl.style.getPropertyValue('right') === '0') bgEl.style.removeProperty('right');
+        if (bgEl.style.getPropertyValue('width')) bgEl.style.removeProperty('width');
+        if (bgEl.style.getPropertyValue('transform') === 'none') bgEl.style.removeProperty('transform');
+        if (bgEl.style.getPropertyValue('min-width') === '0px' || bgEl.style.getPropertyValue('min-width') === '0') bgEl.style.removeProperty('min-width');
+      });
+
+      // Clear containment-specific styles from gradientBox
+      $layout.find('[data-automation-id="gradientBox"]').each(function() {
+        const gradEl = this as HTMLElement;
+        if (gradEl.style.getPropertyValue('position') === 'relative') gradEl.style.removeProperty('position');
+        if (gradEl.style.getPropertyValue('left') === '0px' || gradEl.style.getPropertyValue('left') === '0') gradEl.style.removeProperty('left');
+        if (gradEl.style.getPropertyValue('right') === '0px' || gradEl.style.getPropertyValue('right') === '0') gradEl.style.removeProperty('right');
+        if (gradEl.style.getPropertyValue('transform') === 'none') gradEl.style.removeProperty('transform');
+      });
+
+      // Also clear containment-specific styles from FullWidthLayoutColumn (if it exists)
+      $layout.find('[data-automation-id="FullWidthLayoutColumn"]').each(function() {
+        const colEl = this as HTMLElement;
+        // Remove containment overrides so full-width can work
+        if (colEl.style.getPropertyValue('left') === '0px' || colEl.style.getPropertyValue('left') === '0') colEl.style.removeProperty('left');
+        if (colEl.style.getPropertyValue('right') === '0px' || colEl.style.getPropertyValue('right') === '0') colEl.style.removeProperty('right');
+        if (colEl.style.getPropertyValue('transform') === 'none') colEl.style.removeProperty('transform');
+      });
+
+      // CRITICAL: The constraint comes from CSS classes on parent containers, not inline styles
+      // We need to OVERRIDE the max-width by setting it explicitly, not just clearing
+      // Also need to remove padding from containers to achieve true full-bleed
+      // For elements inside tabs, stop at the tab content boundary
+      const stopSelector = isInsideTab ? '.hillbilly-tab-content' : '[data-automation-id="CanvasZone"]';
+      let $current: JQuery<HTMLElement> = $layout;
+      while ($current.length && !$current.is(stopSelector)) {
+        const el = $current[0] as HTMLElement;
+        const automationId = el.getAttribute('data-automation-id');
+
+        // For key containers, force full width and remove padding for full-bleed
+        if (automationId === 'CanvasZone-SectionContainer' ||
+            automationId === 'CanvasSection' ||
+            automationId === 'CanvasControl' ||
+            el.classList.contains('ControlZone') ||
+            el.classList.contains('ControlZone--control')) {
+          el.style.setProperty('width', '100%', 'important');
+          el.style.setProperty('max-width', 'none', 'important');
+          el.style.setProperty('padding-left', '0', 'important');
+          el.style.setProperty('padding-right', '0', 'important');
+          el.classList.add('picanvas-fullwidth-container');
+        } else {
+          // For other elements, just clear any stale pixel widths
+          if (el.style.width && el.style.width.includes('px')) el.style.width = '';
+          if (el.style.maxWidth && el.style.maxWidth.includes('px')) el.style.maxWidth = '';
+        }
+        $current = $current.parent() as JQuery<HTMLElement>;
+      }
+
+      // For elements outside tabs, also remove padding from CanvasZone itself for full-bleed
+      if (!isInsideTab) {
+        const canvasZone = $layout.closest('[data-automation-id="CanvasZone"]');
+        if (canvasZone.length) {
+          (canvasZone[0] as HTMLElement).style.setProperty('padding-left', '0', 'important');
+          (canvasZone[0] as HTMLElement).style.setProperty('padding-right', '0', 'important');
+          canvasZone.addClass('picanvas-fullwidth-container');
+        }
+      }
+
+      // Clear inline styles from all children too
+      $layout.find('*').each(function() {
+        const el = this as HTMLElement;
+        if (el.style.width && el.style.width.includes('px')) el.style.width = '';
+        if (el.style.maxWidth && el.style.maxWidth.includes('px')) el.style.maxWidth = '';
+      });
+
+      // Force the layout itself to be full width
+      ($layout[0] as HTMLElement).style.setProperty('width', '100%', 'important');
+      ($layout[0] as HTMLElement).style.setProperty('max-width', 'none', 'important');
+
+      // Mark as fixed
+      $layout.addClass('picanvas-fullwidth-fixed');
+      void ($layout[0] as HTMLElement).offsetHeight;
+    });
+
+    console.log(`[PiCanvas] fixGlobalBannerWebparts: Fixed ${fixedCount} full-width, ${containedCount} contained`);
+
+    // Fix gradientBox elements
+    const $gradientBoxes = $('[data-automation-id="gradientBox"]');
+    $gradientBoxes.each(function() {
+      const el = this as HTMLElement;
+      if (el.style.width && el.style.width.includes('px')) el.style.width = '';
+      if (el.style.maxWidth && el.style.maxWidth.includes('px')) el.style.maxWidth = '';
+    });
+
+    // Find all Banner webparts on the page
+    const $banners = $('[data-automation-id="BannerWebPart"], [class*="bannerWebPart"], [class*="BannerWebPart"]');
+
+    $banners.each(function() {
+      const $banner = $(this);
+
+      // Check if this banner is inside a PiCanvas tab with contained mode
+      const $tabContent = $banner.closest('.hillbilly-tab-content');
+      const isInsideTab = $tabContent.length > 0;
+      const isContained = isInsideTab && $tabContent.attr('data-fullwidth-banner') === 'false';
+
+      if (isContained) {
+        // Apply containment class to Banner - this handles "Image and Heading" layout
+        // which uses BannerWebPart but may not have fullWidthImageLayout attribute
+        $banner.addClass('picanvas-contained-banner');
+        $banner.removeClass('picanvas-banner-fixed');
+
+        // Clear any inline styles that might force full width
+        const bannerEl = $banner[0] as HTMLElement;
+        bannerEl.style.removeProperty('width');
+        bannerEl.style.removeProperty('max-width');
+        bannerEl.style.removeProperty('min-width');
+        bannerEl.style.removeProperty('transform');
+
+        // Clear nested elements too
+        $banner.find('*').each(function() {
+          const el = this as HTMLElement;
+          const inlineWidth = el.style.width;
+          if (inlineWidth && (inlineWidth.includes('vw') || inlineWidth.includes('calc') || inlineWidth.includes('100%'))) {
+            el.style.removeProperty('width');
+          }
+          if (el.style.transform && el.style.transform.includes('translate')) {
+            el.style.removeProperty('transform');
+          }
+        });
+      } else {
+        // Full-width mode: clear stale pixel widths but keep full-width behavior
+        $banner.removeClass('picanvas-contained-banner');
+
+        $banner.find('*').addBack().each(function() {
+          const el = this as HTMLElement;
+          const style = el.style;
+
+          // Clear width-related inline styles that may have stale pixel values
+          if (style.width && style.width.includes('px')) style.width = '';
+          if (style.maxWidth && style.maxWidth.includes('px')) style.maxWidth = '';
+          if (style.minWidth && style.minWidth.includes('px')) style.minWidth = '';
+          if (style.flex) style.flex = '';
+          if (style.flexBasis && style.flexBasis.includes('px')) style.flexBasis = '';
+        });
+
+        // Mark as fixed for CSS targeting
+        $banner.addClass('picanvas-banner-fixed');
+      }
+
+      // Force reflow
+      void ($banner[0] as HTMLElement).offsetHeight;
+    });
+
+    // Same for Hero webparts
+    const $heroes = $('[data-automation-id="HeroWebPart"], [class*="heroWebPart"], [class*="HeroWebPart"]');
+
+    $heroes.each(function() {
+      const $hero = $(this);
+
+      $hero.find('*').addBack().each(function() {
+        const el = this as HTMLElement;
+        const style = el.style;
+
+        if (style.width && style.width.includes('px')) style.width = '';
+        if (style.maxWidth && style.maxWidth.includes('px')) style.maxWidth = '';
+        if (style.minWidth && style.minWidth.includes('px')) style.minWidth = '';
+        if (style.flex) style.flex = '';
+        if (style.flexBasis && style.flexBasis.includes('px')) style.flexBasis = '';
+      });
+
+      $hero.addClass('picanvas-hero-fixed');
+      void ($hero[0] as HTMLElement).offsetHeight;
+    });
+
+    console.log(`[PiCanvas] fixGlobalBannerWebparts: Processed ${$banners.length} banners, ${$heroes.length} heroes`);
+  }
+
+  /**
    * Clear any existing highlight from the page
    */
   private clearHighlight(): void {
@@ -1215,6 +1655,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       // Build tabData from dynamic properties if tabData is empty or not set
       const thisTabData = this.getTabDataFromProperties();
+
+      // Save connected webpart IDs to localStorage for PiCanvasLoader extension
+      // This enables pre-hiding of webparts on next page load
+      const connectedWebpartIds = thisTabData
+        .filter(tab => tab.WebPartID && !tab.isPlaceholder)
+        .map(tab => tab.WebPartID);
+      if (connectedWebpartIds.length > 0) {
+        this.saveConnectedWebpartsToStorage(connectedWebpartIds);
+      }
+
       for(const x in thisTabData)
       {
         // Handle regular tabs (with WebPartID), placeholder tabs, and custom content tabs
@@ -1375,7 +1825,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               // Use different classes for sections/columns (preserve layout) vs individual webparts (full width)
               const contentClass = (isSection || isColumn) ? 'hillbilly-tab-content hillbilly-section-content' : 'hillbilly-tab-content hillbilly-single-webpart';
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              tabContentContainer = $(`<div class='${contentClass}' ${lazyAttr}></div>`);
+              // Per-tab full-width banner setting (defaults to true for backward compatibility)
+              const fullWidthBanner = this.properties[`tab${tabIndex}FullWidthBanner`] as boolean ?? true;
+              const fullWidthAttr = `data-fullwidth-banner="${fullWidthBanner}"`;
+              tabContentContainer = $(`<div class='${contentClass}' ${lazyAttr} ${fullWidthAttr}></div>`);
 
               if (isSection) {
                 const sectionId = thisTabData[x].WebPartID.substring(8); // Remove "SECTION:" prefix
@@ -1664,6 +2117,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // @ts-expect-error RenderTabs is defined in AddTabs.js
       RenderTabs();
 
+      // Remove pre-hide styles injected by PiCanvasLoader Application Customizer
+      // Now that webparts are in their tabs, they can be visible
+      this.removePreHideStyles();
+
       // Set up shared webpart handling - move webparts between tabs on tab change
       this.initializeSharedWebpartHandling(tabsDiv, usedElements);
 
@@ -1673,7 +2130,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         this.initializeMermaidDiagrams(tabsDiv);
         this.initializeDeepLinking(tabsDiv);
         this.initializeLazyLoadEvents(tabsDiv);
+
+        // Fix all Banner/Hero webparts on the page (not just those in tabs)
+        // This addresses gray area issues caused by stale width calculations
+        this.fixGlobalBannerWebparts();
       }, 100);
+
+      // Re-fix banners after a longer delay in case SharePoint's React re-renders
+      setTimeout(() => {
+        this.fixGlobalBannerWebparts();
+      }, 500);
 
       } else {
         const isDark = this.isDarkMode();
@@ -2924,18 +3390,6 @@ Note: Ensure proper sharing permissions are set.</div>
 3. Copy the embed URL from the code snippet:
    https://yourtenant.sharepoint.com/sites/.../embed.aspx?...</div>
 
-          <h3>Custom Domain Allow List</h3>
-          <p>Site administrators can add custom domains by creating a JSON file:</p>
-          <div class="${styles.detailDiagram}">Location: /SiteAssets/PiCanvas/embed-allowlist.json
-
-{
-  "allowedDomains": [
-    "custom-app.contoso.com",
-    "internal-tool.company.com",
-    "trusted-service.io"
-  ]
-}</div>
-
           <h3>Height Options</h3>
           <table class="${styles.detailTable}">
             <tr><th>Value</th><th>Use Case</th></tr>
@@ -2958,7 +3412,7 @@ Note: Ensure proper sharing permissions are set.</div>
           <h3>Troubleshooting</h3>
           <table class="${styles.detailTable}">
             <tr><th>Issue</th><th>Solution</th></tr>
-            <tr><td>Embed shows blocked message</td><td>Domain not in allow list - contact admin to add it</td></tr>
+            <tr><td>Embed shows blocked message</td><td>Domain not in PiCanvas default allow list - check SharePoint tenant settings for iframe domain restrictions</td></tr>
             <tr><td>Embed shows blank</td><td>Check if URL requires authentication or has sharing restrictions</td></tr>
             <tr><td>Content doesn't fit</td><td>Adjust the height setting or use percentage values</td></tr>
             <tr><td>Power BI not loading</td><td>Verify report sharing settings allow embedding</td></tr>
@@ -3634,13 +4088,24 @@ Note: Ensure proper sharing permissions are set.</div>
       { key: '', text: contentTypeFilter === 'section' ? '(None - skip this tab)' : '(None - skip this tab)' }
     ];
 
-    // Helper to add "already used" indicator - informational since cloning is supported
+    // Get the currently selected item and custom label for this tab
+    const currentTabWebPartID = forTabIndex ? this.properties[`tab${forTabIndex}WebPartID`] as string : '';
+    const currentTabCustomLabel = forTabIndex ? this.properties[`tab${forTabIndex}WebPartLabel`] as string : '';
+
+    // Helper to add "already used" indicator and custom label - informational since cloning is supported
     const addUsageIndicator = (text: string, itemKey: string): string => {
+      let result = text;
+
+      // If this is the currently selected item for this tab and it has a custom label, show it prominently
+      if (itemKey === currentTabWebPartID && currentTabCustomLabel) {
+        result = `★ ${currentTabCustomLabel} | ${text}`;
+      }
+
       const assignedToTab = assignedItems.get(itemKey);
       if (assignedToTab && assignedToTab !== forTabIndex) {
-        return `${text} 🔄 Also in Tab ${assignedToTab}`;
+        result = `${result} 🔄 Also in Tab ${assignedToTab}`;
       }
-      return text;
+      return result;
     };
 
     // Add sections (only if filter allows)
@@ -4191,6 +4656,15 @@ Note: Ensure proper sharing permissions are set.</div>
             selectedKey: this.properties[`tab${i}WebPartID`] as string || ''
           })
         );
+
+        // Custom label field for identification (optional)
+        fields.push(
+          PropertyPaneTextField(`tab${i}WebPartLabel`, {
+            label: 'Label (for identification)',
+            placeholder: 'e.g., "Main Hero Banner", "Team Links"',
+            description: 'Optional: helps you identify this selection'
+          })
+        );
       } else if (contentType === 'markdown' || contentType === 'html' || contentType === 'mermaid') {
         // Show custom content text field
         const placeholders: { [key: string]: string } = {
@@ -4324,6 +4798,18 @@ Note: Ensure proper sharing permissions are set.</div>
             checked: this.properties[`tab${i}DividerAfter`] as boolean || false,
             onText: 'Yes',
             offText: 'No'
+          })
+        );
+      }
+
+      // Full-width banner toggle - only show for webpart/section content types
+      if (contentType === 'webpart' || contentType === 'section') {
+        fields.push(
+          PropertyPaneToggle(`tab${i}FullWidthBanner`, {
+            label: `Banner Layout`,
+            checked: this.properties[`tab${i}FullWidthBanner`] as boolean ?? true,
+            onText: 'Full Width (edge-to-edge)',
+            offText: 'Contained (with margins)'
           })
         );
       }
@@ -4504,6 +4990,12 @@ Note: Ensure proper sharing permissions are set.</div>
                   checked: this.properties.enableLazyLoading !== false,
                   onText: 'Enabled',
                   offText: 'Disabled'
+                }),
+                PropertyPaneToggle('enableFullWidthFix', {
+                  label: 'Page Banner Layout (outside tabs)',
+                  checked: this.properties.enableFullWidthFix !== false,
+                  onText: 'Full Width (edge-to-edge)',
+                  offText: 'Contained (with margins)'
                 })
               ]
             },
