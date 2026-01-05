@@ -175,6 +175,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   private _permissionData: IPermissionCheckResult | null = null;
   private _permissionDataLoading: boolean = false;
 
+  // Position warnings: tracks which tabs have webparts positioned above PiCanvas
+  // Key = tab index, Value = warning message (empty = no warning)
+  private _positionWarnings: Map<number, string> = new Map();
+
   /**
    * Security: Encode HTML entities to prevent XSS attacks
    * @param str - The string to encode
@@ -190,6 +194,84 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Check if a webpart/section is positioned above PiCanvas in the DOM.
+   * Elements above PiCanvas may flash briefly before being hidden because
+   * they render before PiCanvas can move them into tabs.
+   * @param elementId - The webpart/section ID to check
+   * @returns 'above' if element is above PiCanvas, 'below' if below, 'unknown' if can't determine
+   */
+  private checkElementPosition(elementId: string): 'above' | 'below' | 'unknown' {
+    if (!elementId) return 'unknown';
+
+    try {
+      // Get PiCanvas container element
+      const piCanvasElement = this.domElement;
+      if (!piCanvasElement) return 'unknown';
+
+      // Find the target element
+      let targetElement: HTMLElement | null = null;
+
+      if (elementId.startsWith('SECTION:')) {
+        // Section selection - find by data attribute
+        const sectionId = elementId.replace('SECTION:', '');
+        targetElement = document.querySelector(`[data-picanvas-section-id="${sectionId}"]`) as HTMLElement;
+        if (!targetElement) {
+          // Try finding the actual section element
+          targetElement = document.querySelector(`.${this.properties.sectionClass || 'CanvasSection'}[data-section-id="${sectionId}"]`) as HTMLElement;
+        }
+      } else if (elementId.startsWith('COLUMN:')) {
+        // Column selection
+        const columnId = elementId.replace('COLUMN:', '');
+        targetElement = document.querySelector(`[data-picanvas-column-id="${columnId}"]`) as HTMLElement;
+      } else {
+        // Regular webpart - find by ID
+        targetElement = document.getElementById(elementId);
+      }
+
+      if (!targetElement) return 'unknown';
+
+      // Use compareDocumentPosition to determine relative position
+      // DOCUMENT_POSITION_PRECEDING (2) = target comes before PiCanvas
+      // DOCUMENT_POSITION_FOLLOWING (4) = target comes after PiCanvas
+      const position = piCanvasElement.compareDocumentPosition(targetElement);
+
+      if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+        return 'above'; // Target element comes before (above) PiCanvas in DOM
+      } else if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return 'below'; // Target element comes after (below) PiCanvas in DOM
+      }
+
+      return 'unknown';
+    } catch (error) {
+      console.warn('[PiCanvas] Could not determine element position:', error);
+      return 'unknown';
+    }
+  }
+
+  /**
+   * Update position warning for a specific tab based on selected webpart position.
+   * @param tabIndex - The tab index (1-based)
+   * @param elementId - The selected webpart/section ID
+   */
+  private updatePositionWarning(tabIndex: number, elementId: string): void {
+    if (!elementId) {
+      this._positionWarnings.delete(tabIndex);
+      return;
+    }
+
+    const position = this.checkElementPosition(elementId);
+
+    if (position === 'above') {
+      this._positionWarnings.set(
+        tabIndex,
+        '⚠️ This content is positioned above PiCanvas on the page. It may briefly flash at its original location before appearing in the tab. Consider moving PiCanvas higher on the page or moving this content below PiCanvas.'
+      );
+    } else {
+      this._positionWarnings.delete(tabIndex);
+    }
   }
 
   /**
@@ -1441,9 +1523,19 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     // Check if a tab content dropdown was changed
     if (propertyPath.match(/^tab\d+WebPartID$/)) {
       const selectedId = newValue as string;
-      // Use setTimeout to apply highlight after any DOM updates complete
+      const tabMatch = propertyPath.match(/^tab(\d+)WebPartID$/);
+      const tabIndex = tabMatch ? parseInt(tabMatch[1], 10) : 0;
+
+      // Use setTimeout to apply highlight and check position after any DOM updates complete
       setTimeout(() => {
         this.highlightElement(selectedId);
+
+        // Check if selected element is above PiCanvas and update warning
+        if (tabIndex > 0) {
+          this.updatePositionWarning(tabIndex, selectedId);
+          // Refresh property pane to show/hide warning
+          this.context.propertyPane.refresh();
+        }
       }, 100);
     }
 
@@ -1496,6 +1588,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
    */
   protected onPropertyPaneConfigurationStart(): void {
     this._isPropertyPaneOpen = true;
+
+    // Initialize position warnings for all configured tabs
+    const numTabs = this.properties.tabCount || 2;
+    for (let i = 1; i <= numTabs; i++) {
+      const webPartID = this.properties[`tab${i}WebPartID`] as string;
+      if (webPartID) {
+        this.updatePositionWarning(i, webPartID);
+      }
+    }
+
     this.render();
   }
 
@@ -4656,6 +4758,16 @@ Note: Ensure proper sharing permissions are set.</div>
             selectedKey: this.properties[`tab${i}WebPartID`] as string || ''
           })
         );
+
+        // Show position warning if this webpart is above PiCanvas
+        const positionWarning = this._positionWarnings.get(i);
+        if (positionWarning) {
+          fields.push(
+            PropertyPaneLabel(`tab${i}PositionWarning`, {
+              text: positionWarning
+            })
+          );
+        }
 
         // Custom label field for identification (optional)
         fields.push(
