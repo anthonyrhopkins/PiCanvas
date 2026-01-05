@@ -215,7 +215,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       let targetElement: HTMLElement | null = null;
 
       if (elementId.startsWith('SECTION:')) {
-        // Section selection - find by data attribute
+        // Section selection - find by data attribute (must match attribute set in render)
         const sectionId = elementId.replace('SECTION:', '');
         targetElement = document.querySelector(`[data-picanvas-section-id="${sectionId}"]`) as HTMLElement;
         if (!targetElement) {
@@ -223,7 +223,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           targetElement = document.querySelector(`.${this.properties.sectionClass || 'CanvasSection'}[data-section-id="${sectionId}"]`) as HTMLElement;
         }
       } else if (elementId.startsWith('COLUMN:')) {
-        // Column selection
+        // Column selection (must match attribute set in render)
         const columnId = elementId.replace('COLUMN:', '');
         targetElement = document.querySelector(`[data-picanvas-column-id="${columnId}"]`) as HTMLElement;
       } else {
@@ -303,14 +303,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       console.log('[PiCanvas] Hiding webparts early:', webpartIds);
 
       // Build CSS selectors - SharePoint uses these IDs directly on elements
+      // SECURITY: All IDs must be escaped to prevent CSS injection
       const selectors = webpartIds.map(id => {
         // Handle section/column references
         if (id.startsWith('SECTION:') || id.startsWith('COLUMN:')) {
           const parts = id.split(':');
+          const escapedId = CSS.escape(parts[1]);
           if (parts[0] === 'SECTION') {
-            return `[data-hillbilly-section-id="${parts[1]}"]`;
+            return `[data-picanvas-section-id="${escapedId}"]`;
           } else {
-            return `[data-hillbilly-column-id="${parts[1]}"]`;
+            return `[data-picanvas-column-id="${escapedId}"]`;
           }
         }
         // Regular webpart ID
@@ -790,7 +792,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     if (!$tabsContainer.length) return;
 
     // Listen for lazy load events from AddTabs.js
-    $tabsContainer.on('picanvas:lazy-load', '.hillbilly-tab-content', (e: JQuery.TriggeredEvent) => {
+    $tabsContainer.on('picanvas:lazy-load', '.picanvas-tab-content', (e: JQuery.TriggeredEvent) => {
       const $panel = $(e.currentTarget as HTMLElement);
 
       // Initialize mermaid diagrams in this panel
@@ -1190,7 +1192,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const $layout = $(this);
 
       // Check if this element is inside a PiCanvas tab
-      const $tabContent = $layout.closest('.hillbilly-tab-content');
+      const $tabContent = $layout.closest('.picanvas-tab-content');
       const isInsideTab = $tabContent.length > 0;
 
       // Determine if full-width should be applied:
@@ -1317,7 +1319,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // We need to OVERRIDE the max-width by setting it explicitly, not just clearing
       // Also need to remove padding from containers to achieve true full-bleed
       // For elements inside tabs, stop at the tab content boundary
-      const stopSelector = isInsideTab ? '.hillbilly-tab-content' : '[data-automation-id="CanvasZone"]';
+      const stopSelector = isInsideTab ? '.picanvas-tab-content' : '[data-automation-id="CanvasZone"]';
       let $current: JQuery<HTMLElement> = $layout;
       while ($current.length && !$current.is(stopSelector)) {
         const el = $current[0] as HTMLElement;
@@ -1366,6 +1368,78 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // Mark as fixed
       $layout.addClass('picanvas-fullwidth-fixed');
       void ($layout[0] as HTMLElement).offsetHeight;
+
+      // For banners inside PiCanvas tabs: prevent resize on scroll while showing full image
+      if (isInsideTab) {
+        const bannerLayoutEl = $layout[0] as HTMLElement;
+        let lockedHeight = 0;
+
+        const lockBannerAtNaturalHeight = (): void => {
+          // First, let the banner render at natural size
+          bannerLayoutEl.style.removeProperty('height');
+          bannerLayoutEl.style.removeProperty('overflow');
+
+          const bannerImg = $layout.find('img')[0] as HTMLImageElement;
+          if (bannerImg) {
+            bannerImg.style.setProperty('width', '100%', 'important');
+            bannerImg.style.setProperty('height', 'auto', 'important');
+            bannerImg.style.setProperty('object-fit', 'contain', 'important');
+          }
+
+          // Force reflow to get accurate dimensions
+          void bannerLayoutEl.offsetHeight;
+
+          // Now capture and lock the natural height (without overflow:hidden to avoid cropping)
+          setTimeout(() => {
+            const naturalHeight = bannerLayoutEl.offsetHeight;
+            if (naturalHeight > 0) {
+              lockedHeight = naturalHeight;
+              // Lock with min-height only - this prevents shrinking but allows content to show
+              bannerLayoutEl.style.setProperty('min-height', `${naturalHeight}px`, 'important');
+              $layout.addClass('picanvas-height-locked');
+              console.log(`[PiCanvas] Banner in tab: locked at natural height ${naturalHeight}px`);
+            }
+          }, 100);
+        };
+
+        // Use MutationObserver to prevent SharePoint from changing dimensions
+        const styleObserver = new MutationObserver(() => {
+          if (lockedHeight > 0) {
+            const currentMinHeight = parseInt(bannerLayoutEl.style.minHeight, 10);
+            if (isNaN(currentMinHeight) || currentMinHeight !== lockedHeight) {
+              bannerLayoutEl.style.setProperty('min-height', `${lockedHeight}px`, 'important');
+            }
+          }
+        });
+        styleObserver.observe(bannerLayoutEl, { attributes: true, attributeFilter: ['style'] });
+
+        // Check if banner image is already loaded
+        const $bannerImgCheck = $layout.find('img').first();
+        if ($bannerImgCheck.length) {
+          const bannerImgEl = $bannerImgCheck[0] as HTMLImageElement;
+          if (bannerImgEl.complete && bannerImgEl.naturalHeight > 0) {
+            lockBannerAtNaturalHeight();
+          } else {
+            $bannerImgCheck.on('load', lockBannerAtNaturalHeight);
+            setTimeout(lockBannerAtNaturalHeight, 1000);
+          }
+        } else {
+          lockBannerAtNaturalHeight();
+        }
+
+        // Re-lock on scroll events
+        let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+        const handleScroll = (): void => {
+          if (scrollTimeout) clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(() => {
+            if (lockedHeight > 0) {
+              bannerLayoutEl.style.setProperty('min-height', `${lockedHeight}px`, 'important');
+            }
+          }, 50);
+        };
+        const scrollContainer = document.querySelector('[data-automation-id="contentScrollRegion"]') || window;
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+      }
     });
 
     console.log(`[PiCanvas] fixGlobalBannerWebparts: Fixed ${fixedCount} full-width, ${containedCount} contained`);
@@ -1385,7 +1459,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const $banner = $(this);
 
       // Check if this banner is inside a PiCanvas tab with contained mode
-      const $tabContent = $banner.closest('.hillbilly-tab-content');
+      const $tabContent = $banner.closest('.picanvas-tab-content');
       const isInsideTab = $tabContent.length > 0;
       const isContained = isInsideTab && $tabContent.attr('data-fullwidth-banner') === 'false';
 
@@ -1466,12 +1540,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
    */
   private clearHighlight(): void {
     if (this._currentHighlightedElement) {
-      this._currentHighlightedElement.classList.remove('hillbilly-highlight', 'hillbilly-section-highlight');
+      this._currentHighlightedElement.classList.remove('picanvas-highlight', 'picanvas-section-highlight');
       this._currentHighlightedElement = null;
     }
     // Also clear any stray highlights using native DOM
-    document.querySelectorAll('.hillbilly-highlight, .hillbilly-section-highlight').forEach(el => {
-      el.classList.remove('hillbilly-highlight', 'hillbilly-section-highlight');
+    document.querySelectorAll('.picanvas-highlight, .picanvas-section-highlight').forEach(el => {
+      el.classList.remove('picanvas-highlight', 'picanvas-section-highlight');
     });
   }
 
@@ -1492,7 +1566,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     if (elementId.indexOf("SECTION:") === 0) {
       isSection = true;
       const sectionId = elementId.substring(8); // Remove "SECTION:" prefix
-      element = document.querySelector(`[data-hillbilly-section-id="${sectionId}"]`);
+      element = document.querySelector(`[data-picanvas-section-id="${sectionId}"]`);
     } else {
       // Individual webpart
       element = document.getElementById(elementId);
@@ -1500,7 +1574,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     if (element) {
       this._currentHighlightedElement = element;
-      const highlightClass = isSection ? 'hillbilly-section-highlight' : 'hillbilly-highlight';
+      const highlightClass = isSection ? 'picanvas-section-highlight' : 'picanvas-highlight';
       element.classList.add(highlightClass);
 
       // Scroll element into view smoothly
@@ -1737,8 +1811,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       this.domElement.innerHTML = `<div data-addui='tabs' data-tab-style='${tabStyle}' data-tab-alignment='${tabAlignment}' ${orientationAttrs} ${transitionsAttr} ${unlimitedImageAttr} ${contentOnlyAttr}><div role='tabs' id='${tabsDiv}'></div><div role='contents' id='${contentsDiv}'></div></div>`;
 
-      // IMPORTANT: Call getSections() to mark DOM elements with data-hillbilly-section-id
-      // and data-hillbilly-column-id BEFORE we try to find them in the render loop
+      // IMPORTANT: Call getSections() to mark DOM elements with data-picanvas-section-id
+      // and data-picanvas-column-id BEFORE we try to find them in the render loop
       this.getSections();
 
       // Track webparts/sections/columns that have been used within THIS instance
@@ -1873,7 +1947,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           if (isPlaceholder) {
             // Placeholder tab - show restricted message instead of content
             const placeholderMessage = this.encodeHtml(thisTabData[x].placeholderText || 'Restricted');
-            tabContentContainer = $(`<div class='hillbilly-tab-content hillbilly-placeholder-content'>
+            tabContentContainer = $(`<div class='picanvas-tab-content picanvas-placeholder-content'>
               <div class="placeholder-restricted-message">
                 <span class="placeholder-icon">&#128274;</span>
                 <span class="placeholder-text">${placeholderMessage}</span>
@@ -1891,14 +1965,14 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               const customContent = (this.properties[`tab${tabIndex}CustomContent`] as string) || '';
               const rendered = ContentRenderer.renderMarkdown(customContent);
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              tabContentContainer = $(`<div class='hillbilly-tab-content hillbilly-custom-content markdown-content' ${lazyAttr}>${rendered.html}</div>`);
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content markdown-content' ${lazyAttr}>${rendered.html}</div>`);
 
             } else if (contentType === 'html') {
               // Render HTML content (sanitized)
               const customContent = (this.properties[`tab${tabIndex}CustomContent`] as string) || '';
               const rendered = ContentRenderer.renderHtml(customContent);
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              tabContentContainer = $(`<div class='hillbilly-tab-content hillbilly-custom-content html-content' ${lazyAttr}>${rendered.html}</div>`);
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content html-content' ${lazyAttr}>${rendered.html}</div>`);
 
             } else if (contentType === 'mermaid') {
               // Render Mermaid diagram (requires post-render initialization)
@@ -1908,7 +1982,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               const mermaidId = `mermaid-${sanitizedTabsDiv}-${tabIndex}`;
               const rendered = ContentRenderer.prepareMermaid(customContent, mermaidId);
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              tabContentContainer = $(`<div class='hillbilly-tab-content hillbilly-custom-content mermaid-content' ${lazyAttr}>${rendered.html}</div>`);
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content mermaid-content' ${lazyAttr}>${rendered.html}</div>`);
 
             } else if (contentType === 'embed') {
               // Render embed iframe (URL validated against allow list)
@@ -1916,7 +1990,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               const embedHeight = (this.properties[`tab${tabIndex}EmbedHeight`] as string) || '400px';
               const rendered = ContentRenderer.renderEmbed({ url: embedUrl, height: embedHeight });
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              tabContentContainer = $(`<div class='hillbilly-tab-content hillbilly-custom-content embed-content' ${lazyAttr}>${rendered.html}</div>`);
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content embed-content' ${lazyAttr}>${rendered.html}</div>`);
 
             } else {
               // Default: webpart or section content type
@@ -1925,7 +1999,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               const isColumn = thisTabData[x].WebPartID.indexOf("COLUMN:") === 0;
 
               // Use different classes for sections/columns (preserve layout) vs individual webparts (full width)
-              const contentClass = (isSection || isColumn) ? 'hillbilly-tab-content hillbilly-section-content' : 'hillbilly-tab-content hillbilly-single-webpart';
+              const contentClass = (isSection || isColumn) ? 'picanvas-tab-content picanvas-section-content' : 'picanvas-tab-content picanvas-single-webpart';
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
               // Per-tab full-width banner setting (defaults to true for backward compatibility)
               const fullWidthBanner = this.properties[`tab${tabIndex}FullWidthBanner`] as boolean ?? true;
@@ -1973,7 +2047,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                   tabContentContainer.addClass('picanvas-shared-content');
                 } else {
                   // First use - find and move the original section
-                  let $section = $(`[data-hillbilly-section-id="${sectionId}"]`);
+                  let $section = $(`[data-picanvas-section-id="${sectionId}"]`);
                   if (!$section.length) {
                     $section = $(`[data-automation-id="${sectionId}"]`);
                   }
@@ -2040,7 +2114,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                   tabContentContainer.addClass('picanvas-shared-content');
                 } else {
                   // First use - find and move the original column
-                  let $column = $(`[data-hillbilly-column-id="${columnId}"]`);
+                  let $column = $(`[data-picanvas-column-id="${columnId}"]`);
                   if (!$column.length) {
                     $column = $(`[data-automation-id="${columnId}"]`);
                   }
@@ -3981,8 +4055,8 @@ Note: Ensure proper sharing permissions are set.</div>
         }
 
         // Mark the row so render() can find it later
-        const sectionId = `hillbilly-section-${rowIndex}`;
-        $row.attr("data-hillbilly-section-id", sectionId);
+        const sectionId = `picanvas-section-${rowIndex}`;
+        $row.attr("data-picanvas-section-id", sectionId);
 
         // Add the whole row as a SECTION option unless it contains PiCanvas
         if (!$row.is(tabWebPartZone)) {
@@ -4013,8 +4087,8 @@ Note: Ensure proper sharing permissions are set.</div>
               return;
             }
 
-            const columnId = `hillbilly-column-${rowIndex}-${colIndex}`;
-            $col.attr("data-hillbilly-column-id", columnId);
+            const columnId = `picanvas-column-${rowIndex}-${colIndex}`;
+            $col.attr("data-picanvas-column-id", columnId);
 
             const columnName = this.getColumnPositionName(colIndex, columns.length);
             const columnLabel = `  ├ ${columnName} (${colWebparts.length} web part${colWebparts.length !== 1 ? 's' : ''})`;
@@ -4033,8 +4107,8 @@ Note: Ensure proper sharing permissions are set.</div>
       const $section = $(element);
       const sectionNum = sectionIndex + 1;
 
-      const sectionId = `hillbilly-section-${sectionIndex}`;
-      $section.attr("data-hillbilly-section-id", sectionId);
+      const sectionId = `picanvas-section-${sectionIndex}`;
+      $section.attr("data-picanvas-section-id", sectionId);
 
       const allSectionWebparts = $section.find('.ControlZone, [data-automation-id="CanvasControl"]')
         .filter((_i, wp: HTMLElement) => !tabWebPartElement.is(wp));
@@ -4065,8 +4139,8 @@ Note: Ensure proper sharing permissions are set.</div>
             return;
           }
 
-          const columnId = `hillbilly-column-${sectionIndex}-${colIndex}`;
-          $col.attr("data-hillbilly-column-id", columnId);
+          const columnId = `picanvas-column-${sectionIndex}-${colIndex}`;
+          $col.attr("data-picanvas-column-id", columnId);
 
           const columnName = this.getColumnPositionName(colIndex, columns.length);
           const columnLabel = `  ├ ${columnName} (${colWebparts.length} web part${colWebparts.length !== 1 ? 's' : ''})`;

@@ -17,12 +17,12 @@ export default class PiCanvasLoaderApplicationCustomizer
   extends BaseApplicationCustomizer<IPiCanvasLoaderApplicationCustomizerProperties> {
 
   public onInit(): Promise<void> {
-    console.log('[PiCanvasLoader] Application Customizer initializing...');
+    Log.info(LOG_SOURCE, 'Application Customizer initializing...');
 
     // Inject hiding styles immediately on init (before render cycle)
     this.injectHidingStyles();
 
-    console.log('[PiCanvasLoader] Initialization complete');
+    Log.info(LOG_SOURCE, 'Initialization complete');
     return Promise.resolve();
   }
 
@@ -35,30 +35,30 @@ export default class PiCanvasLoaderApplicationCustomizer
     try {
       // Read connected webpart IDs from localStorage
       const storedData = localStorage.getItem(PICANVAS_STORAGE_KEY);
-      console.log('[PiCanvasLoader] localStorage data:', storedData);
+      Log.verbose(LOG_SOURCE, `localStorage data: ${storedData}`);
 
       if (!storedData) {
-        console.log('[PiCanvasLoader] No connected webparts found in localStorage');
+        Log.verbose(LOG_SOURCE, 'No connected webparts found in localStorage');
         return;
       }
 
       // Parse the stored data - format: { pageUrl: [webpartId1, webpartId2, ...], ... }
       const allConnections: Record<string, string[]> = JSON.parse(storedData);
-      console.log('[PiCanvasLoader] All connections:', allConnections);
+      Log.verbose(LOG_SOURCE, `All connections: ${JSON.stringify(allConnections)}`);
 
       // Get current page URL (normalized)
       const currentPageUrl = this.normalizePageUrl(window.location.pathname);
-      console.log('[PiCanvasLoader] Current page URL (normalized):', currentPageUrl);
+      Log.verbose(LOG_SOURCE, `Current page URL (normalized): ${currentPageUrl}`);
 
       // Get webpart IDs for current page
       const webpartIds = allConnections[currentPageUrl];
       if (!webpartIds || webpartIds.length === 0) {
-        console.log('[PiCanvasLoader] No connected webparts for page:', currentPageUrl);
-        console.log('[PiCanvasLoader] Available pages:', Object.keys(allConnections));
+        Log.verbose(LOG_SOURCE, `No connected webparts for page: ${currentPageUrl}`);
+        Log.verbose(LOG_SOURCE, `Available pages: ${Object.keys(allConnections).join(', ')}`);
         return;
       }
 
-      console.log('[PiCanvasLoader] Found webparts to hide:', webpartIds);
+      Log.info(LOG_SOURCE, `Found ${webpartIds.length} webparts to hide`);
 
       // Build CSS selectors to hide these webparts
       // SharePoint webpart IDs are set as element IDs in the DOM
@@ -67,12 +67,14 @@ export default class PiCanvasLoaderApplicationCustomizer
         .map(id => {
           // Handle both regular webpart IDs and section/column selectors
           if (id.startsWith('SECTION:') || id.startsWith('COLUMN:')) {
-            // Section/column uses data attributes
+            // Section/column uses data attributes (must match PiCanvasWebPart.ts)
+            // SECURITY: Escape the ID to prevent CSS injection from malicious localStorage data
             const parts = id.split(':');
+            const escapedId = CSS.escape(parts[1]);
             if (parts[0] === 'SECTION') {
-              return `[data-picanvas-section-id="${parts[1]}"]`;
+              return `[data-picanvas-section-id="${escapedId}"]`;
             } else {
-              return `[data-picanvas-column-id="${parts[1]}"]`;
+              return `[data-picanvas-column-id="${escapedId}"]`;
             }
           } else {
             // Regular webpart uses ID attribute
