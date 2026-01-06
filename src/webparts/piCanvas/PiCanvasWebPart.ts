@@ -1264,6 +1264,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       fixedCount++;
 
+      // CRITICAL: For banners OUTSIDE PiCanvas tabs, DO NOTHING!
+      // SharePoint handles full-width banners natively. Any modification we make
+      // can affect sibling webparts in the same column. Let SharePoint handle it.
+      if (!isInsideTab) {
+        console.log(`[PiCanvas] Banner outside tab: leaving untouched (SharePoint handles natively)`);
+        return; // Skip to next element - don't touch banners outside our tabs
+      }
+
+      // === ONLY FOR BANNERS INSIDE PICANVAS TABS ===
+
       // Clear any containment class from when it was in contained mode
       $layout.removeClass('picanvas-contained-banner');
       // Remove containment-specific inline styles from layout element (including scaling styles)
@@ -1315,58 +1325,28 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         if (colEl.style.getPropertyValue('transform') === 'none') colEl.style.removeProperty('transform');
       });
 
-      // CRITICAL FIX: For banners OUTSIDE PiCanvas tabs, DON'T modify shared parent containers
-      // like CanvasSection or CanvasZone-SectionContainer - this would affect ALL sibling webparts!
-      // SharePoint's native full-width mechanism (width: 100vw; margin-left: calc(-50vw + 50%))
-      // already handles full-width for banners. We only need to ensure we don't block it.
+      // For elements INSIDE tabs: We control the tab content, so we can modify up to tab boundary
+      const stopSelector = '.picanvas-tab-content';
+      let $current: JQuery<HTMLElement> = $layout;
+      while ($current.length && !$current.is(stopSelector)) {
+        const el = $current[0] as HTMLElement;
+        const automationId = el.getAttribute('data-automation-id');
 
-      if (isInsideTab) {
-        // For elements INSIDE tabs: We control the tab content, so we can modify up to tab boundary
-        const stopSelector = '.picanvas-tab-content';
-        let $current: JQuery<HTMLElement> = $layout;
-        while ($current.length && !$current.is(stopSelector)) {
-          const el = $current[0] as HTMLElement;
-          const automationId = el.getAttribute('data-automation-id');
-
-          // For key containers within our tab, force full width
-          if (automationId === 'CanvasControl' ||
-              el.classList.contains('ControlZone') ||
-              el.classList.contains('ControlZone--control')) {
-            el.style.setProperty('width', '100%', 'important');
-            el.style.setProperty('max-width', 'none', 'important');
-            el.style.setProperty('padding-left', '0', 'important');
-            el.style.setProperty('padding-right', '0', 'important');
-            el.classList.add('picanvas-fullwidth-container');
-          } else {
-            // For other elements, just clear any stale pixel widths
-            if (el.style.width && el.style.width.includes('px')) el.style.width = '';
-            if (el.style.maxWidth && el.style.maxWidth.includes('px')) el.style.maxWidth = '';
-          }
-          $current = $current.parent() as JQuery<HTMLElement>;
+        // For key containers within our tab, force full width
+        if (automationId === 'CanvasControl' ||
+            el.classList.contains('ControlZone') ||
+            el.classList.contains('ControlZone--control')) {
+          el.style.setProperty('width', '100%', 'important');
+          el.style.setProperty('max-width', 'none', 'important');
+          el.style.setProperty('padding-left', '0', 'important');
+          el.style.setProperty('padding-right', '0', 'important');
+          el.classList.add('picanvas-fullwidth-container');
+        } else {
+          // For other elements, just clear any stale pixel widths
+          if (el.style.width && el.style.width.includes('px')) el.style.width = '';
+          if (el.style.maxWidth && el.style.maxWidth.includes('px')) el.style.maxWidth = '';
         }
-      } else {
-        // For elements OUTSIDE tabs: Only modify the banner's own CanvasControl wrapper
-        // DO NOT touch CanvasSection or CanvasZone-SectionContainer - they're shared with siblings!
-        const $canvasControl = $layout.closest('[data-automation-id="CanvasControl"]');
-        if ($canvasControl.length) {
-          const controlEl = $canvasControl[0] as HTMLElement;
-          controlEl.style.setProperty('width', '100%', 'important');
-          controlEl.style.setProperty('max-width', 'none', 'important');
-          controlEl.style.setProperty('padding-left', '0', 'important');
-          controlEl.style.setProperty('padding-right', '0', 'important');
-          controlEl.classList.add('picanvas-fullwidth-container');
-        }
-
-        // Also handle ControlZone wrapper if present (direct parent of the webpart)
-        const $controlZone = $layout.closest('.ControlZone, .ControlZone--control');
-        if ($controlZone.length && !$controlZone.is($canvasControl)) {
-          const zoneEl = $controlZone[0] as HTMLElement;
-          zoneEl.style.setProperty('width', '100%', 'important');
-          zoneEl.style.setProperty('max-width', 'none', 'important');
-          zoneEl.classList.add('picanvas-fullwidth-container');
-        }
-
-        console.log(`[PiCanvas] Banner outside tab: only modifying banner's own CanvasControl, not shared containers`);
+        $current = $current.parent() as JQuery<HTMLElement>;
       }
 
       // Clear inline pixel widths from children (not viewport-relative styles which SP uses for full-width)
