@@ -8,8 +8,6 @@ import { marked } from 'marked';
 import mermaid from 'mermaid';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const DOMPurify = require('dompurify');
-import { SPHttpClient } from '@microsoft/sp-http';
-import { WebPartContext } from '@microsoft/sp-webpart-base';
 
 // Content type definitions
 export type ContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed';
@@ -28,7 +26,6 @@ export interface IRenderResult {
 
 export class ContentRenderer {
   private static mermaidInitialized = false;
-  private static siteAllowList: string[] | null = null;
 
   // Default trusted domains for embeds (Microsoft ecosystem + popular tools)
   private static readonly DEFAULT_TRUSTED_DOMAINS: string[] = [
@@ -80,40 +77,6 @@ export class ContentRenderer {
         fontFamily: '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif'
       });
       this.mermaidInitialized = true;
-    }
-  }
-
-  /**
-   * Load site-level embed allow list from Site Assets
-   * Config file: /SiteAssets/PiCanvas/embed-allowlist.json
-   * Format: { "allowedDomains": ["custom-app.com", "internal.contoso.com"] }
-   */
-  public static async loadSiteAllowList(context: WebPartContext): Promise<void> {
-    if (this.siteAllowList !== null) {
-      return; // Already loaded
-    }
-
-    try {
-      const configUrl = `${context.pageContext.web.absoluteUrl}/SiteAssets/PiCanvas/embed-allowlist.json`;
-      const response = await context.spHttpClient.get(configUrl, SPHttpClient.configurations.v1);
-
-      if (response.ok) {
-        const config = await response.json();
-        if (config && Array.isArray(config.allowedDomains)) {
-          this.siteAllowList = config.allowedDomains.filter(
-            (d: unknown) => typeof d === 'string' && d.length > 0
-          );
-          console.log('[PiCanvas] Loaded site embed allow list:', this.siteAllowList);
-        } else {
-          this.siteAllowList = [];
-        }
-      } else {
-        // File not found or not accessible - use empty list
-        this.siteAllowList = [];
-      }
-    } catch (error) {
-      console.warn('[PiCanvas] Could not load site embed allow list:', error);
-      this.siteAllowList = [];
     }
   }
 
@@ -301,7 +264,6 @@ export class ContentRenderer {
     // Combine all allowed domains
     const allAllowed = [
       ...this.DEFAULT_TRUSTED_DOMAINS,
-      ...(this.siteAllowList || []),
       ...additionalDomains
     ];
 
@@ -341,7 +303,6 @@ export class ContentRenderer {
   public static isDomainAllowed(domain: string, additionalDomains: string[] = []): boolean {
     const allAllowed = [
       ...this.DEFAULT_TRUSTED_DOMAINS,
-      ...(this.siteAllowList || []),
       ...additionalDomains
     ];
 
@@ -366,7 +327,6 @@ export class ContentRenderer {
   public static getAllowedDomains(additionalDomains: string[] = []): string[] {
     return [
       ...this.DEFAULT_TRUSTED_DOMAINS,
-      ...(this.siteAllowList || []),
       ...additionalDomains
     ];
   }

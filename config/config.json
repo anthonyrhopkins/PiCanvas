@@ -9,11 +9,20 @@
           "manifest": "./src/webparts/piCanvas/PiCanvasWebPart.manifest.json"
         }
       ]
+    },
+    "pi-canvas-loader-extension": {
+      "components": [
+        {
+          "entrypoint": "./lib/extensions/piCanvasLoader/PiCanvasLoaderApplicationCustomizer.js",
+          "manifest": "./src/extensions/piCanvasLoader/PiCanvasLoaderApplicationCustomizer.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},
   "localizedResources": {
     "PiCanvasWebPartStrings": "lib/webparts/piCanvas/loc/{locale}.js",
+    "PiCanvasLoaderApplicationCustomizerStrings": "lib/extensions/piCanvasLoader/loc/{locale}.js",
     "PropertyControlStrings": "node_modules/@pnp/spfx-property-controls/lib/loc/{locale}.js"
   }
 }
