@@ -205,12 +205,31 @@
   overflow: visible !important;
 }
 
+/* CRITICAL: overflow:hidden prevents SharePoint's viewport-escape CSS
+   (width: 100vw; margin-left: calc(-50vw + 50%)) from expanding the tab
+   beyond container bounds and pushing other content off screen */
+.addui-Tabs .addui-Tabs-contentHolder {
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  contain: layout style; /* Create containment context */
+}
+
 .addui-Tabs .addui-Tabs-content {
   display: none;
   margin-top: var(--pi-tab-content-gap, 0);
+  overflow: hidden;
+  max-width: 100%;
+  contain: layout style; /* Prevent child layouts from escaping */
 }
 
 .addui-Tabs .addui-Tabs-content.addui-Tabs-active { display: block; }
+
+/* CRITICAL: Ensure inactive tabs are ALWAYS hidden, even when other rules use !important */
+/* This overrides the contained banner mode (data-fullwidth-banner="false") display: flex rule */
+.addui-Tabs .addui-Tabs-content:not(.addui-Tabs-active) {
+  display: none !important;
+}
 
 /* ===== TAB ALIGNMENT STYLES ===== */
 
@@ -343,11 +362,29 @@
   box-shadow: var(--pi-tab-shadow);
 }
 
-/* Ensure tab content containers fill full width */
+/* Ensure tab content containers fill full width but don't expand beyond */
 .picanvas-tab-content {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box;
+  overflow: hidden;
+  contain: layout style; /* Prevent child viewport-escape from expanding container */
+}
+
+/* Force ALL children of tab content to respect container bounds */
+.picanvas-tab-content * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Override viewport-escape margins on ANY element - but NOT width to preserve image resolution */
+/* The container has overflow:hidden which clips the 100vw width naturally */
+.picanvas-tab-content [style*="100vw"],
+.picanvas-tab-content [style*="calc(-50vw"],
+.picanvas-tab-content [style*="calc( -50vw"] {
+  /* DO NOT set width - it affects SharePoint's image resolution calculation */
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* Force the content wrapper itself to be full width */
@@ -426,10 +463,31 @@
 }
 
 /* Images in sections should fit within their column */
+/* CRITICAL: Do NOT force width on images - let SharePoint set pixel dimensions for sharpness */
+/* Only use max-width to prevent overflow */
 .picanvas-tab-content.picanvas-section-content img {
-  max-width: 100%;
-  width: auto;
-  height: auto;
+  max-width: 100% !important;
+  /* DO NOT set width: 100% - causes blurriness by stretching images */
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Image webparts in sections - lock dimensions to prevent resize on visibility change */
+.picanvas-tab-content.picanvas-section-content [data-automation-id="imageWebPart"],
+.picanvas-tab-content.picanvas-section-content [class*="imageWebPart"],
+.picanvas-tab-content.picanvas-section-content [class*="ImageWebPart"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  transition: none !important;
+}
+
+/* Image webpart inner containers */
+.picanvas-tab-content.picanvas-section-content [data-automation-id="imageWebPart"] > div,
+.picanvas-tab-content.picanvas-section-content [class*="imageWebPart"] > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  transition: none !important;
 }
 
 /* Webparts inside section columns */
@@ -726,7 +784,7 @@
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
-  object-position: center !important;
+  /* Don't override object-position - preserve SharePoint's focal point setting */
 }
 
 /* SharePoint uses cB (Canvas Background) class patterns for hero backgrounds */
@@ -761,6 +819,23 @@
 /* Force visibility on img elements with loading="lazy" attribute */
 .picanvas-tab-content img[loading="lazy"] {
   content-visibility: auto;
+}
+
+/* CRITICAL: Disable all transitions on images inside tabs to prevent zoom animations */
+/* SharePoint applies transitions that cause unwanted visual effects when we fix banner styles */
+.picanvas-tab-content img,
+.picanvas-tab-content picture,
+.picanvas-tab-content [data-automation-id="fullWidthImageLayout"],
+.picanvas-tab-content [data-automation-id="fullWidthImageLayout"] *,
+.picanvas-tab-content [data-automation-id="HeroWebPart"] *,
+.picanvas-tab-content [data-automation-id="BannerWebPart"] *,
+.picanvas-tab-content [class*="heroWebPart"] *,
+.picanvas-tab-content [class*="bannerWebPart"] *,
+.picanvas-tab-content [data-automation-id="imageWebPart"] *,
+.picanvas-tab-content [class*="imageWebPart"] *,
+.picanvas-tab-content [class*="ImageWebPart"] * {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* Handle Hero layouts with flex containers */
@@ -1601,9 +1676,10 @@
   display: none !important;
 }
 
-/* ===== GLOBAL BANNER/HERO/PAGE TITLE FIXES ===== */
-/* These fixes apply to ALL Banner, Hero, and PageTitle webparts on pages
-   where PiCanvas is loaded, not just those inside tabs.
+/* ===== BANNER/HERO/PAGE TITLE FIXES INSIDE PICANVAS TABS ONLY ===== */
+/* These fixes apply ONLY to Banner, Hero, and PageTitle webparts that are
+   INSIDE PiCanvas tabs. We do NOT modify banners outside of tabs to avoid
+   affecting sibling webparts in the same section.
 
    The issue: SharePoint uses max-width constraints on section containers
    that prevent fullWidthImageLayout from actually being full width.
@@ -1614,39 +1690,43 @@
    - CanvasControl: Further constrains
    - fullWidthImageLayout: The actual image container */
 
-/* CRITICAL: Remove max-width constraint from section containers that have fullWidthImageLayout
-   ONLY when the banner is NOT in contained mode (picanvas-contained-banner class) */
-[data-automation-id="CanvasZone-SectionContainer"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+/* CRITICAL: These rules ONLY apply inside .picanvas-tab-content to avoid
+   affecting sibling webparts in sections outside of PiCanvas tabs */
+.picanvas-tab-content [data-automation-id="CanvasZone-SectionContainer"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
   max-width: 100% !important;
   width: 100% !important;
 }
 
-[data-automation-id="CanvasSection"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+.picanvas-tab-content [data-automation-id="CanvasSection"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
   max-width: 100% !important;
   width: 100% !important;
 }
 
-[data-automation-id="CanvasControl"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+.picanvas-tab-content [data-automation-id="CanvasControl"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
   max-width: 100% !important;
   width: 100% !important;
 }
 
-/* ControlZone containers that hold banner/title webparts - ONLY when NOT in contained mode */
-.ControlZone--control:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
-.ControlZone:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+/* ControlZone containers - ONLY inside PiCanvas tabs */
+.picanvas-tab-content .ControlZone--control:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+.picanvas-tab-content .ControlZone:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-/* PageTitle / Banner with fullWidthImageLayout - ONLY when NOT in contained mode */
-[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) {
+/* PageTitle / Banner with fullWidthImageLayout - ONLY inside PiCanvas tabs */
+/* CRITICAL: Must reset BOTH width AND margin-left to prevent viewport-escape */
+/* SharePoint uses "width: 100vw; margin-left: calc(-50vw + 50%)" to escape containers */
+.picanvas-tab-content [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
-[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) > div,
-[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) img {
+.picanvas-tab-content [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) > div,
+.picanvas-tab-content [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) img {
   width: 100% !important;
   max-width: 100% !important;
 }
@@ -1664,63 +1744,88 @@
   min-height: inherit !important;
 }
 
-/* Gradient overlay box - ensure it covers full width (only in full-width mode) */
-[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) [data-automation-id="gradientBox"] {
+/* Gradient overlay box - ONLY inside PiCanvas tabs */
+.picanvas-tab-content [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) [data-automation-id="gradientBox"] {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-/* Force ALL parent containers of fullWidthImageLayout to be full width - ONLY when NOT contained */
-div:has(> [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
-div:has(> div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
-div:has(> div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
-div:has(> div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
-div:has(> div > div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+/* Force parent containers of fullWidthImageLayout to be full width - ONLY inside PiCanvas tabs */
+.picanvas-tab-content div:has(> [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+.picanvas-tab-content div:has(> div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+.picanvas-tab-content div:has(> div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+.picanvas-tab-content div:has(> div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+.picanvas-tab-content div:has(> div > div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-/* Global Banner width fix - ensures banners fill their container - ONLY when NOT contained */
-[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner),
-[class*="bannerWebPart"]:not(.picanvas-contained-banner),
-[class*="BannerWebPart"]:not(.picanvas-contained-banner) {
+/* Banner width fix - ONLY inside PiCanvas tabs */
+.picanvas-tab-content [data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner),
+.picanvas-tab-content [class*="bannerWebPart"]:not(.picanvas-contained-banner),
+.picanvas-tab-content [class*="BannerWebPart"]:not(.picanvas-contained-banner) {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-/* Clear stale width calculations from Banner nested containers - ONLY when NOT contained */
-[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div,
-[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div > div,
-[class*="bannerWebPart"]:not(.picanvas-contained-banner) > div,
-[class*="bannerWebPart"]:not(.picanvas-contained-banner) > div > div {
+/* Clear stale width calculations from Banner nested containers - ONLY inside PiCanvas tabs */
+.picanvas-tab-content [data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div,
+.picanvas-tab-content [data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div > div,
+.picanvas-tab-content [class*="bannerWebPart"]:not(.picanvas-contained-banner) > div,
+.picanvas-tab-content [class*="bannerWebPart"]:not(.picanvas-contained-banner) > div > div {
   width: 100% !important;
   max-width: 100% !important;
   flex: 1 1 100% !important;
 }
 
-/* Ensure Banner background images cover full width - ONLY when NOT contained */
-[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"],
-[class*="bannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"] {
+/* Ensure Banner background images cover full width - ONLY inside PiCanvas tabs */
+.picanvas-tab-content [data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"],
+.picanvas-tab-content [class*="bannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"] {
   width: 100% !important;
   background-size: cover !important;
   background-position: center !important;
 }
 
-/* Global Hero width fix */
-[data-automation-id="HeroWebPart"],
-[class*="heroWebPart"],
-[class*="HeroWebPart"] {
+/* Hero width fix - ONLY inside PiCanvas tabs */
+.picanvas-tab-content [data-automation-id="HeroWebPart"],
+.picanvas-tab-content [class*="heroWebPart"],
+.picanvas-tab-content [class*="HeroWebPart"] {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-[data-automation-id="HeroWebPart"] > div,
-[data-automation-id="HeroWebPart"] > div > div,
-[class*="heroWebPart"] > div,
-[class*="heroWebPart"] > div > div {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] > div,
+.picanvas-tab-content [data-automation-id="HeroWebPart"] > div > div,
+.picanvas-tab-content [class*="heroWebPart"] > div,
+.picanvas-tab-content [class*="heroWebPart"] > div > div {
   width: 100% !important;
   max-width: 100% !important;
   flex: 1 1 100% !important;
+}
+
+/* ===== GLOBAL FULL-WIDTH BANNER WEBPART FIX ===== */
+/* When a Banner webpart with image+text mode (fullWidthImageLayout) is placed outside
+   PiCanvas tabs, SharePoint's CanvasZone-SectionContainer constrains it to 1236px.
+
+   SOLUTION: Use viewport-width CSS tricks to make Banner webparts escape their container
+   and span the full viewport width. This ONLY targets Banner webparts specifically. */
+
+/* Make Banner webparts full-width using viewport-escaping CSS
+   ONLY applies to banners OUTSIDE of .picanvas-tab-content */
+[data-automation-id="CanvasControl"]:has([data-automation-id="fullWidthImageLayout"]):not(.picanvas-tab-content [data-automation-id="CanvasControl"]) [data-automation-id="fullWidthImageLayout"] {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin-left: calc(-50vw + 50%) !important;
+  margin-right: calc(-50vw + 50%) !important;
+  position: relative !important;
+}
+
+/* Constrain sibling (non-banner) webparts in sections that contain full-width banners
+   This keeps text webparts centered at 1236px while banners are full-width */
+[data-automation-id="CanvasSection"]:not(.picanvas-tab-content [data-automation-id="CanvasSection"]):has([data-automation-id="fullWidthImageLayout"]) [data-automation-id="CanvasControl"]:not(:has([data-automation-id="fullWidthImageLayout"])) {
+  max-width: 1236px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* ===== CONTAINED BANNER MODE ===== */
