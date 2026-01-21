@@ -34,6 +34,15 @@
         "componentIds": [
           "6bcd9bfc-425b-47c2-8e5e-c17eb1c864c5"
         ]
+      },
+      {
+        "title": "PiCanvas Loader Extension",
+        "description": "Application Customizer that pre-hides connected webparts before PiCanvas moves them into tabs. Eliminates flash of webparts at their original DOM position.",
+        "id": "a7f8c3b1-2d4e-5f6a-8b9c-0d1e2f3a4b5c",
+        "version": "1.0.0.0",
+        "componentIds": [
+          "a7f8c3b1-2d4e-5f6a-8b9c-0d1e2f3a4b5c"
+        ]
       }
     ]
   },
