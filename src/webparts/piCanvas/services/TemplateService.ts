@@ -263,6 +263,55 @@ export class TemplateService {
   }
 
   /**
+   * Get content files (.html, .md) from SiteAssets/PiCanvas folder
+   */
+  public async getContentFiles(): Promise<{ name: string; serverRelativeUrl: string }[]> {
+    const files: { name: string; serverRelativeUrl: string }[] = [];
+
+    // Skip API call in workbench
+    if (this.isWorkbench) {
+      return files;
+    }
+
+    try {
+      const folderPath = this.getServerRelativeFolderPath();
+      const filesUrl = `${this.siteUrl}/_api/web/GetFolderByServerRelativeUrl('${encodeURIComponent(folderPath)}')/Files?$select=Name,ServerRelativeUrl&$orderby=Name`;
+
+      const response = await this.context.spHttpClient.get(
+        filesUrl,
+        SPHttpClient.configurations.v1,
+        {
+          headers: {
+            'Accept': 'application/json;odata=nometadata'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const allFiles = data.value || [];
+
+        // Filter for .html and .md files only
+        for (const file of allFiles) {
+          const name = file.Name as string;
+          const lowerName = name.toLowerCase();
+          if (lowerName.endsWith('.html') || lowerName.endsWith('.htm') ||
+              lowerName.endsWith('.md') || lowerName.endsWith('.markdown')) {
+            files.push({
+              name: name,
+              serverRelativeUrl: file.ServerRelativeUrl as string
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Could not load content files:', error);
+    }
+
+    return files;
+  }
+
+  /**
    * Delete a saved template
    */
   public async deleteTemplate(templateId: string): Promise<boolean> {
@@ -328,6 +377,7 @@ export class TemplateService {
   /**
    * Migrate template from older schema versions to current
    * v1.0 -> v2.0: Add content type fields with defaults
+   * v2.0 -> v3.0: Add lock settings defaults
    */
   private migrateTemplate(template: IPiCanvasTemplate): IPiCanvasTemplate {
     const version = parseFloat(template.schemaVersion || '1.0');
@@ -347,6 +397,19 @@ export class TemplateService {
       template.enableLazyLoading = template.enableLazyLoading ?? true;
 
       // Update schema version
+      template.schemaVersion = TEMPLATE_SCHEMA_VERSION;
+    }
+
+    // v2.0 -> v3.0: Add lock settings
+    if (version < 3.0) {
+      template.tabs = template.tabs.map(tab => ({
+        ...tab,
+        lockEnabled: tab.lockEnabled ?? false
+      }));
+
+      template.lockDefaultTemplateEnabled = template.lockDefaultTemplateEnabled ?? false;
+      template.lockDefaultMessagesEnabled = template.lockDefaultMessagesEnabled ?? false;
+
       template.schemaVersion = TEMPLATE_SCHEMA_VERSION;
     }
 
@@ -386,16 +449,35 @@ export class TemplateService {
         customContent: properties[`tab${i}CustomContent`] as string | undefined,
         embedUrl: properties[`tab${i}EmbedUrl`] as string | undefined,
         embedHeight: properties[`tab${i}EmbedHeight`] as string | undefined,
+        embedFullPage: properties[`tab${i}EmbedFullPage`] as boolean | undefined,
+        embedFullWidth: properties[`tab${i}EmbedFullWidth`] as boolean | undefined,
+        embedFullHeight: properties[`tab${i}EmbedFullHeight`] as boolean | undefined,
+        // External file settings
+        fileUrl: properties[`tab${i}FileUrl`] as string | undefined,
+        // Content source settings (for HTML/Markdown from Text WebParts)
+        contentSourceType: properties[`tab${i}ContentSourceType`] as 'manual' | 'webpart' | undefined,
+        contentSourceWebPartID: properties[`tab${i}ContentSourceWebPartID`] as string | undefined,
         // Permission settings
         permissionEnabled: properties[`tab${i}PermissionEnabled`] as boolean | undefined,
         permissionStandardGroups: permissionStandardGroups && permissionStandardGroups.length > 0 ? permissionStandardGroups : undefined,
         permissionCustomGroupIds: permissionCustomGroupIds && permissionCustomGroupIds.length > 0 ? permissionCustomGroupIds : undefined,
         permissionShowPlaceholder: properties[`tab${i}PermissionPlaceholder`] as boolean | undefined,
-        permissionPlaceholderText: properties[`tab${i}PermissionPlaceholderText`] as string | undefined
+        permissionPlaceholderText: properties[`tab${i}PermissionPlaceholderText`] as string | undefined,
+        // Lock settings (exclude password hash)
+        lockEnabled: properties[`tab${i}LockEnabled`] as boolean | undefined,
+        lockUseCustomTemplate: properties[`tab${i}LockUseCustomTemplate`] as boolean | undefined,
+        lockTemplate: properties[`tab${i}LockTemplate`] as string | undefined,
+        lockCustomizeMessages: properties[`tab${i}LockCustomizeMessages`] as boolean | undefined,
+        lockMessagePrompt: properties[`tab${i}LockMessagePrompt`] as string | undefined,
+        lockMessageError: properties[`tab${i}LockMessageError`] as string | undefined,
+        lockMessageMissing: properties[`tab${i}LockMessageMissing`] as string | undefined,
+        lockMessageSuccess: properties[`tab${i}LockMessageSuccess`] as string | undefined
       });
     }
 
     const now = new Date().toISOString();
+    const ttlRaw = properties.lockUnlockTtlMinutes;
+    const ttlParsed = typeof ttlRaw === 'number' ? ttlRaw : parseInt(String(ttlRaw || ''), 10);
 
     return {
       schemaVersion: TEMPLATE_SCHEMA_VERSION,
@@ -436,7 +518,16 @@ export class TemplateService {
       tabSeparatorColor: properties.tabSeparatorColor,
       // Features (v2.0+)
       enableDeepLinking: properties.enableDeepLinking,
-      enableLazyLoading: properties.enableLazyLoading
+      enableLazyLoading: properties.enableLazyLoading,
+      // Lock defaults (v3.0+)
+      lockDefaultTemplateEnabled: properties.lockDefaultTemplateEnabled,
+      lockDefaultTemplate: properties.lockDefaultTemplate,
+      lockDefaultMessagesEnabled: properties.lockDefaultMessagesEnabled,
+      lockDefaultMessagePrompt: properties.lockDefaultMessagePrompt,
+      lockDefaultMessageError: properties.lockDefaultMessageError,
+      lockDefaultMessageMissing: properties.lockDefaultMessageMissing,
+      lockDefaultMessageSuccess: properties.lockDefaultMessageSuccess,
+      lockUnlockTtlMinutes: Number.isFinite(ttlParsed) ? ttlParsed : undefined
     };
   }
 
@@ -461,12 +552,28 @@ export class TemplateService {
       properties[`tab${i}CustomContent`] = undefined;
       properties[`tab${i}EmbedUrl`] = undefined;
       properties[`tab${i}EmbedHeight`] = undefined;
+      // Clear external file settings
+      properties[`tab${i}FileUrl`] = undefined;
+      // Clear content source settings
+      properties[`tab${i}ContentSourceType`] = undefined;
+      properties[`tab${i}ContentSourceWebPartID`] = undefined;
       // Clear permission settings
       properties[`tab${i}PermissionEnabled`] = undefined;
       properties[`tab${i}PermissionGroups`] = undefined;
       properties[`tab${i}PermissionCustomGroups`] = undefined;
       properties[`tab${i}PermissionPlaceholder`] = undefined;
       properties[`tab${i}PermissionPlaceholderText`] = undefined;
+      // Clear lock settings
+      properties[`tab${i}LockEnabled`] = undefined;
+      properties[`tab${i}LockPasswordHash`] = undefined;
+      properties[`tab${i}LockPassword`] = undefined;
+      properties[`tab${i}LockUseCustomTemplate`] = undefined;
+      properties[`tab${i}LockTemplate`] = undefined;
+      properties[`tab${i}LockCustomizeMessages`] = undefined;
+      properties[`tab${i}LockMessagePrompt`] = undefined;
+      properties[`tab${i}LockMessageError`] = undefined;
+      properties[`tab${i}LockMessageMissing`] = undefined;
+      properties[`tab${i}LockMessageSuccess`] = undefined;
     }
 
     // Apply tab configurations
@@ -485,6 +592,16 @@ export class TemplateService {
       if (tab.customContent) properties[`tab${tabNum}CustomContent`] = tab.customContent;
       if (tab.embedUrl) properties[`tab${tabNum}EmbedUrl`] = tab.embedUrl;
       if (tab.embedHeight) properties[`tab${tabNum}EmbedHeight`] = tab.embedHeight;
+      properties[`tab${tabNum}EmbedFullPage`] = tab.embedFullPage || false;
+      properties[`tab${tabNum}EmbedFullWidth`] = tab.embedFullWidth || tab.embedFullPage || false;
+      properties[`tab${tabNum}EmbedFullHeight`] = tab.embedFullHeight || tab.embedFullPage || false;
+
+      // Apply external file settings
+      if (tab.fileUrl) properties[`tab${tabNum}FileUrl`] = tab.fileUrl;
+
+      // Apply content source settings (for HTML/Markdown from Text WebParts)
+      if (tab.contentSourceType) properties[`tab${tabNum}ContentSourceType`] = tab.contentSourceType;
+      if (tab.contentSourceWebPartID) properties[`tab${tabNum}ContentSourceWebPartID`] = tab.contentSourceWebPartID;
 
       // Apply permission settings
       if (tab.permissionEnabled !== undefined) {
@@ -502,6 +619,36 @@ export class TemplateService {
       if (tab.permissionPlaceholderText) {
         properties[`tab${tabNum}PermissionPlaceholderText`] = tab.permissionPlaceholderText;
       }
+
+      // Apply lock settings (password hash is not stored in templates)
+      if (tab.lockEnabled !== undefined) {
+        properties[`tab${tabNum}LockEnabled`] = tab.lockEnabled;
+      }
+      if (tab.lockUseCustomTemplate !== undefined) {
+        properties[`tab${tabNum}LockUseCustomTemplate`] = tab.lockUseCustomTemplate;
+      }
+      if (tab.lockTemplate) {
+        properties[`tab${tabNum}LockTemplate`] = tab.lockTemplate;
+      }
+      if (tab.lockCustomizeMessages !== undefined) {
+        properties[`tab${tabNum}LockCustomizeMessages`] = tab.lockCustomizeMessages;
+      }
+      if (tab.lockMessagePrompt) {
+        properties[`tab${tabNum}LockMessagePrompt`] = tab.lockMessagePrompt;
+      }
+      if (tab.lockMessageError) {
+        properties[`tab${tabNum}LockMessageError`] = tab.lockMessageError;
+      }
+      if (tab.lockMessageMissing) {
+        properties[`tab${tabNum}LockMessageMissing`] = tab.lockMessageMissing;
+      }
+      if (tab.lockMessageSuccess) {
+        properties[`tab${tabNum}LockMessageSuccess`] = tab.lockMessageSuccess;
+      }
+
+      // Always clear any existing password hash on template apply
+      properties[`tab${tabNum}LockPasswordHash`] = undefined;
+      properties[`tab${tabNum}LockPassword`] = undefined;
     });
 
     // Apply appearance settings
@@ -544,6 +691,32 @@ export class TemplateService {
     // Apply feature flags (v2.0+)
     if (template.enableDeepLinking !== undefined) properties.enableDeepLinking = template.enableDeepLinking;
     if (template.enableLazyLoading !== undefined) properties.enableLazyLoading = template.enableLazyLoading;
+
+    // Apply lock defaults (v3.0+)
+    if (template.lockDefaultTemplateEnabled !== undefined) {
+      properties.lockDefaultTemplateEnabled = template.lockDefaultTemplateEnabled;
+    }
+    if (template.lockDefaultTemplate) {
+      properties.lockDefaultTemplate = template.lockDefaultTemplate;
+    }
+    if (template.lockDefaultMessagesEnabled !== undefined) {
+      properties.lockDefaultMessagesEnabled = template.lockDefaultMessagesEnabled;
+    }
+    if (template.lockDefaultMessagePrompt) {
+      properties.lockDefaultMessagePrompt = template.lockDefaultMessagePrompt;
+    }
+    if (template.lockDefaultMessageError) {
+      properties.lockDefaultMessageError = template.lockDefaultMessageError;
+    }
+    if (template.lockDefaultMessageMissing) {
+      properties.lockDefaultMessageMissing = template.lockDefaultMessageMissing;
+    }
+    if (template.lockDefaultMessageSuccess) {
+      properties.lockDefaultMessageSuccess = template.lockDefaultMessageSuccess;
+    }
+    if (template.lockUnlockTtlMinutes !== undefined) {
+      properties.lockUnlockTtlMinutes = template.lockUnlockTtlMinutes;
+    }
   }
 
   /**

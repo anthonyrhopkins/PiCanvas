@@ -7,13 +7,14 @@
  * Schema version for backwards compatibility
  * v1.0 - Initial version
  * v2.0 - Added content types (markdown, html, mermaid, embed), deep linking, lazy loading
+ * v3.0 - Added lockable tabs with customizable lock UI
  */
-export const TEMPLATE_SCHEMA_VERSION = '2.0';
+export const TEMPLATE_SCHEMA_VERSION = '3.0';
 
 /**
  * Content type for tab content
  */
-export type TabContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed';
+export type TabContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed' | 'file';
 
 /**
  * Individual tab configuration within a template
@@ -32,6 +33,16 @@ export interface ITabTemplateConfig {
   customContent?: string;  // For markdown, html, mermaid content
   embedUrl?: string;       // For embed type
   embedHeight?: string;    // Height for embed iframe (default: '400px')
+  embedFullPage?: boolean; // Full-page embed (opt-in)
+  embedFullWidth?: boolean; // Full-width embed (opt-in)
+  embedFullHeight?: boolean; // Full-height embed (opt-in)
+
+  // External file settings (v3.1+)
+  fileUrl?: string;          // Server-relative path to .html or .md file
+
+  // Content source settings (v3.1+) - for HTML/Markdown from Text WebParts
+  contentSourceType?: 'manual' | 'webpart';  // Source type for HTML/Markdown content
+  contentSourceWebPartID?: string;           // ID of Text WebPart to use as source
 
   // Permission settings
   permissionEnabled?: boolean;
@@ -39,6 +50,16 @@ export interface ITabTemplateConfig {
   permissionCustomGroupIds?: number[];
   permissionShowPlaceholder?: boolean;
   permissionPlaceholderText?: string;
+
+  // Lock settings (v3.0+)
+  lockEnabled?: boolean;
+  lockUseCustomTemplate?: boolean;
+  lockTemplate?: string;
+  lockCustomizeMessages?: boolean;
+  lockMessagePrompt?: string;
+  lockMessageError?: string;
+  lockMessageMissing?: string;
+  lockMessageSuccess?: string;
 }
 
 /**
@@ -100,6 +121,16 @@ export interface IPiCanvasTemplate {
   // Features (v2.0+)
   enableDeepLinking?: boolean;    // URL hash navigation (default: true)
   enableLazyLoading?: boolean;    // Lazy load tab content (default: true)
+
+  // Lock defaults (v3.0+)
+  lockDefaultTemplateEnabled?: boolean;
+  lockDefaultTemplate?: string;
+  lockDefaultMessagesEnabled?: boolean;
+  lockDefaultMessagePrompt?: string;
+  lockDefaultMessageError?: string;
+  lockDefaultMessageMissing?: string;
+  lockDefaultMessageSuccess?: string;
+  lockUnlockTtlMinutes?: number;
 }
 
 /**
