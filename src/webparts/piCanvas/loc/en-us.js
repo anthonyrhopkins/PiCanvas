@@ -117,12 +117,17 @@ define([], function () {
     "ContentTypeHtml": "HTML Content",
     "ContentTypeMermaid": "Mermaid Diagram",
     "ContentTypeEmbed": "Embed (iframe)",
+    "ContentTypeJavaScript": "JavaScript Code",
 
     // Custom content strings (v3.0)
     "CustomContentLabel": "Content",
     "MarkdownPlaceholder": "Enter Markdown content...\n\n# Heading\n**Bold** and *italic* text\n- List item",
     "HtmlPlaceholder": "Enter HTML content...\n\n<div class=\"my-content\">\n  <h2>Title</h2>\n  <p>Your content here</p>\n</div>",
     "MermaidPlaceholder": "Enter Mermaid diagram code...\n\ngraph TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[Action]\n    B -->|No| D[End]",
+    "JavaScriptPlaceholder": "// Simple test - this WILL work!\ncontainer.innerHTML = '<h1 style=\"color: #ec4899; padding: 20px;\">Hello from JavaScript!</h1>';\n\n// Or use render():\n// render('<div style=\"padding: 20px; background: #1e293b; color: white;\"><h2>It works!</h2></div>');\n\n// Or create elements:\n// var btn = create('button', { style: { padding: '10px 20px' }, onclick: function() { alert('Hi!'); } }, 'Click Me');\n// container.appendChild(btn);",
+    "JavaScriptFullScreenLabel": "Display Mode",
+    "JavaScriptFullScreenOn": "Full Screen",
+    "JavaScriptFullScreenOff": "Contained",
 
     // Embed strings (v3.0)
     "EmbedUrlLabel": "Embed URL",
@@ -158,6 +163,11 @@ define([], function () {
     "ContentSourceWebPartLabel": "Select Text WebPart",
     "ContentSourceWebPartInfo": "The selected Text WebPart will be hidden and its content rendered here.",
 
+    // Content full-width strings (v3.4)
+    "ContentFullWidthLabel": "Content Width",
+    "ContentFullWidthOn": "Full Width (edge-to-edge)",
+    "ContentFullWidthOff": "Contained",
+
     // RSS Feed strings (v3.2)
     "ContentTypeRss": "RSS Feed",
     "RssFeedUrlLabel": "Feed URL",
@@ -179,6 +189,124 @@ define([], function () {
     "EnableLazyLoadingDescription": "Delay loading tab content until tab is activated",
 
     // Accessibility strings (v3.0)
-    "TabListAriaLabel": "Content sections"
+    "TabListAriaLabel": "Content sections",
+
+    // Metadata Token strings (v3.3)
+    "MetadataTokensGroupName": "Page Metadata Tokens",
+    "MetadataTokensDescription": "Insert page metadata values into your content using tokens",
+    "MetadataTokenPickerLabel": "Available Tokens",
+    "MetadataTokenPickerDescription": "Click a token to copy it to clipboard, then paste into your content",
+    "MetadataTokenSearchPlaceholder": "Search tokens...",
+    "MetadataTokenLoadingMessage": "Loading page metadata...",
+    "MetadataTokenErrorMessage": "Could not load page metadata",
+    "MetadataTokenCopiedMessage": "Token copied to clipboard",
+    "MetadataTokenNoValueText": "No value",
+    "MetadataTokenHelpText": "Use {{TokenPath}} syntax in your HTML or Markdown content. Example: {{Title}} or {{Author.Title}}",
+    "MetadataTokenCategoryPage": "Page",
+    "MetadataTokenCategoryPeople": "People",
+    "MetadataTokenCategoryDates": "Dates",
+    "MetadataTokenCategorySite": "Site",
+    "MetadataTokenCategoryCustom": "Custom Fields",
+
+    // JavaScript Template strings (v3.5)
+    "JavaScriptTemplateLabel": "Template",
+    "JavaScriptTemplateNone": "— None (Custom Code) —",
+    "JavaScriptTemplateDescription": "Select a built-in template or write custom code",
+    "JavaScriptTemplateConfigHeader": "Template Configuration",
+    "JavaScriptTemplateLandingPage": "Landing Page",
+    "JavaScriptTemplateStatsDashboard": "Stats Dashboard",
+    "JavaScriptTemplateTimeline": "Timeline",
+    "JavaScriptTemplateCardGrid": "Card Grid",
+    "JavaScriptTemplateHeroSection": "Hero Section",
+
+    // Table of Contents strings (v3.6)
+    "ContentTypeToc": "Table of Contents",
+    "ContentTypeProfileReport": "Profile Report",
+    "TocInfoText": "Scans the SharePoint page for headings and generates a navigable table of contents.",
+    "TocSearchTextLabel": "Scan Text Web Parts",
+    "TocSearchMarkdownLabel": "Scan Markdown Web Parts",
+    "TocSearchCollapsibleLabel": "Scan Collapsible Sections",
+    "TocShowHeading1Label": "Show H2 Headings",
+    "TocShowHeading2Label": "Show H3 Headings",
+    "TocShowHeading3Label": "Show H4 Headings",
+    "TocShowHeading4Label": "Show H5 Headings",
+    "TocListStyleLabel": "List Style",
+    "TocStickyModeLabel": "Sticky Mode",
+    "TocHideInMobileLabel": "Hide on Mobile",
+    "TocHideTitleLabel": "Hide Title",
+    "TocTitleTextLabel": "TOC Title",
+    "TocShowPreviousPageLinkLabel": "Show Back Link",
+    "TocPreviousPageTextLabel": "Back Link Text",
+    "TocEnabledLabel": "Auto Table of Contents",
+    "TocMinHeadingsLabel": "Minimum Headings",
+    "TocMaxLevelLabel": "Max Heading Depth",
+
+    // TOC Styling strings (v3.8)
+    "TocStylePresetLabel": "Style Preset",
+    "TocFontFamilyLabel": "Font Family",
+    "TocBaseFontSizeLabel": "Base Font Size",
+    "TocTitleFontSizeLabel": "Title Font Size",
+    "TocLevelSizeStepLabel": "Level Size Step",
+    "TocTitleFontWeightLabel": "Title Font Weight",
+    "TocH2FontWeightLabel": "H2 Font Weight",
+    "TocSubHeadingFontWeightLabel": "Sub-heading Font Weight",
+    "TocLineHeightLabel": "Line Height",
+    "TocLetterSpacingLabel": "Letter Spacing",
+    "TocLinkColorLabel": "Link Color",
+    "TocLinkHoverColorLabel": "Link Hover Color",
+    "TocActiveColorLabel": "Active Color",
+    "TocTitleColorLabel": "Title Color",
+    "TocLevelColorDimmingLabel": "Level Color Dimming",
+    "TocBackgroundColorLabel": "Background Color",
+    "TocBorderColorLabel": "Border Color",
+    "TocContainerPaddingLabel": "Container Padding",
+    "TocItemSpacingLabel": "Item Spacing",
+    "TocIndentPerLevelLabel": "Indent Per Level",
+    "TocMaxWidthLabel": "Max Width",
+    "TocCustomIconLabel": "Custom Icon",
+    "TocEnableScrollspyLabel": "Enable Scrollspy",
+    "TocEnableCollapsibleLabel": "Collapsible Sections",
+    "TocEnableHoverBackgroundLabel": "Hover Background",
+    "TocHoverBackgroundColorLabel": "Hover Background Color",
+    "TocEnableClickRippleLabel": "Click Ripple Effect",
+    "TocStyleAccordionLabel": "TOC Style",
+    "TocTypographyAccordionLabel": "Typography",
+    "TocColorsAccordionLabel": "Colors",
+    "TocSpacingAccordionLabel": "Spacing",
+    "TocInteractionsAccordionLabel": "Interactions",
+
+    // Configuration Panel strings (v3.7)
+    "ConfigPanelButtonLabel": "Open Configuration Panel",
+    "ConfigPanelTitle": "PiCanvas Configuration",
+
+    // Profile Report strings (v4.0)
+    "ProfileReportLibraryLabel": "Document Library",
+    "ProfileReportLibraryDescription": "SharePoint library containing profile files (.md, .json)",
+    "ProfileReportLayoutLabel": "Layout",
+    "ProfileReportLayoutDescription": "How to display companies",
+    "ProfileReportShowMethodKLabel": "Show Method-K",
+    "ProfileReportShowMethodLLabel": "Show Method-L",
+    "ProfileReportShowMethodMLabel": "Show Method-M (AI Synthesis)",
+    "ProfileReportShowProfileJsonLabel": "Show Profile JSON",
+    "ProfileReportCompanyLimitLabel": "Max Companies",
+    "ProfileReportCompanyLimitDescription": "Maximum number of companies to display",
+    "ProfileReportSortByLabel": "Sort By",
+    "ProfileReportSortByDescription": "How to sort companies",
+    "ProfileReportThemeLabel": "Theme",
+    "ProfileReportThemeDescription": "Color theme for the report viewer",
+    "ProfileReportLoadingMessage": "Loading company profiles...",
+    "ProfileReportErrorMessage": "Failed to load profile reports",
+    "ProfileReportNoDataMessage": "No companies found",
+
+    // Profile Report list + display mode + metadata strings (v4.1)
+    "ProfileReportListNameLabel": "Company List Name",
+    "ProfileReportDisplayModeLabel": "Display Mode",
+    "ProfileReportSidebarWidthLabel": "Sidebar Width",
+    "ProfileReportEnableMetadataLabel": "Enable Metadata Discovery",
+    "ProfileReportMetadataCompanyColLabel": "Company Column Name",
+    "ProfileReportMetadataFileCategoryLabel": "File Category Column Name",
+    "ProfileReportSidebarSearch": "Search companies...",
+    "ProfileReportMetadataFiles": "Additional Files",
+    "ProfileReportViewFile": "View"
   }
 });

@@ -89,14 +89,53 @@ Vertical Layout:
 
 ### How to Configure
 
-1. Open the property pane (edit web part settings)
-2. Click **Add Tab** for each tab you need
-3. Select a web part or section from the dropdown
+1. Click **Configure** on the edit-mode summary card (or click any tab row to jump to that tab)
+2. In the **Tabs** section, click **Add Tab** for each tab you need
+3. Select a content type and assign a web part, section, or built-in content
 4. Choose label type: Text or Web Part
 5. For text labels: enter text and optionally add icons/images
 6. For web part labels: select the web part to use as the label
 7. Optionally enable dividers between tabs
 8. Adjust **Label Image Size** if using images
+9. Click **Done** to save (or **Cancel** to discard all changes)
+
+### Edit Mode Compact View
+
+When you edit a SharePoint page, PiCanvas displays a compact summary card instead of the full tabbed layout. This gives page authors a quick overview without taking up space.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  π  PiCanvas          6 tabs          [?]  [⚙ Configure] │
+├──────────────────────────────────────────────────────────┤
+│  1  Dashboard Overview            WP                     │
+│     ↳ Sec 1 | Left | Text: "Welcome to..."              │
+│  2  Org Chart                     DIA  🔒                │
+│     ↳ Mermaid · 245 chars                                │
+│  3  News Feed                     RSS                    │
+│     ↳ https://intranet.com/feed.xml · cards · 10 items   │
+│  4  Help Docs                     HTML 🌐                │
+│     ↳ From Text WebPart · Sec 2 | "Getting started..."   │
+├──────────────────────────────────────────────────────────┤
+│  default · stretch · horizontal              v3.0.0      │
+└──────────────────────────────────────────────────────────┘
+```
+
+Each tab row shows:
+
+| Element | Description |
+|---------|-------------|
+| **Tab number** | Numbered circle for quick identification |
+| **Label** | The tab's display name |
+| **Type badge** | Content type abbreviation (WP, SEC, MD, HTML, DIA, EMB, RSS, TOC, JS, FILE, RPT, TXT) |
+| **Status icons** | 🔒 locked, 👥 permission-restricted, 🌐 full-width, ⚠️ missing config |
+| **Source detail** | Second line showing where content comes from (web part zone, URL, char count, etc.) |
+
+**Quick actions from the edit view:**
+- **Click any tab row** to open the configuration panel with that tab already expanded
+- **Click "?"** to open the Help & Docs section
+- **Click "⚙ Configure"** to open the full configuration panel
+
+The footer displays the current tab style, alignment, and orientation at a glance.
 
 ---
 
@@ -276,7 +315,7 @@ For advanced scenarios, enter SharePoint group IDs directly:
 
 ### How to Configure
 
-1. Open the property pane for any tab
+1. Open the configuration panel and expand any tab's **Permissions** section
 2. Enable **"Restrict by Group"** toggle
 3. Select groups from the **"Visible to Groups"** dropdown
 4. Optionally add custom group IDs

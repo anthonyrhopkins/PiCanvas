@@ -12,10 +12,10 @@
  * - Deep linking support
  * - Banner/Hero webpart full-width fix
  */
-RenderTabs = function() {
-    if (typeof($add) == "undefined") var $add = { version: {}, auto: { disabled: false } };
+RenderTabs = function () {
+    if (typeof ($add) == "undefined") var $add = { version: {}, auto: { disabled: false } };
 
-    !function(a) {
+    !function (a) {
         $add.version.Tabs = "3.0.0";
 
         /**
@@ -43,10 +43,51 @@ RenderTabs = function() {
             // Check if this container is in contained mode
             var isContainedMode = $container.attr('data-fullwidth-banner') === 'false';
 
+            // Helper to calculate object-position from SharePoint's legacy top/left offsets
+            function calculateSharePointFocalPoint(img, container) {
+                // If it already has one, honor it
+                if (img.style.objectPosition && img.style.objectPosition !== '50% 50%') {
+                    return img.style.objectPosition;
+                }
+
+                // Get SharePoint's calculated offsets
+                var top = parseFloat(img.style.top || '0');
+                var left = parseFloat(img.style.left || '0');
+
+                // If no offsets, default to center
+                if (top === 0 && left === 0) return '50% 50%';
+
+                // Get true image dimensions from SharePoint attributes
+                var h = parseFloat(img.getAttribute('imgheight') || img.naturalHeight || '0');
+                var w = parseFloat(img.getAttribute('imgwidth') || img.naturalWidth || '0');
+
+                // Get container dimensions (visible area)
+                var containerH = container.offsetHeight || parseFloat(container.style.height || '200'); // fallback
+                var containerW = container.offsetWidth || parseFloat(container.style.width || '1000'); // fallback
+
+                if (h === 0 || w === 0) return '50% 50%';
+
+                // Calculate the center of the VISIBLE portion relative to the FULL image
+                // SharePoint sets 'top' to a negative value to shift the image up.
+                // Visible Center Y = Abs(Top) + (ContainerHeight / 2)
+                var centerY = Math.abs(top) + (containerH / 2);
+                var centerX = Math.abs(left) + (containerW / 2);
+
+                // Convert to percentage
+                var posY = (centerY / h) * 100;
+                var posX = (centerX / w) * 100;
+
+                // Clamp to 0-100
+                posY = Math.max(0, Math.min(100, posY));
+                posX = Math.max(0, Math.min(100, posX));
+
+                return posX.toFixed(2) + '% ' + posY.toFixed(2) + '%';
+            }
+
             // Find all Banner webparts in this container
             var $banners = $container.find('[data-automation-id="BannerWebPart"], [class*="bannerWebPart"], [class*="BannerWebPart"]');
 
-            $banners.each(function() {
+            $banners.each(function () {
                 var $banner = a(this);
 
                 if (isContainedMode) {
@@ -62,7 +103,7 @@ RenderTabs = function() {
                         $fullWidthLayout = $container.find('[data-automation-id="fullWidthImageLayout"]');
                     }
 
-                    $fullWidthLayout.each(function() {
+                    $fullWidthLayout.each(function () {
                         var el = this;
                         el.style.cssText = 'width: 100% !important; max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; min-width: 0 !important;';
                         el.classList.add('picanvas-contained-banner');
@@ -70,35 +111,72 @@ RenderTabs = function() {
                         // Also fix the image inside - preserve focal point (object-position)
                         var img = el.querySelector('img');
                         if (img) {
-                            // Get existing focal point before overwriting styles
-                            var existingPosition = img.style.objectPosition || window.getComputedStyle(img).objectPosition;
+                            // 1. Calculate focal point BEFORE clearing styles
+                            var focalPoint = calculateSharePointFocalPoint(img, el);
+
                             img.style.setProperty('width', '100%', 'important');
                             img.style.setProperty('max-width', '100%', 'important');
                             img.style.setProperty('height', '100%', 'important');
                             img.style.setProperty('object-fit', 'cover', 'important');
-                            // Preserve SharePoint's focal point setting
-                            if (existingPosition && existingPosition !== '50% 50%') {
-                                img.style.setProperty('object-position', existingPosition, 'important');
+
+                            // 2. Apply calculated focal point
+                            if (focalPoint) {
+                                img.style.setProperty('object-position', focalPoint, 'important');
                             }
 
+                            // CRITICAL: Clear legacy SharePoint positioning that pushes image out of view
+                            // SharePoint manages focal point via top/left offsets (e.g. top: -287px),
+                            // but we use object-fit: cover which handles this automatically.
+                            // We must unintentional offsets.
+                            img.style.setProperty('top', '0', 'important');
+                            img.style.setProperty('left', '0', 'important');
+                            img.style.setProperty('margin-top', '0', 'important');
+                            img.style.setProperty('margin-left', '0', 'important');
+                            img.style.setProperty('transform', 'none', 'important');
+
                             // CRITICAL: Lock container height after image loads to prevent resize animations
-                            lockBannerHeight(el, img);
+                            // lockBannerHeight(el, img);
                         }
                     });
+
+                    // Clear ONLY viewport-relative styles from the banner root that force full width
+                    // This fixes "Image and Text" layouts that don't use fullWidthImageLayout
+                    var bannerEl = $banner[0];
+                    if (bannerEl.style.width && (bannerEl.style.width.includes('vw') || bannerEl.style.width.includes('calc'))) bannerEl.style.removeProperty('width');
+                    if (bannerEl.style.maxWidth && (bannerEl.style.maxWidth.includes('vw') || bannerEl.style.maxWidth.includes('calc'))) bannerEl.style.removeProperty('max-width');
+
+                    // Only remove transform if it looks like a centering hack
+                    if (bannerEl.style.transform && bannerEl.style.transform.includes('translate')) {
+                        bannerEl.style.removeProperty('transform');
+                    }
+
+                    // Gentle clearing for nested elements
+                    $banner.find('div, span, section, aside').each(function () {
+                        var el = this;
+                        var inlineWidth = el.style.width;
+                        if (inlineWidth && (inlineWidth.includes('vw') || inlineWidth.includes('calc') || inlineWidth.includes('100%'))) {
+                            if (inlineWidth.includes('vw') || inlineWidth.includes('calc')) {
+                                el.style.removeProperty('width');
+                            }
+                        }
+                        if (el.style.transform && el.style.transform.includes('translate')) {
+                            el.style.removeProperty('transform');
+                        }
+                    });
+
                 } else {
                     // FULL-WIDTH MODE: Clear inline styles so CSS can make banner full-width
-                    $banner.find('*').addBack().each(function() {
+                    $banner.removeClass('picanvas-contained-banner');
+
+                    $banner.find('*').addBack().each(function () {
                         var el = this;
                         var style = el.style;
 
-                        // Clear width-related inline styles
-                        if (style.width) style.width = '';
-                        if (style.maxWidth) style.maxWidth = '';
-                        if (style.minWidth) style.minWidth = '';
-                        if (style.flex) style.flex = '';
-                        if (style.flexBasis) style.flexBasis = '';
-                        if (style.flexGrow) style.flexGrow = '';
-                        if (style.flexShrink) style.flexShrink = '';
+                        // Clear width-related inline styles - ONLY PIXELS
+                        if (style.width && style.width.includes('px')) style.width = '';
+                        if (style.maxWidth && style.maxWidth.includes('px')) style.maxWidth = '';
+                        if (style.minWidth && style.minWidth.includes('px')) style.minWidth = '';
+                        if (style.flexBasis && style.flexBasis.includes('px')) style.flexBasis = '';
                     });
 
                     $banner.addClass('picanvas-banner-fixed');
@@ -111,42 +189,49 @@ RenderTabs = function() {
             // Also fix Hero webparts (similar structure to Banner)
             var $heroes = $container.find('[data-automation-id="HeroWebPart"], [class*="heroWebPart"], [class*="HeroWebPart"]');
 
-            $heroes.each(function() {
+            $heroes.each(function () {
                 var $hero = a(this);
 
                 if (isContainedMode) {
                     $hero.addClass('picanvas-contained-banner');
-                    $hero.find('[data-automation-id="fullWidthImageLayout"]').each(function() {
+                    $hero.find('[data-automation-id="fullWidthImageLayout"]').each(function () {
                         var el = this;
                         el.style.cssText = 'width: 100% !important; max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; min-width: 0 !important;';
                         var img = el.querySelector('img');
                         if (img) {
-                            // Preserve focal point (object-position)
-                            var existingPosition = img.style.objectPosition || window.getComputedStyle(img).objectPosition;
+                            // 1. Calculate focal point BEFORE clearing styles
+                            var focalPoint = calculateSharePointFocalPoint(img, el);
+
                             img.style.setProperty('width', '100%', 'important');
                             img.style.setProperty('max-width', '100%', 'important');
                             img.style.setProperty('height', '100%', 'important');
                             img.style.setProperty('object-fit', 'cover', 'important');
-                            if (existingPosition && existingPosition !== '50% 50%') {
-                                img.style.setProperty('object-position', existingPosition, 'important');
+
+                            // 2. Apply calculated focal point
+                            if (focalPoint) {
+                                img.style.setProperty('object-position', focalPoint, 'important');
                             }
 
+                            // CRITICAL: Clear legacy SharePoint positioning
+                            img.style.setProperty('top', '0', 'important');
+                            img.style.setProperty('left', '0', 'important');
+                            img.style.setProperty('margin-top', '0', 'important');
+                            img.style.setProperty('margin-left', '0', 'important');
+                            img.style.setProperty('transform', 'none', 'important');
+
                             // CRITICAL: Lock container height after image loads to prevent resize animations
-                            lockBannerHeight(el, img);
+                            // lockBannerHeight(el, img);
                         }
                     });
                 } else {
-                    $hero.find('*').addBack().each(function() {
+                    $hero.find('*').addBack().each(function () {
                         var el = this;
                         var style = el.style;
 
-                        if (style.width) style.width = '';
-                        if (style.maxWidth) style.maxWidth = '';
-                        if (style.minWidth) style.minWidth = '';
-                        if (style.flex) style.flex = '';
-                        if (style.flexBasis) style.flexBasis = '';
-                        if (style.flexGrow) style.flexGrow = '';
-                        if (style.flexShrink) style.flexShrink = '';
+                        if (style.width && style.width.includes('px')) style.width = '';
+                        if (style.maxWidth && style.maxWidth.includes('px')) style.maxWidth = '';
+                        if (style.minWidth && style.minWidth.includes('px')) style.minWidth = '';
+                        if (style.flexBasis && style.flexBasis.includes('px')) style.flexBasis = '';
                     });
 
                     $hero.addClass('picanvas-hero-fixed');
@@ -155,29 +240,76 @@ RenderTabs = function() {
                 void $hero[0].offsetHeight;
             });
 
+            // === NEW: Fix Plain Image Webparts ===
+            // Removed .ControlZone--control img as it was too generic and captured Banner images
+            var $images = $container.find('[data-automation-id="imageWebPart"], [class*="imageWebPart"]');
+            $images.each(function () {
+                var $imgContainer = a(this);
+
+                // CRITICAL: Skip Banners/Heroes to prevent overwriting their specific styles
+                // The generic .ControlZone--control img selector matches banner images too,
+                // and applying height:auto breaks the banner layout.
+                // We also check for 'fullWidthImageLayout' and our own 'picanvas-contained-banner' class.
+                if ($imgContainer.closest('[data-automation-id="BannerWebPart"], [class*="bannerWebPart"], [data-automation-id="HeroWebPart"], [class*="heroWebPart"], [data-automation-id="fullWidthImageLayout"], .picanvas-contained-banner').length > 0) {
+                    return;
+                }
+
+                // Ensure it doesn't overflow
+                $imgContainer.css({
+                    'max-width': '100%',
+                    'height': 'auto'
+                });
+
+                $imgContainer.find('img').css({
+                    'max-width': '100%',
+                    'height': 'auto',
+                    'object-fit': 'contain'
+                });
+            });
+
+            // === NEW: Fix Page Title Webparts ===
+            var $pageTitles = $container.find('[data-automation-id="pageTitle"]');
+            $pageTitles.each(function () {
+                var el = this;
+                if (el.style.marginTop && el.style.marginTop.indexOf('-') !== -1) el.style.marginTop = '0px';
+                if (el.style.marginLeft && el.style.marginLeft.indexOf('-') !== -1) el.style.marginLeft = '0px';
+                if (el.style.marginRight && el.style.marginRight.indexOf('-') !== -1) el.style.marginRight = '0px';
+                el.style.width = '100%';
+            });
+
             // Fix fullWidthImageLayout elements that might not be inside BannerWebPart
             // (e.g., PageTitle webpart also uses fullWidthImageLayout)
             // ALWAYS apply inline styles in contained mode - SharePoint may re-render and clear them
             if (isContainedMode) {
-                $container.find('[data-automation-id="fullWidthImageLayout"]').each(function() {
+                $container.find('[data-automation-id="fullWidthImageLayout"]').each(function () {
                     var el = this;
                     // Always apply inline styles - SharePoint's resize/re-render may clear them
                     el.style.cssText = 'width: 100% !important; max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; min-width: 0 !important;';
                     el.classList.add('picanvas-contained-banner');
                     var img = el.querySelector('img');
                     if (img) {
-                        // Preserve focal point (object-position)
-                        var existingPosition = img.style.objectPosition || window.getComputedStyle(img).objectPosition;
+                        // 1. Calculate focal point BEFORE clearing styles
+                        var focalPoint = calculateSharePointFocalPoint(img, el);
+
                         img.style.setProperty('width', '100%', 'important');
                         img.style.setProperty('max-width', '100%', 'important');
                         img.style.setProperty('height', '100%', 'important');
                         img.style.setProperty('object-fit', 'cover', 'important');
-                        if (existingPosition && existingPosition !== '50% 50%') {
-                            img.style.setProperty('object-position', existingPosition, 'important');
+
+                        // 2. Apply calculated focal point
+                        if (focalPoint) {
+                            img.style.setProperty('object-position', focalPoint, 'important');
                         }
 
+                        // CRITICAL: Clear legacy SharePoint positioning
+                        img.style.setProperty('top', '0', 'important');
+                        img.style.setProperty('left', '0', 'important');
+                        img.style.setProperty('margin-top', '0', 'important');
+                        img.style.setProperty('margin-left', '0', 'important');
+                        img.style.setProperty('transform', 'none', 'important');
+
                         // CRITICAL: Lock container height after image loads to prevent resize animations
-                        lockBannerHeight(el, img);
+                        // lockBannerHeight(el, img);
                     }
                 });
             }
@@ -209,22 +341,22 @@ RenderTabs = function() {
             // If image is already loaded, lock immediately
             if (img.complete && img.naturalHeight > 0) {
                 // Use requestAnimationFrame to ensure layout is complete
-                requestAnimationFrame(function() {
+                requestAnimationFrame(function () {
                     applyHeightLock();
                 });
             } else {
                 // Wait for image to load
                 img.addEventListener('load', function onLoad() {
                     img.removeEventListener('load', onLoad);
-                    requestAnimationFrame(function() {
+                    requestAnimationFrame(function () {
                         applyHeightLock();
                     });
                 });
             }
         }
 
-        $add.Tabs = function(d, s) {
-            return a(d).each(function(d, e) {
+        $add.Tabs = function (d, s) {
+            return a(d).each(function (d, e) {
                 var t = a(e),
                     i = a.extend({ change: "click" }, t.data(), s),
                     n = t.find("[role=tabs]"),
@@ -242,7 +374,7 @@ RenderTabs = function() {
                 t.addClass("addui-Tabs").attr("role", "").removeAttr("role");
                 c.addClass("addui-Tabs-tab");
 
-                r.addClass("addui-Tabs-content").each(function(d, s) {
+                r.addClass("addui-Tabs-content").each(function (d, s) {
                     a(s).hasClass("active") && (a(s).removeClass("active"), u = d);
                 });
 
@@ -252,25 +384,25 @@ RenderTabs = function() {
                 // ========== FIX BANNER WEBPARTS IN ALL TAB PANELS ==========
                 // Run with delays to ensure SharePoint has finished rendering banners
                 // SharePoint lazy-loads banner content, so we need multiple attempts
-                r.each(function() {
+                r.each(function () {
                     fixBannerWebparts(a(this));
                 });
 
                 // Retry after SharePoint finishes rendering (banners load async)
-                setTimeout(function() {
-                    r.each(function() {
+                setTimeout(function () {
+                    r.each(function () {
                         fixBannerWebparts(a(this));
                     });
                 }, 100);
 
-                setTimeout(function() {
-                    r.each(function() {
+                setTimeout(function () {
+                    r.each(function () {
                         fixBannerWebparts(a(this));
                     });
                 }, 500);
 
-                setTimeout(function() {
-                    r.each(function() {
+                setTimeout(function () {
+                    r.each(function () {
                         fixBannerWebparts(a(this));
                     });
                 }, 1500);
@@ -280,7 +412,7 @@ RenderTabs = function() {
                 // Watch for style changes and reapply our containment styles
                 // CRITICAL: Use aggressive debouncing (200ms) to prevent rapid-fire re-triggering
                 // that causes visible "zoom" animations.
-                r.each(function() {
+                r.each(function () {
                     var $panel = a(this);
                     var isContainedMode = $panel.attr('data-fullwidth-banner') === 'false';
 
@@ -289,7 +421,7 @@ RenderTabs = function() {
                         var DEBOUNCE_MS = 200; // Aggressive debounce to prevent visual jitter
 
                         // Create observer to watch for fullWidthImageLayout style changes
-                        var observer = new MutationObserver(function(mutations) {
+                        var observer = new MutationObserver(function (mutations) {
                             // Skip if banners are already height-locked (stable state)
                             var layouts = $panel[0].querySelectorAll('[data-automation-id="fullWidthImageLayout"]');
                             var allLocked = true;
@@ -304,7 +436,7 @@ RenderTabs = function() {
                             }
 
                             var needsFix = false;
-                            mutations.forEach(function(mutation) {
+                            mutations.forEach(function (mutation) {
                                 if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                                     var el = mutation.target;
                                     // Only check unlocked elements
@@ -329,7 +461,7 @@ RenderTabs = function() {
                                 if (debounceTimer) {
                                     clearTimeout(debounceTimer);
                                 }
-                                debounceTimer = setTimeout(function() {
+                                debounceTimer = setTimeout(function () {
                                     debounceTimer = null;
                                     fixBannerWebparts($panel);
                                 }, DEBOUNCE_MS);
@@ -364,7 +496,7 @@ RenderTabs = function() {
                 }
 
                 // Add ARIA attributes to each tab
-                c.each(function(index) {
+                c.each(function (index) {
                     var $tab = a(this);
                     var tabId = uniqueId + '-tab-' + index;
                     var panelId = uniqueId + '-panel-' + index;
@@ -384,7 +516,7 @@ RenderTabs = function() {
                 });
 
                 // Add ARIA attributes to each content panel
-                r.each(function(index) {
+                r.each(function (index) {
                     var $panel = a(this);
                     var tabId = uniqueId + '-tab-' + index;
                     var panelId = uniqueId + '-panel-' + index;
@@ -420,16 +552,18 @@ RenderTabs = function() {
                         return false;
                     }
 
+                    var $panel = r.eq(newIndex);
+
                     // Update active states
                     r.removeClass("addui-Tabs-active").attr('aria-hidden', 'true');
                     r.eq(newIndex).addClass("addui-Tabs-active").removeAttr('aria-hidden');
 
                     c.removeClass("addui-Tabs-active")
-                     .attr('aria-selected', 'false')
-                     .attr('tabindex', '-1');
+                        .attr('aria-selected', 'false')
+                        .attr('tabindex', '-1');
                     $newTab.addClass("addui-Tabs-active")
-                           .attr('aria-selected', 'true')
-                           .attr('tabindex', '0');
+                        .attr('aria-selected', 'true')
+                        .attr('tabindex', '0');
 
                     u = newIndex;
 
@@ -439,9 +573,10 @@ RenderTabs = function() {
                     }
 
                     // ========== LAZY LOADING ==========
+                    // Note: $panel is already declared above for image protection
 
-                    var $panel = r.eq(newIndex);
-                    if ($panel.attr('data-lazy') === 'true' && $panel.attr('data-lazy-loaded') !== 'true') {
+                    var isLockedPanel = $panel.attr('data-lock-enabled') === 'true' && $panel.attr('data-lock-unlocked') !== 'true';
+                    if (!isLockedPanel && $panel.attr('data-lazy') === 'true' && $panel.attr('data-lazy-loaded') !== 'true') {
                         // Mark as loaded
                         $panel.attr('data-lazy-loaded', 'true');
 
@@ -449,7 +584,7 @@ RenderTabs = function() {
                         $panel.trigger('picanvas:lazy-load', { tabIndex: newIndex });
 
                         // Load any lazy iframes
-                        $panel.find('iframe[data-src]').each(function() {
+                        $panel.find('iframe[data-src]').each(function () {
                             var $iframe = a(this);
                             $iframe.attr('src', $iframe.attr('data-src'));
                             $iframe.removeAttr('data-src');
@@ -469,7 +604,7 @@ RenderTabs = function() {
                     // don't load.
                     // NOTE: We do NOT dispatch resize events as that causes SharePoint to
                     // recalculate image dimensions, creating a visual "zoom" effect.
-                    setTimeout(function() {
+                    setTimeout(function () {
                         // Fix Banner/Hero webparts that may have re-injected styles
                         fixBannerWebparts($panel);
 
@@ -478,7 +613,7 @@ RenderTabs = function() {
                         // on ANY element when it becomes visible. This causes content to
                         // expand beyond the tab container. Fix by resetting these styles.
                         function fixViewportEscapeStyles(container) {
-                            a(container).find('[style*="100vw"], [style*="calc(-50vw"], [style*="calc( -50vw"]').each(function() {
+                            a(container).find('[style*="100vw"], [style*="calc(-50vw"], [style*="calc( -50vw"]').each(function () {
                                 var el = this;
                                 // Skip images entirely - don't touch their styles
                                 if (el.tagName === 'IMG') return;
@@ -496,9 +631,9 @@ RenderTabs = function() {
                         fixViewportEscapeStyles($panel[0]);
 
                         // Watch for SharePoint re-injecting styles (it may do this async)
-                        var observer = new MutationObserver(function(mutations) {
+                        var observer = new MutationObserver(function (mutations) {
                             var needsFix = false;
-                            mutations.forEach(function(mutation) {
+                            mutations.forEach(function (mutation) {
                                 if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                                     var style = mutation.target.getAttribute('style') || '';
                                     if (style.indexOf('100vw') !== -1 || style.indexOf('calc(-50vw') !== -1) {
@@ -513,10 +648,10 @@ RenderTabs = function() {
                         observer.observe($panel[0], { attributes: true, subtree: true, attributeFilter: ['style'] });
 
                         // Stop observing after 2 seconds (SharePoint should be done by then)
-                        setTimeout(function() { observer.disconnect(); }, 2000);
+                        setTimeout(function () { observer.disconnect(); }, 2000);
 
                         // Force re-layout of elements with background-image
-                        $panel.find('[style*="background-image"]').each(function() {
+                        $panel.find('[style*="background-image"]').each(function () {
                             var $el = a(this);
                             // Force reflow by reading offsetHeight
                             void $el[0].offsetHeight;
@@ -524,7 +659,7 @@ RenderTabs = function() {
 
                         // Handle SharePoint's lazy image loading
                         // Look for placeholder images that need to be loaded
-                        $panel.find('img[data-src], img[loading="lazy"]').each(function() {
+                        $panel.find('img[data-src], img[loading="lazy"]').each(function () {
                             var $img = a(this);
                             if ($img.attr('data-src')) {
                                 $img.attr('src', $img.attr('data-src'));
@@ -542,7 +677,7 @@ RenderTabs = function() {
                 if ("hover" == i.change) { l = "mouseenter"; }
 
                 // Enhanced click handler that works with nested elements
-                c.on(l, function(evt) {
+                c.on(l, function (evt) {
                     evt.preventDefault();
                     evt.stopPropagation();
 
@@ -556,7 +691,7 @@ RenderTabs = function() {
                 });
 
                 // Prevent default on clickable elements inside tabs
-                c.find('a, button, img, [role="button"]').on('click', function(evt) {
+                c.find('a, button, img, [role="button"]').on('click', function (evt) {
                     evt.preventDefault();
                     evt.stopPropagation();
                     a(this).closest('.addui-Tabs-tab').trigger('click');
@@ -564,7 +699,7 @@ RenderTabs = function() {
 
                 // ========== KEYBOARD NAVIGATION (WCAG 2.1.1) ==========
 
-                n.on('keydown', '.addui-Tabs-tab', function(e) {
+                n.on('keydown', '.addui-Tabs-tab', function (e) {
                     var $tabs = c;
                     var currentIndex = $tabs.index(this);
                     var newIndex = currentIndex;
@@ -574,7 +709,7 @@ RenderTabs = function() {
                     var nextKey = isVertical ? 'ArrowDown' : 'ArrowRight';
                     var prevKey = isVertical ? 'ArrowUp' : 'ArrowLeft';
 
-                    switch(e.key) {
+                    switch (e.key) {
                         case nextKey:
                             // Move to next tab (wrap around)
                             newIndex = (currentIndex + 1) % tabCount;
@@ -629,16 +764,16 @@ RenderTabs = function() {
                 // ========== DEEP LINKING SUPPORT ==========
 
                 // Expose activation function for external use (deep linking)
-                t.data('picanvas-activate-tab', function(index) {
+                t.data('picanvas-activate-tab', function (index) {
                     if (index >= 0 && index < c.length) {
                         activateTab(index, false);
                     }
                 });
 
                 // Expose method to get tab by label text
-                t.data('picanvas-find-tab', function(labelText) {
+                t.data('picanvas-find-tab', function (labelText) {
                     var foundIndex = -1;
-                    c.each(function(index) {
+                    c.each(function (index) {
                         var tabText = a(this).text().trim().toLowerCase().replace(/\s+/g, '-');
                         if (tabText === labelText.toLowerCase().replace(/\s+/g, '-')) {
                             foundIndex = index;
@@ -650,9 +785,10 @@ RenderTabs = function() {
 
                 // Initialize first tab's lazy content
                 var $firstPanel = r.eq(u);
-                if ($firstPanel.attr('data-lazy') === 'true') {
+                var firstPanelLocked = $firstPanel.attr('data-lock-enabled') === 'true' && $firstPanel.attr('data-lock-unlocked') !== 'true';
+                if (!firstPanelLocked && $firstPanel.attr('data-lazy') === 'true') {
                     $firstPanel.attr('data-lazy-loaded', 'true');
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $firstPanel.trigger('picanvas:lazy-load', { tabIndex: u });
                     }, 0);
                 }
@@ -661,8 +797,8 @@ RenderTabs = function() {
                 // SharePoint Hero/Banner web parts set background-image via React after initial mount
                 // NOTE: We do NOT dispatch resize events as that causes SharePoint to recalculate
                 // image dimensions, creating a visual "zoom" effect.
-                setTimeout(function() {
-                    $firstPanel.find('[style*="background-image"]').each(function() {
+                setTimeout(function () {
+                    $firstPanel.find('[style*="background-image"]').each(function () {
                         void a(this)[0].offsetHeight;
                     });
                 }, 100);
@@ -671,13 +807,13 @@ RenderTabs = function() {
             return this;
         };
 
-        a.fn.addTabs = function(a) { $add.Tabs(this, a); };
-        $add.auto.Tabs = function() { $add.auto.disabled || a("[data-addui=tabs]").addTabs(); };
+        a.fn.addTabs = function (a) { $add.Tabs(this, a); };
+        $add.auto.Tabs = function () { $add.auto.disabled || a("[data-addui=tabs]").addTabs(); };
     }(jQuery);
 
-    $(function() {
+    $(function () {
         for (var k in $add.auto) {
-            if (typeof($add.auto[k]) == "function") {
+            if (typeof ($add.auto[k]) == "function") {
                 $add.auto[k]();
             }
         }

@@ -1,0 +1,451 @@
+/**
+ * MetadataTokenPicker Styles
+ * Styles for the page metadata token picker component
+ */
+
+.container {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 13px;
+  color: #323130;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #323130;
+}
+
+// Search
+.searchContainer {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #605e5c;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 32px 8px 32px;
+  border: 1px solid #8a8886;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.1s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #0078d4;
+  }
+
+  &::placeholder {
+    color: #a19f9d;
+  }
+}
+
+.clearSearch {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #605e5c;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #f3f2f1;
+    color: #323130;
+  }
+}
+
+// Loading
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #605e5c;
+}
+
+.loadingSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f2f1;
+  border-top-color: #0078d4;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Error
+.error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: #fef0f0;
+  border: 1px solid #f3d6d8;
+  border-radius: 4px;
+  color: #a4262c;
+}
+
+.errorIcon {
+  width: 20px;
+  height: 20px;
+  background-color: #a4262c;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+// Categories
+.categories {
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.category {
+  border-bottom: 1px solid #e1dfdd;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.categoryHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: #faf9f8;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #323130;
+  text-align: left;
+  transition: background-color 0.1s ease;
+
+  &:hover {
+    background-color: #f3f2f1;
+  }
+
+  &:focus {
+    outline: none;
+    background-color: #edebe9;
+  }
+}
+
+.categoryIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0078d4;
+  flex-shrink: 0;
+}
+
+.categoryLabel {
+  flex: 1;
+}
+
+.categoryCount {
+  font-size: 11px;
+  font-weight: 400;
+  color: #605e5c;
+  background-color: #e1dfdd;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.expandIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #605e5c;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.expandIconOpen {
+  transform: rotate(90deg);
+}
+
+.categoryContent {
+  background-color: #ffffff;
+}
+
+// Token Items
+.tokenItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f2f1;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: #f3f2f1;
+  }
+}
+
+.tokenItemNoValue {
+  opacity: 0.7;
+}
+
+.tokenInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.tokenLabel {
+  font-weight: 500;
+  color: #323130;
+  margin-bottom: 2px;
+}
+
+.tokenPath {
+  font-size: 11px;
+  font-family: "Consolas", "Monaco", monospace;
+  color: #0078d4;
+  background-color: #f3f2f1;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.tokenValue {
+  font-size: 11px;
+  color: #605e5c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+// Copy Button
+.copyButton {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #605e5c;
+  transition: all 0.1s ease;
+
+  &:hover {
+    background-color: #0078d4;
+    border-color: #0078d4;
+    color: white;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.copyButtonCopied {
+  background-color: #107c10;
+  border-color: #107c10;
+  color: white;
+
+  &:hover {
+    background-color: #0b5c0b;
+    border-color: #0b5c0b;
+  }
+}
+
+// Help Text
+.helpText {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #605e5c;
+  line-height: 1.5;
+
+  code {
+    font-family: "Consolas", "Monaco", monospace;
+    background-color: #f3f2f1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: #0078d4;
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .container {
+    color: #f3f2f1;
+  }
+
+  .label {
+    color: #f3f2f1;
+  }
+
+  .searchInput {
+    background-color: #292827;
+    border-color: #484644;
+    color: #f3f2f1;
+
+    &:focus {
+      border-color: #6cb8f6;
+    }
+
+    &::placeholder {
+      color: #8a8886;
+    }
+  }
+
+  .clearSearch {
+    color: #a19f9d;
+
+    &:hover {
+      background-color: #3b3a39;
+      color: #f3f2f1;
+    }
+  }
+
+  .loading {
+    color: #a19f9d;
+  }
+
+  .loadingSpinner {
+    border-color: #484644;
+    border-top-color: #6cb8f6;
+  }
+
+  .error {
+    background-color: #442726;
+    border-color: #6b2c2b;
+    color: #f1707b;
+  }
+
+  .errorIcon {
+    background-color: #f1707b;
+    color: #442726;
+  }
+
+  .categories {
+    border-color: #484644;
+  }
+
+  .category {
+    border-color: #484644;
+  }
+
+  .categoryHeader {
+    background-color: #292827;
+    color: #f3f2f1;
+
+    &:hover {
+      background-color: #3b3a39;
+    }
+
+    &:focus {
+      background-color: #484644;
+    }
+  }
+
+  .categoryIcon {
+    color: #6cb8f6;
+  }
+
+  .categoryCount {
+    color: #a19f9d;
+    background-color: #484644;
+  }
+
+  .expandIcon {
+    color: #a19f9d;
+  }
+
+  .categoryContent {
+    background-color: #1b1a19;
+  }
+
+  .tokenItem {
+    border-color: #3b3a39;
+
+    &:hover {
+      background-color: #292827;
+    }
+  }
+
+  .tokenLabel {
+    color: #f3f2f1;
+  }
+
+  .tokenPath {
+    color: #6cb8f6;
+    background-color: #292827;
+  }
+
+  .tokenValue {
+    color: #a19f9d;
+  }
+
+  .copyButton {
+    border-color: #484644;
+    color: #a19f9d;
+
+    &:hover {
+      background-color: #6cb8f6;
+      border-color: #6cb8f6;
+      color: #1b1a19;
+    }
+  }
+
+  .copyButtonCopied {
+    background-color: #57a64a;
+    border-color: #57a64a;
+    color: #1b1a19;
+
+    &:hover {
+      background-color: #4a9240;
+      border-color: #4a9240;
+    }
+  }
+
+  .helpText {
+    color: #a19f9d;
+
+    code {
+      background-color: #292827;
+      color: #6cb8f6;
+    }
+  }
+}

@@ -8,9 +8,10 @@ import { marked } from 'marked';
 import mermaid from 'mermaid';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const DOMPurify = require('dompurify');
+import { IProfileReportTheme, BUILTIN_THEMES } from '../models/ProfileReportThemes';
 
 // Content type definitions
-export type ContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed' | 'rss' | 'landing' | 'file';
+export type ContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed' | 'rss' | 'landing' | 'file' | 'toc' | 'profilereport';
 
 export interface IEmbedConfig {
   url: string;
@@ -44,7 +45,138 @@ export interface IRssRenderItem {
 export interface IRenderResult {
   html: string;
   requiresPostRender?: boolean;
-  postRenderType?: 'mermaid' | 'rss' | 'landing';
+  postRenderType?: 'mermaid' | 'rss' | 'landing' | 'toc' | 'profilereport';
+}
+
+export interface IMetadataFileEntry {
+  name: string;
+  url: string;
+  category: string;
+  title: string;
+  modified: string;
+}
+
+// ========== Company Intelligence Interfaces ==========
+
+export interface IIntelExecutive {
+  name: string;
+  title: string;
+}
+
+export interface IIntelProduct {
+  name: string;
+  description?: string;
+}
+
+export interface IIntelFinancial {
+  metric: string;
+  value: number;
+  unit: string;
+  fiscalYear: number;
+  tier: string;
+  confidence: number;
+}
+
+export interface IIntelRelationship {
+  name: string;
+  domain?: string;
+  confidence: number;
+}
+
+export interface IIntelGrowthEvent {
+  date: string;
+  type: string;
+  title: string;
+  description?: string;
+  confidence: number;
+  confirmed: boolean;
+  sources?: number;
+}
+
+export interface IIntelEarnings {
+  quarter: string;
+  year: number;
+  sentiment: 'positive' | 'negative' | 'neutral';
+  summary: string;
+  keyTopics?: string[];
+}
+
+export interface ICompanyIntel {
+  piRadarId: number;
+  description?: string;
+  founded?: string;
+  hq?: string;
+  parentCompany?: string;
+  executives: IIntelExecutive[];
+  products: IIntelProduct[];
+  financials: IIntelFinancial[];
+  competitors: IIntelRelationship[];
+  customers: IIntelRelationship[];
+  partners: IIntelRelationship[];
+  recentActivity: IIntelGrowthEvent[];
+  earnings: IIntelEarnings[];
+  lastUpdated: string;
+}
+
+export interface ICompanyProfile {
+  companyKey: string;
+  companyName: string;
+  domain: string;
+  piRadarId?: number;
+  industry?: string;
+  sector?: string;
+  accountOwner?: string;
+  ownerRegion?: string;
+  methodK?: string;      // Markdown content
+  methodL?: string;      // Markdown content
+  methodM?: string;      // Markdown content
+  profileJson?: any;     // JSON object
+  generated?: Date;
+  metrics?: {
+    events: number;
+    entities: number;
+    relationships: number;
+    financials: number;
+    earnings: number;
+  };
+  metadataFiles?: IMetadataFileEntry[];
+  companyIntel?: ICompanyIntel;
+}
+
+/** Lightweight company entry — sourced from Pi_Companies list or condensed/ folder */
+export interface ICompanyEntry {
+  domain: string;           // e.g. "crowdstrike.com"
+  companyName: string;      // Title from list, or derived from domain
+  jsonFileUrl: string;      // ServerRelativeUrl of the condensed JSON (may be empty for list-based entries)
+  timeCreated: string;
+  piRadarId?: number;       // PiRadarID from Pi_Companies list
+  industry?: string;
+  sector?: string;
+  accountOwner?: string;
+  ownerEmail?: string;
+  ownerRegion?: string;
+  ticker?: string;
+  revenue?: string;
+  employees?: string;
+  searchTerms?: string;  // Entities + previous domains for search (semicolon-separated)
+}
+
+export interface IProfileReportDisplayConfig {
+  layout: 'tabbed' | 'accordion' | 'cards';
+  libraryName: string;          // e.g., "Profiles"
+  listName?: string;            // e.g., "Pi_Companies" — if set, queries list instead of scanning folders
+  showMethodK: boolean;
+  showMethodL: boolean;
+  showMethodM: boolean;
+  showProfileJson: boolean;
+  companyLimit?: number;        // Max companies to display
+  sortBy: 'name' | 'date' | 'key';
+  theme: string;
+  displayMode: 'contained' | 'fullSection' | 'fullScreen';
+  sidebarWidth?: string;        // CSS value like "280px"
+  enableMetadataDiscovery?: boolean;
+  metadataCompanyColumn?: string;       // e.g., "Pi_CompanyID"
+  metadataFileCategoryColumn?: string;  // e.g., "FileCategory"
 }
 
 export interface ILandingConfig {
@@ -756,6 +888,311 @@ export class ContentRenderer {
     };
   }
 
+  // ========== JavaScript Content Rendering ==========
+
+  /**
+   * Prepare JavaScript content for rendering
+   * Creates a container placeholder that will be populated when executeJavaScriptElement is called
+   * @param displayMode - 'contained' (default), 'fullSection' (full width, keeps nav), or 'fullScreen' (covers viewport)
+   */
+  public static prepareJavaScript(code: string, elementId: string, displayMode: string = 'contained'): IRenderResult {
+    if (!code || typeof code !== 'string') {
+      return { html: '<div class="picanvas-js-container"><p class="picanvas-js-empty">No JavaScript code provided</p></div>' };
+    }
+
+    // Encode code for data attribute (prevent XSS)
+    const encodedCode = this.encodeForAttribute(code);
+
+    // Generate a CSS-safe ID
+    const safeId = this.makeCssSafeId(elementId);
+
+    // Determine CSS class and inline styles based on display mode
+    let displayClass = '';
+    let displayStyle = '';
+    let outputStyle = '';
+
+    if (displayMode === 'fullSection') {
+      // Full Section: full viewport width positioned BELOW SharePoint header (navigation stays visible and clickable)
+      // Uses position:fixed starting at top:146px (below SP header + site nav + toolbar)
+      // z-index is lower than header to ensure navigation remains interactive
+      displayClass = ' picanvas-js-fullsection';
+      displayStyle = 'position:fixed!important;top:146px!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;z-index:100!important;margin:0!important;padding:0!important;background:#0f0f23!important;overflow:auto!important;box-sizing:border-box!important;';
+      outputStyle = 'min-height:calc(100vh - 146px);width:100%;';
+    } else if (displayMode === 'fullScreen') {
+      // Full Screen: covers entire viewport (position:fixed)
+      // WARNING: This hides SharePoint navigation - user must scroll/escape to access edit controls
+      displayClass = ' picanvas-js-fullscreen';
+      displayStyle = 'position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;z-index:999999!important;margin:0!important;padding:0!important;background:#0f0f23!important;overflow:auto!important;';
+      outputStyle = 'min-height:100vh;width:100%;';
+    }
+    // 'contained' mode: no special styling, uses default container styles
+
+    // Return placeholder that will be executed after DOM insertion
+    const html = `
+      <div class="picanvas-js-container${displayClass}"
+           data-js-id="${safeId}"
+           data-js-code="${encodedCode}"
+           data-display-mode="${displayMode}"
+           style="${displayStyle}">
+        <div class="picanvas-js-output" id="${safeId}" style="${outputStyle}"></div>
+      </div>
+    `;
+
+    return {
+      html,
+      requiresPostRender: true,
+      postRenderType: 'javascript' as 'mermaid' // Type assertion for now
+    };
+  }
+
+  /**
+   * Execute JavaScript code within a sandboxed context
+   * Provides helper utilities: container, render(), create()
+   * Call this after the element is in the DOM
+   */
+  public static executeJavaScriptElement(element: HTMLElement): void {
+    const code = element.getAttribute('data-js-code');
+    const jsId = element.getAttribute('data-js-id');
+
+    if (!code || !jsId) {
+      return;
+    }
+
+    // Check if already executed
+    if (element.classList.contains('picanvas-js-executed')) {
+      return;
+    }
+
+    // Handle display modes
+    const displayMode = element.getAttribute('data-display-mode') || 'contained';
+
+    // Detect if page is in edit mode - don't apply full-screen/full-section positioning in edit mode
+    // Check URL first (most reliable), then DOM indicators
+    const urlHasEditMode = window.location.href.toLowerCase().includes('mode=edit');
+    const hasDesignModeClass = document.body.classList.contains('sp-pageLayout-designMode');
+    const hasEditButton = !!document.querySelector('[data-automation-id="pageEditButton"][aria-pressed="true"]');
+    const hasEditingMode = !!document.querySelector('.od-EditingMode');
+    const hasSlotManager = !!document.querySelector('[data-automation-id="fabricSlotManager"]');
+    // Also check for canvas editing UI
+    const hasCanvasToolbar = !!document.querySelector('[data-automation-id="canvasToolboxAddButton"]');
+
+    const isEditMode = urlHasEditMode || hasDesignModeClass || hasEditButton || hasEditingMode || hasSlotManager || hasCanvasToolbar;
+
+    console.log('[PiCanvas] Edit mode detection:', {
+      urlHasEditMode,
+      hasDesignModeClass,
+      hasEditButton,
+      hasEditingMode,
+      hasSlotManager,
+      hasCanvasToolbar,
+      isEditMode,
+      displayMode,
+      url: window.location.href
+    });
+
+    if (isEditMode) {
+      console.log('[PiCanvas] Edit mode detected - skipping fixed positioning to allow editing');
+      // Clear any fixed positioning styles that were set inline
+      element.style.position = 'relative';
+      element.style.top = '';
+      element.style.left = '';
+      element.style.right = '';
+      element.style.bottom = '';
+      element.style.width = '100%';
+      element.style.height = 'auto';
+      element.style.minHeight = '400px';
+      element.style.zIndex = '';
+      // Don't move to body or apply full positioning - just continue to execute JS below
+    } else if (displayMode === 'fullScreen' && element.parentElement !== document.body) {
+      // Full Screen mode: move element to body to escape parent CSS constraints (portal approach)
+      // This covers the entire viewport including SharePoint navigation
+      const placeholder = document.createElement('div');
+      placeholder.className = 'picanvas-js-fullscreen-placeholder';
+      placeholder.setAttribute('data-js-id', jsId);
+      placeholder.style.display = 'none';
+      element.parentElement?.insertBefore(placeholder, element);
+      document.body.appendChild(element);
+
+      // Inject edit button for users with edit permissions
+      this.injectEditButton(element, 'fullScreen');
+      console.log('[PiCanvas] Full Screen mode - moved JS container to body (covers everything)');
+    } else if (displayMode === 'fullSection' && element.parentElement !== document.body) {
+      // Full Section mode: move to body to escape SharePoint container constraints
+      // Uses position:fixed but starts below the header (top:146px) so navigation remains visible and clickable
+      const placeholder = document.createElement('div');
+      placeholder.className = 'picanvas-js-fullsection-placeholder';
+      placeholder.setAttribute('data-js-id', jsId);
+      placeholder.style.display = 'none';
+      element.parentElement?.insertBefore(placeholder, element);
+      document.body.appendChild(element);
+
+      // Inject edit button for users with edit permissions
+      this.injectEditButton(element, 'fullSection');
+      console.log('[PiCanvas] Full Section mode - moved to body, positioned below header (navigation visible)');
+    } else {
+      console.log('[PiCanvas] Contained mode - default styling');
+    }
+
+    // Decode code
+    const decodedCode = this.decodeFromAttribute(code);
+
+    const outputDiv = element.querySelector('.picanvas-js-output') as HTMLElement;
+    if (!outputDiv) {
+      return;
+    }
+
+    try {
+      // Create sandboxed helpers
+      const container = outputDiv;
+
+      // render() helper - sets innerHTML with basic sanitization
+      const render = (html: string): void => {
+        // Basic sanitization - remove script tags and event handlers
+        const sanitized = html
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '');
+        container.innerHTML = sanitized;
+      };
+
+      // create() helper - creates elements safely
+      const create = (
+        tag: string,
+        attributes?: Record<string, unknown>,
+        children?: string | HTMLElement | (string | HTMLElement)[]
+      ): HTMLElement => {
+        const el = document.createElement(tag);
+
+        if (attributes) {
+          Object.entries(attributes).forEach(([key, value]) => {
+            if (key === 'style' && typeof value === 'object' && value !== null) {
+              // Handle style object - use type assertion through unknown
+              const styleObj = value as Record<string, string>;
+              Object.keys(styleObj).forEach((styleProp) => {
+                (el.style as unknown as Record<string, string>)[styleProp] = styleObj[styleProp];
+              });
+            } else if (key.startsWith('on') && typeof value === 'function') {
+              // Handle event listeners
+              const eventName = key.substring(2).toLowerCase();
+              el.addEventListener(eventName, value as EventListener);
+            } else if (key === 'className') {
+              el.className = String(value);
+            } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+              el.setAttribute(key, String(value));
+            }
+          });
+        }
+
+        if (children) {
+          const childArray = Array.isArray(children) ? children : [children];
+          childArray.forEach(child => {
+            if (typeof child === 'string') {
+              el.appendChild(document.createTextNode(child));
+            } else if (child instanceof HTMLElement) {
+              el.appendChild(child);
+            }
+          });
+        }
+
+        return el;
+      };
+
+      // Execute user code in a sandboxed function scope
+      // This prevents direct access to window/document but allows the helpers
+      // eslint-disable-next-line no-new-func
+      const sandboxedFunction = new Function(
+        'container',
+        'render',
+        'create',
+        decodedCode
+      );
+
+      sandboxedFunction(container, render, create);
+
+      element.classList.add('picanvas-js-executed');
+    } catch (error) {
+      console.error('[PiCanvas] JavaScript execution error:', error);
+      outputDiv.innerHTML = `
+        <div class="picanvas-js-error">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text">JavaScript execution error</span>
+          <details>
+            <summary>Details</summary>
+            <pre>${this.encodeHtml(String(error))}</pre>
+          </details>
+        </div>
+      `;
+      element.classList.add('picanvas-js-error');
+    }
+  }
+
+  /**
+   * Inject an edit button for Full Screen / Full Section mode
+   * Shows an edit pencil icon in the top-right corner that links to page edit mode
+   * @param displayMode - 'fullScreen' positions at viewport top, 'fullSection' positions below SP header
+   */
+  public static injectEditButton(container: HTMLElement, displayMode: 'fullScreen' | 'fullSection' = 'fullScreen'): void {
+    // Check if edit button already exists
+    if (container.querySelector('.picanvas-edit-button')) {
+      return;
+    }
+
+    // Create the edit button
+    const editButton = document.createElement('a');
+    editButton.className = 'picanvas-edit-button';
+    editButton.title = 'Edit Page';
+
+    // Build edit URL - add ?Mode=Edit to current URL
+    const currentUrl = window.location.href.split('?')[0];
+    editButton.href = `${currentUrl}?Mode=Edit`;
+
+    // Position depends on display mode:
+    // - fullScreen: top of viewport (12px)
+    // - fullSection: below SharePoint header (156px = 146px header + 10px padding)
+    const topPosition = displayMode === 'fullSection' ? '156px' : '12px';
+
+    // Style the button
+    editButton.style.cssText = `
+      position: fixed !important;
+      top: ${topPosition} !important;
+      right: 12px !important;
+      width: 40px !important;
+      height: 40px !important;
+      background: rgba(255, 255, 255, 0.9) !important;
+      border: 1px solid #ccc !important;
+      border-radius: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      z-index: 999999 !important;
+      text-decoration: none !important;
+      transition: background 0.2s, transform 0.2s !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    `;
+
+    // Add hover effect
+    editButton.addEventListener('mouseenter', () => {
+      editButton.style.background = 'rgba(255, 255, 255, 1)';
+      editButton.style.transform = 'scale(1.05)';
+    });
+    editButton.addEventListener('mouseleave', () => {
+      editButton.style.background = 'rgba(255, 255, 255, 0.9)';
+      editButton.style.transform = 'scale(1)';
+    });
+
+    // Add pencil icon (SVG)
+    editButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+    `;
+
+    // Add to container
+    container.appendChild(editButton);
+    console.log('[PiCanvas] Injected edit button for fullscreen/fullsection mode');
+  }
+
   // ========== Landing Page Rendering ==========
 
   // SVG Icons for landing page
@@ -1085,4 +1522,721 @@ export class ContentRenderer {
       delete (container as HTMLElement & { _landingCleanup?: () => void })._landingCleanup;
     }
   }
+
+  // ========== Table of Contents Rendering ==========
+
+  /**
+   * Render TOC placeholder that will be populated post-render
+   * Config is encoded as JSON in a data attribute for the post-render hook
+   */
+  public static renderTocPlaceholder(elementId: string, configJson: string): IRenderResult {
+    const safeId = this.makeCssSafeId(elementId);
+    const encodedConfig = this.encodeForAttribute(configJson);
+
+    const html = `
+      <div class="picanvas-toc-wrapper"
+           id="${safeId}"
+           data-toc-config="${encodedConfig}">
+        <div class="picanvas-toc-loading">Scanning page headings...</div>
+      </div>
+    `;
+
+    return {
+      html,
+      requiresPostRender: true,
+      postRenderType: 'toc'
+    };
+  }
+
+  /**
+   * Render an inline TOC placeholder for within-tab use
+   * Returns a marker div that will be populated after the tab content renders
+   */
+  public static renderInlineTocPlaceholder(elementId: string): string {
+    const safeId = this.makeCssSafeId(elementId);
+    return `<div class="picanvas-inline-toc-placeholder" id="${safeId}" data-inline-toc="true"></div>`;
+  }
+
+  // ========== Profile Report Rendering ==========
+
+  /**
+   * Render loading state for profile reports
+   */
+  public static renderProfileReportLoading(message?: string): IRenderResult {
+    const msg = this.encodeHtml(message || 'Loading company profiles...');
+    return {
+      html: `
+        <div class="picanvas-profilereport-loading">
+          <div class="spinner"></div>
+          <p>${msg}</p>
+        </div>
+      `
+    };
+  }
+
+  /**
+   * Render error state for profile reports
+   */
+  public static renderProfileReportError(error: string): IRenderResult {
+    const encodedError = this.encodeHtml(error);
+    return {
+      html: `
+        <div class="picanvas-profilereport-error">
+          <p class="error-icon">⚠️</p>
+          <p class="error-message">${encodedError}</p>
+        </div>
+      `
+    };
+  }
+
+  /**
+   * Render empty state when no profiles found
+   */
+  public static renderProfileReportEmpty(libraryName: string): IRenderResult {
+    const encodedLibrary = this.encodeHtml(libraryName);
+    return {
+      html: `
+        <div class="picanvas-profilereport-empty">
+          <p class="empty-icon">📊</p>
+          <p class="empty-message">No company profiles found in "${encodedLibrary}"</p>
+          <p class="empty-hint">Upload profile files (.md, .json) with Pi_CompanyID metadata to get started.</p>
+        </div>
+      `
+    };
+  }
+
+  // ========== Company Intelligence Rendering ==========
+
+  /**
+   * Format currency values for display (e.g., 1500000000 → "$1.5B")
+   */
+  private static formatCurrency(value: number, unit: string = 'USD'): string {
+    const prefix = unit === 'USD' ? '$' : '';
+    const abs = Math.abs(value);
+    if (abs >= 1e12) return `${prefix}${(value / 1e12).toFixed(1)}T`;
+    if (abs >= 1e9) return `${prefix}${(value / 1e9).toFixed(1)}B`;
+    if (abs >= 1e6) return `${prefix}${(value / 1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `${prefix}${(value / 1e3).toFixed(0)}K`;
+    return `${prefix}${value.toFixed(0)}`;
+  }
+
+  /**
+   * Render enriched overview tab using company intel data
+   */
+  private static renderIntelOverview(intel: ICompanyIntel, profile: ICompanyProfile): string {
+    const descriptionHtml = intel.description
+      ? `<p class="intel-description">${this.encodeHtml(intel.description)}</p>`
+      : '';
+
+    const infoItems: string[] = [];
+    if (intel.hq) infoItems.push(`<div class="intel-info-item"><span class="intel-info-label">Headquarters</span><span class="intel-info-value">${this.encodeHtml(intel.hq)}</span></div>`);
+    if (intel.founded) infoItems.push(`<div class="intel-info-item"><span class="intel-info-label">Founded</span><span class="intel-info-value">${this.encodeHtml(intel.founded)}</span></div>`);
+    if (intel.parentCompany) infoItems.push(`<div class="intel-info-item"><span class="intel-info-label">Parent Company</span><span class="intel-info-value">${this.encodeHtml(intel.parentCompany)}</span></div>`);
+    if (profile.industry) infoItems.push(`<div class="intel-info-item"><span class="intel-info-label">Industry</span><span class="intel-info-value">${this.encodeHtml(profile.industry)}</span></div>`);
+    if (profile.sector) infoItems.push(`<div class="intel-info-item"><span class="intel-info-label">Sector</span><span class="intel-info-value">${this.encodeHtml(profile.sector)}</span></div>`);
+
+    const infoGridHtml = infoItems.length > 0
+      ? `<div class="intel-info-grid">${infoItems.join('')}</div>`
+      : '';
+
+    const leadershipHtml = intel.executives.length > 0 ? this.renderLeadershipSection(intel.executives) : '';
+    const productsHtml = intel.products.length > 0 ? this.renderProductsSection(intel.products) : '';
+
+    return `
+      <div class="intel-overview">
+        ${descriptionHtml}
+        ${infoGridHtml}
+        ${leadershipHtml}
+        ${productsHtml}
+      </div>
+    `;
+  }
+
+  /**
+   * Render leadership/executives section
+   */
+  private static renderLeadershipSection(executives: IIntelExecutive[]): string {
+    const cards = executives.map(exec => `
+      <div class="intel-exec-card">
+        <div class="intel-exec-name">${this.encodeHtml(exec.name)}</div>
+        <div class="intel-exec-title">${this.encodeHtml(exec.title)}</div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="intel-section">
+        <h4 class="intel-section-title">Leadership</h4>
+        <div class="intel-exec-grid">${cards}</div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render products section
+   */
+  private static renderProductsSection(products: IIntelProduct[]): string {
+    const items = products.map(p => {
+      const desc = p.description ? `<span class="intel-product-desc">${this.encodeHtml(p.description)}</span>` : '';
+      return `<div class="intel-product-item"><span class="intel-product-name">${this.encodeHtml(p.name)}</span>${desc}</div>`;
+    }).join('');
+
+    return `
+      <div class="intel-section">
+        <h4 class="intel-section-title">Products & Services</h4>
+        <div class="intel-products-list">${items}</div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render financials tab with tier badges
+   */
+  private static renderFinancialsSection(financials: IIntelFinancial[]): string {
+    if (financials.length === 0) {
+      return '<div class="intel-empty">No financial estimates available for this company.</div>';
+    }
+
+    // Group by fiscal year
+    const byYear = new Map<number, IIntelFinancial[]>();
+    for (const f of financials) {
+      const arr = byYear.get(f.fiscalYear) || [];
+      arr.push(f);
+      byYear.set(f.fiscalYear, arr);
+    }
+
+    const years = [...byYear.keys()].sort((a, b) => b - a);
+
+    const yearSections = years.map(year => {
+      const items = byYear.get(year)!;
+      const cards = items.map(f => {
+        const tierClass = f.tier === 'A' ? 'intel-tier-a' : 'intel-tier-b';
+        return `
+          <div class="intel-financial-card">
+            <div class="intel-financial-metric">${this.encodeHtml(f.metric)}</div>
+            <div class="intel-financial-value">${this.formatCurrency(f.value, f.unit)}</div>
+            <div class="intel-financial-meta">
+              <span class="intel-tier-badge ${tierClass}">Tier ${this.encodeHtml(f.tier)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="intel-year-group">
+          <h4 class="intel-year-label">FY ${year}</h4>
+          <div class="intel-financials-grid">${cards}</div>
+        </div>
+      `;
+    }).join('');
+
+    return `<div class="intel-financials">${yearSections}</div>`;
+  }
+
+  /**
+   * Render competitive landscape with colored chips
+   */
+  private static renderCompetitiveLandscape(
+    competitors: IIntelRelationship[],
+    customers: IIntelRelationship[],
+    partners: IIntelRelationship[]
+  ): string {
+    const hasAny = competitors.length > 0 || customers.length > 0 || partners.length > 0;
+    if (!hasAny) {
+      return '<div class="intel-empty">No relationship data available for this company.</div>';
+    }
+
+    const renderChips = (items: IIntelRelationship[], cssClass: string): string => {
+      return items.map(r =>
+        `<span class="intel-chip ${cssClass}" title="Confidence: ${(r.confidence * 100).toFixed(0)}%">${this.encodeHtml(r.name)}</span>`
+      ).join('');
+    };
+
+    const sections: string[] = [];
+    if (competitors.length > 0) {
+      sections.push(`
+        <div class="intel-landscape-group">
+          <h4 class="intel-landscape-label">Competitors <span class="intel-landscape-count">${competitors.length}</span></h4>
+          <div class="intel-chips-container">${renderChips(competitors, 'intel-chip-competitor')}</div>
+        </div>
+      `);
+    }
+    if (customers.length > 0) {
+      sections.push(`
+        <div class="intel-landscape-group">
+          <h4 class="intel-landscape-label">Customers <span class="intel-landscape-count">${customers.length}</span></h4>
+          <div class="intel-chips-container">${renderChips(customers, 'intel-chip-customer')}</div>
+        </div>
+      `);
+    }
+    if (partners.length > 0) {
+      sections.push(`
+        <div class="intel-landscape-group">
+          <h4 class="intel-landscape-label">Partners <span class="intel-landscape-count">${partners.length}</span></h4>
+          <div class="intel-chips-container">${renderChips(partners, 'intel-chip-partner')}</div>
+        </div>
+      `);
+    }
+
+    return `<div class="intel-landscape">${sections.join('')}</div>`;
+  }
+
+  /**
+   * Render activity timeline with date, type, title, confirmation badges
+   */
+  private static renderActivityTimeline(events: IIntelGrowthEvent[]): string {
+    if (events.length === 0) {
+      return '<div class="intel-empty">No recent activity data available for this company.</div>';
+    }
+
+    const items = events.map(evt => {
+      const confirmedBadge = evt.confirmed
+        ? '<span class="intel-confirmed-badge">Confirmed</span>'
+        : '';
+      const sourcesBadge = evt.sources && evt.sources > 1
+        ? `<span class="intel-sources-badge">${evt.sources} sources</span>`
+        : '';
+      const descHtml = evt.description
+        ? `<div class="intel-event-desc">${this.encodeHtml(evt.description)}</div>`
+        : '';
+      const typeLabel = evt.type.replace(/_/g, ' ');
+
+      return `
+        <div class="intel-timeline-item">
+          <div class="intel-timeline-dot"></div>
+          <div class="intel-timeline-content">
+            <div class="intel-event-header">
+              <span class="intel-event-date">${this.encodeHtml(evt.date)}</span>
+              <span class="intel-event-type">${this.encodeHtml(typeLabel)}</span>
+              ${confirmedBadge}
+              ${sourcesBadge}
+            </div>
+            <div class="intel-event-title">${this.encodeHtml(evt.title)}</div>
+            ${descHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `<div class="intel-timeline">${items}</div>`;
+  }
+
+  /**
+   * Render earnings summaries with sentiment badges
+   */
+  private static renderEarningsSection(earnings: IIntelEarnings[]): string {
+    if (earnings.length === 0) {
+      return '<div class="intel-empty">No earnings transcript data available for this company.</div>';
+    }
+
+    const cards = earnings.map(e => {
+      const sentimentClass = `intel-sentiment-${e.sentiment}`;
+      const sentimentLabel = e.sentiment.charAt(0).toUpperCase() + e.sentiment.slice(1);
+      const topicsHtml = e.keyTopics && e.keyTopics.length > 0
+        ? `<div class="intel-earnings-topics">${e.keyTopics.map(t => `<span class="intel-topic-tag">${this.encodeHtml(t)}</span>`).join('')}</div>`
+        : '';
+
+      return `
+        <div class="intel-earnings-card">
+          <div class="intel-earnings-header">
+            <span class="intel-earnings-period">${this.encodeHtml(e.quarter)} ${e.year}</span>
+            <span class="intel-sentiment-badge ${sentimentClass}">${sentimentLabel}</span>
+          </div>
+          <div class="intel-earnings-summary">${this.encodeHtml(e.summary)}</div>
+          ${topicsHtml}
+        </div>
+      `;
+    }).join('');
+
+    return `<div class="intel-earnings">${cards}</div>`;
+  }
+
+  /**
+   * Render a single company card for the explorer grid.
+   * Returns an HTML string for a clickable card button.
+   */
+  public static renderCompanyCard(entry: ICompanyEntry, index: number, searchQuery?: string): string {
+    const encodedName = this.encodeHtml(entry.companyName);
+    const encodedDomain = this.encodeHtml(entry.domain);
+
+    // Highlight matching text if searching
+    const highlight = (text: string): string => {
+      if (!searchQuery) return text;
+      const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="pr-search-highlight">$1</mark>');
+    };
+
+    // Badges
+    const badges: string[] = [];
+    if (entry.industry) badges.push(`<span class="pr-card-badge pr-card-badge-industry">${highlight(this.encodeHtml(entry.industry))}</span>`);
+    if (entry.sector) badges.push(`<span class="pr-card-badge pr-card-badge-sector">${highlight(this.encodeHtml(entry.sector))}</span>`);
+    const badgesHtml = badges.length > 0 ? `<div class="pr-card-badges">${badges.join('')}</div>` : '';
+
+    // Meta line
+    const metaParts: string[] = [];
+    if (entry.accountOwner) metaParts.push(highlight(this.encodeHtml(entry.accountOwner)));
+    if (entry.revenue) metaParts.push(this.encodeHtml(entry.revenue));
+    if (entry.employees) metaParts.push(`${this.encodeHtml(entry.employees)} emp`);
+    const metaHtml = metaParts.length > 0
+      ? `<div class="pr-card-meta">${metaParts.map(p => `<span>${p}</span>`).join('<span class="pr-card-meta-sep">&middot;</span>')}</div>`
+      : '';
+
+    const tickerHtml = entry.ticker
+      ? `<span class="pr-card-ticker">${highlight(this.encodeHtml(entry.ticker))}</span>`
+      : '';
+
+    return `<button class="pr-company-card" data-company-index="${index}">
+      <span class="pr-card-name">${highlight(encodedName)}</span>
+      <div class="pr-card-domain-row">${highlight(encodedDomain)}${tickerHtml ? `<span class="pr-card-domain-sep">&middot;</span>${tickerHtml}` : ''}</div>
+      ${badgesHtml}
+      ${metaHtml}
+    </button>`;
+  }
+
+  /**
+   * Render the detail header for a selected company.
+   * Returns inner HTML for the .pr-detail-header element.
+   */
+  public static renderDetailHeader(entry: ICompanyEntry, currentIndex: number, totalFiltered: number): string {
+    const encodedName = this.encodeHtml(entry.companyName);
+    const encodedDomain = this.encodeHtml(entry.domain);
+
+    // Metadata badges
+    const badges: string[] = [];
+    if (entry.industry) badges.push(`<span class="company-badge company-badge-industry">${this.encodeHtml(entry.industry)}</span>`);
+    if (entry.sector) badges.push(`<span class="company-badge company-badge-sector">${this.encodeHtml(entry.sector)}</span>`);
+    if (entry.accountOwner) badges.push(`<span class="company-badge company-badge-owner">${this.encodeHtml(entry.accountOwner)}</span>`);
+    if (entry.ownerRegion) badges.push(`<span class="company-badge company-badge-region">${this.encodeHtml(entry.ownerRegion)}</span>`);
+    const badgesHtml = badges.length > 0 ? `<div class="pr-detail-badges">${badges.join('')}</div>` : '';
+
+    const posLabel = `${currentIndex + 1} / ${totalFiltered}`;
+    const hasPrev = currentIndex > 0;
+    const hasNext = currentIndex < totalFiltered - 1;
+
+    return `
+      <button class="pr-back-btn" title="Back to explorer">&larr; Back</button>
+      <div class="pr-detail-info">
+        <h2 class="pr-detail-company-name">${encodedName}</h2>
+        <span class="pr-detail-domain">${encodedDomain}</span>${entry.ticker ? `<span class="pr-detail-ticker">${this.encodeHtml(entry.ticker)}</span>` : ''}
+        ${badgesHtml}
+      </div>
+      <div class="pr-detail-nav">
+        <span class="pr-detail-pos">${posLabel}</span>
+        <button class="pr-detail-nav-prev" ${hasPrev ? '' : 'disabled'}>&larr; Prev</button>
+        <button class="pr-detail-nav-next" ${hasNext ? '' : 'disabled'}>Next &rarr;</button>
+      </div>
+    `;
+  }
+
+  /**
+   * Render profile report shell — two-phase explorer/detail full-page app.
+   * Explorer: full-screen card grid with search, filters, sort.
+   * Detail: full-width report reader when a company is selected.
+   * Content is loaded per-company on demand via renderCompanyPanel().
+   */
+  /**
+   * Render theme toggle buttons from a themes array.
+   * Falls back to hardcoded 4-button toggle if no themes provided.
+   */
+  public static renderThemeToggle(themes: IProfileReportTheme[], activeId: string): string {
+    // Always prepend Auto button (meta-mode that follows OS preference)
+    const autoActive = activeId === 'auto' ? ' active' : '';
+    const autoBtn = `<button class="pr-theme-btn${autoActive}" data-theme-value="auto" title="Auto (follow system)"><svg class="pr-theme-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg></button>`;
+
+    const themeButtons = themes.map(t => {
+      const isActive = t.id === activeId ? ' active' : '';
+      const safeId = this.encodeHtml(t.id);
+      const safeName = this.encodeHtml(t.name);
+      // Build SVG icon based on theme mode + icon data
+      let svgContent: string;
+      if (t.icon && t.mode === 'light') {
+        // Sun icon with paths
+        svgContent = `<circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="${this.encodeHtml(t.icon)}" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>`;
+      } else if (t.icon && t.mode === 'dark') {
+        // Moon icon
+        svgContent = `<path d="${this.encodeHtml(t.icon)}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>`;
+      } else if (t.icon && t.mode === 'high-contrast') {
+        // Split circle
+        svgContent = `<circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2"/><path d="${this.encodeHtml(t.icon)}" fill="currentColor"/>`;
+      } else {
+        // Generic circle icon for unknown/external themes
+        svgContent = `<circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>`;
+      }
+      return `<button class="pr-theme-btn${isActive}" data-theme-value="${safeId}" title="${safeName}"><svg class="pr-theme-icon" viewBox="0 0 16 16" fill="none">${svgContent}</svg></button>`;
+    }).join('');
+
+    return autoBtn + themeButtons;
+  }
+
+  public static renderProfileReportShell(
+    companies: ICompanyEntry[],
+    config: IProfileReportDisplayConfig,
+    availableThemes?: IProfileReportTheme[]
+  ): IRenderResult {
+    if (companies.length === 0) {
+      return this.renderProfileReportEmpty(config.libraryName);
+    }
+
+    const reportId = `profile-report-${Date.now()}`;
+    const totalCount = companies.length;
+    const displayMode = 'fullScreen'; // Always fullScreen for the new app layout
+
+    // Build inline display mode styles
+    const displayStyle = 'position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;z-index:999999!important;margin:0!important;border-radius:0!important;border:none!important;overflow:hidden!important;';
+
+    const totalLabel = totalCount >= 1000 ? `${(totalCount / 1000).toFixed(1)}K` : `${totalCount}`;
+
+    // Close button
+    const closeBtnHtml = `<button class="pr-display-close" title="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`;
+
+    // Collect unique filter values from companies for dropdowns
+    const owners = [...new Set(companies.map(c => c.accountOwner).filter(Boolean))].sort() as string[];
+    const regions = [...new Set(companies.map(c => c.ownerRegion).filter(Boolean))].sort() as string[];
+    const industries = [...new Set(companies.map(c => c.industry).filter(Boolean))].sort() as string[];
+    const sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort() as string[];
+
+    const buildOptions = (values: string[]): string =>
+      values.map(v => `<option value="${this.encodeHtml(v)}">${this.encodeHtml(v)}</option>`).join('');
+
+    // Sort options
+    const sortHtml = `<select class="pr-sort-control" data-sort="true">
+      <option value="name">Sort: A-Z</option>
+      <option value="date">Sort: Newest</option>
+      <option value="key">Sort: Domain</option>
+    </select>`;
+
+    // Filter bar with horizontal dropdowns
+    const filterBarHtml = `<div class="pr-explorer-filterbar">
+      ${owners.length > 0 ? `<select class="pr-filter-select" data-filter="accountOwner"><option value="">All Owners (${owners.length})</option>${buildOptions(owners)}</select>` : ''}
+      ${regions.length > 0 ? `<select class="pr-filter-select" data-filter="ownerRegion"><option value="">All Regions (${regions.length})</option>${buildOptions(regions)}</select>` : ''}
+      ${industries.length > 0 ? `<select class="pr-filter-select" data-filter="industry"><option value="">All Industries (${industries.length})</option>${buildOptions(industries)}</select>` : ''}
+      ${sectors.length > 0 ? `<select class="pr-filter-select" data-filter="sector"><option value="">All Sectors (${sectors.length})</option>${buildOptions(sectors)}</select>` : ''}
+      <div class="pr-filter-chips"></div>
+      ${sortHtml}
+    </div>`;
+
+    // Render initial batch of cards (50)
+    const initialCards = companies.slice(0, 200).map((entry, index) =>
+      this.renderCompanyCard(entry, index)
+    ).join('');
+
+    const html = `
+      <div class="picanvas-profilereport" id="${reportId}" data-theme="${config.theme}" data-layout="${config.layout}" data-display-mode="${displayMode}" data-view="explorer" data-total-companies="${totalCount}" style="${displayStyle}">
+        <div class="pr-explorer-view">
+          <div class="pr-explorer-topbar">
+            <span class="pr-app-title">Company Profiles</span>
+            <div class="pr-search-wrapper">
+              <input type="text" class="pr-explorer-search" placeholder="Search ${totalLabel} companies..." autocomplete="off" />
+              <button class="pr-search-clear" style="display:none" title="Clear search">&times;</button>
+            </div>
+            <span class="pr-explorer-count">${totalLabel} companies</span>
+            <div class="pr-theme-toggle" title="Switch theme">
+              ${this.renderThemeToggle(availableThemes || BUILTIN_THEMES, config.theme)}
+            </div>
+            ${closeBtnHtml}
+          </div>
+          ${filterBarHtml}
+          <div class="pr-explorer-grid">
+            ${initialCards}
+            <div class="pr-grid-sentinel"></div>
+            <div class="pr-no-results" style="display:none">
+              <div class="pr-no-results-icon">&#128269;</div>
+              <div class="pr-no-results-text">No companies match your search</div>
+              <div class="pr-no-results-hint">Try adjusting your search or filters</div>
+            </div>
+          </div>
+        </div>
+        <div class="pr-detail-view">
+          <div class="pr-detail-header"></div>
+          <div class="pr-detail-body"></div>
+        </div>
+      </div>
+    `;
+
+    return {
+      html,
+      requiresPostRender: true,
+      postRenderType: 'profilereport'
+    };
+  }
+
+  /**
+   * Render a single company panel with method tabs (called after lazy load).
+   * Returns inner HTML to be injected into the .pr-detail-body element.
+   * The company header is rendered separately via renderDetailHeader().
+   * Each tab shows a file-type flag badge so users can see what content type is loaded.
+   */
+  public static renderCompanyPanel(
+    profile: ICompanyProfile,
+    config: IProfileReportDisplayConfig
+  ): string {
+    // Build metrics cards if available
+    const metricsHtml = profile.metrics ? `
+      <div class="metrics-grid">
+        <div class="metric-card"><span class="metric-label">Events</span><span class="metric-value">${profile.metrics.events ?? 0}</span></div>
+        <div class="metric-card"><span class="metric-label">Entities</span><span class="metric-value">${profile.metrics.entities ?? 0}</span></div>
+        <div class="metric-card"><span class="metric-label">Relationships</span><span class="metric-value">${profile.metrics.relationships ?? 0}</span></div>
+        <div class="metric-card"><span class="metric-label">Financials</span><span class="metric-value">${profile.metrics.financials ?? 0}</span></div>
+        <div class="metric-card"><span class="metric-label">Earnings</span><span class="metric-value">${profile.metrics.earnings ?? 0}</span></div>
+      </div>
+    ` : '';
+
+    // Build method tabs based on config and available content
+    // Each tab gets a file-type flag for visual identification
+    const intel = profile.companyIntel;
+    const methodTabs: Array<{ key: string; label: string; flag: string; content: string | undefined; show: boolean }> = [
+      { key: 'overview', label: 'Overview', flag: 'SUM', content: this.generateOverviewContent(profile), show: true },
+      { key: 'financials', label: 'Financials', flag: 'FIN', content: intel ? this.renderFinancialsSection(intel.financials) : undefined, show: !!intel && intel.financials.length > 0 },
+      { key: 'landscape', label: 'Landscape', flag: 'REL', content: intel ? this.renderCompetitiveLandscape(intel.competitors, intel.customers, intel.partners) : undefined, show: !!intel && (intel.competitors.length > 0 || intel.customers.length > 0 || intel.partners.length > 0) },
+      { key: 'activity', label: 'Activity', flag: 'EVT', content: intel ? this.renderActivityTimeline(intel.recentActivity) : undefined, show: !!intel && intel.recentActivity.length > 0 },
+      { key: 'earnings', label: 'Earnings', flag: 'ERN', content: intel ? this.renderEarningsSection(intel.earnings) : undefined, show: !!intel && intel.earnings.length > 0 },
+      { key: 'methodK', label: 'Method-K', flag: 'MD', content: profile.methodK, show: config.showMethodK },
+      { key: 'methodL', label: 'Method-L', flag: 'MD', content: profile.methodL, show: config.showMethodL },
+      { key: 'methodM', label: 'Method-M', flag: 'HTML', content: profile.methodM, show: config.showMethodM },
+      { key: 'profileJson', label: 'Profile JSON', flag: 'JSON', content: this.safeJsonStringify(profile.profileJson), show: config.showProfileJson && !!profile.profileJson }
+    ].filter(tab => tab.show && (tab.key === 'overview' || tab.content));
+
+    // Add metadata file tabs grouped by category — each gets a flag based on file types in the category
+    const metadataFiles = profile.metadataFiles || [];
+    const categories = [...new Set(metadataFiles.map(f => f.category))].sort();
+    for (const cat of categories) {
+      const catFiles = metadataFiles.filter(f => f.category === cat);
+      const catKey = `metadata-${cat.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+      // Determine flag from most common file extension in category
+      const exts = catFiles.map(f => f.name.split('.').pop()?.toUpperCase() || 'FILE');
+      const flag = exts[0] || 'FILE';
+      methodTabs.push({
+        key: catKey,
+        label: cat,
+        flag: `${flag} x${catFiles.length}`,
+        content: this.renderMetadataFilesPanel(catFiles),
+        show: true
+      });
+    }
+
+    const methodTabsHtml = methodTabs.map((tab, index) => {
+      const isActive = index === 0 ? 'active' : '';
+      const encodedMethodKey = this.encodeHtml(tab.key);
+      const isMetadata = tab.key.startsWith('metadata-');
+      const badgeClass = isMetadata ? ' method-tab-metadata' : '';
+      const flagHtml = `<span class="method-tab-flag">${this.encodeHtml(tab.flag)}</span>`;
+      return `<button class="method-tab ${isActive}${badgeClass}" data-method-key="${encodedMethodKey}">${flagHtml}${this.encodeHtml(tab.label)}</button>`;
+    }).join('');
+
+    // Intel tab keys that return pre-rendered HTML (like overview)
+    const intelTabKeys = new Set(['overview', 'financials', 'landscape', 'activity', 'earnings']);
+
+    const methodPanelsHtml = methodTabs.map((tab, index) => {
+      const isActive = index === 0 ? 'active' : '';
+      const encodedMethodKey = this.encodeHtml(tab.key);
+      let contentHtml: string;
+      if (tab.key.startsWith('metadata-')) {
+        contentHtml = tab.content || '';
+      } else if (tab.key === 'profileJson') {
+        contentHtml = `<pre class="json-viewer">${this.encodeHtml(tab.content || '')}</pre>`;
+      } else if (intelTabKeys.has(tab.key)) {
+        contentHtml = tab.content || '';
+      } else {
+        contentHtml = `<div class="markdown">${this.renderMarkdown(tab.content || '## No Content\n\nThis method has no content available.').html}</div>`;
+      }
+
+      return `<div class="method-panel ${isActive}" data-method-key="${encodedMethodKey}">${contentHtml}</div>`;
+    }).join('');
+
+    return `
+      ${metricsHtml}
+      <div class="method-tabs-container">
+        <div class="method-tabs">${methodTabsHtml}</div>
+        <div class="method-panels">${methodPanelsHtml}</div>
+      </div>
+    `;
+  }
+
+  /**
+   * Public HTML encoder for use by webpart callers
+   */
+  public static encodeHtmlPublic(str: string): string {
+    return this.encodeHtml(str);
+  }
+
+  /**
+   * Safely stringify JSON, handling circular references and errors
+   */
+  private static safeJsonStringify(obj: any): string | undefined {
+    if (!obj) return undefined;
+    try {
+      return JSON.stringify(obj, null, 2);
+    } catch (error) {
+      console.warn('ContentRenderer: Failed to stringify JSON', error);
+      return '{\n  "error": "Unable to display JSON (circular reference or invalid structure)"\n}';
+    }
+  }
+
+  /**
+   * Generate overview content for a company profile.
+   * Uses company intel data when available for a richer view.
+   */
+  private static generateOverviewContent(profile: ICompanyProfile): string {
+    // If intel data is available, render the enriched overview
+    if (profile.companyIntel) {
+      return this.renderIntelOverview(profile.companyIntel, profile);
+    }
+
+    // Fallback: basic overview for companies without intel
+    const hasK = !!profile.methodK;
+    const hasL = !!profile.methodL;
+    const hasM = !!profile.methodM;
+    const hasJson = !!profile.profileJson;
+
+    const methods: string[] = [];
+    if (hasK) methods.push('Method-K');
+    if (hasL) methods.push('Method-L');
+    if (hasM) methods.push('Method-M (AI Synthesis)');
+    if (hasJson) methods.push('Profile JSON');
+
+    const methodsList = methods.length > 0
+      ? `<ul>${methods.map(m => `<li>${this.encodeHtml(m)}</li>`).join('')}</ul>`
+      : '<p>No methods available.</p>';
+
+    return `
+      <div class="overview-content">
+        <h3>Profile Overview</h3>
+        <p>This profile contains T&E (Travel & Expense) analysis for <strong>${this.encodeHtml(profile.companyName)}</strong>.</p>
+        <h4>Available Methods</h4>
+        ${methodsList}
+        <p class="overview-hint">Use the tabs above to view each method's detailed analysis.</p>
+      </div>
+    `;
+  }
+
+  /**
+   * Render metadata-discovered files as a file list panel
+   */
+  private static renderMetadataFilesPanel(files: IMetadataFileEntry[]): string {
+    if (files.length === 0) return '<p class="pr-metadata-empty">No files found in this category.</p>';
+
+    const fileItems = files.map(f => {
+      const encodedName = this.encodeHtml(f.name);
+      const encodedUrl = this.encodeHtml(f.url);
+      const encodedTitle = this.encodeHtml(f.title || f.name);
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      return `<div class="pr-metadata-file-item" data-file-url="${encodedUrl}" data-file-ext="${ext}">
+        <div class="pr-metadata-file-info">
+          <span class="pr-metadata-file-ext">${this.encodeHtml(ext.toUpperCase())}</span>
+          <span class="pr-metadata-file-name" title="${encodedTitle}">${encodedName}</span>
+          ${f.modified ? `<span class="pr-metadata-file-date">${this.encodeHtml(f.modified)}</span>` : ''}
+        </div>
+        <button class="pr-metadata-file-load" data-file-url="${encodedUrl}" data-file-ext="${ext}">View</button>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="pr-metadata-files">
+        ${fileItems}
+      </div>
+      <div class="pr-metadata-file-viewer"></div>
+    `;
+  }
 }
+

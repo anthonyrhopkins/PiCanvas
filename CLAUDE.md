@@ -1,0 +1,23 @@
+# PiCanvas Development Guide
+
+## Development Server
+
+Start the SPFx development server:
+
+```bash
+npx heft start
+```
+
+This runs webpack-dev-server on https://localhost:4321/ and opens the SharePoint workbench for testing.
+
+## Build
+
+```bash
+npx heft build
+```
+
+## Project Structure
+
+- `src/webparts/piCanvas/` - Main PiCanvas webpart
+- `src/extensions/piCanvasLoader/` - Application customizer extension
+- `config/` - SPFx configuration files

@@ -6,11 +6,11 @@
 
 ## Table of Contents
 
-- [Features](#features) — Tabbed layouts, customization, permissions, templates
+- [Features](#features) — Tabbed layouts, configuration panel, customization, permissions, templates
 - [What's New in v2.x](#whats-new-in-v2x) — Version comparison, new capabilities
 - [Installation](#installation) — Deploy to SharePoint, guest user access
 - [Development](#development) — Local setup, build commands, project structure
-- [Configuration Reference](#configuration-reference) — Property pane groups, CSS variables
+- [Configuration Reference](#configuration-reference) — Panel sections, CSS variables
 - [Troubleshooting](#troubleshooting) — Common issues and solutions
 
 ---
@@ -35,9 +35,9 @@ PiCanvas v2.x is a complete modernization of [Mark Rackley's Hillbilly Tabs](htt
 ### How It Works
 
 1. Add PiCanvas to your page
-2. Add your web parts anywhere on the page
-3. Open settings, assign web parts to tabs
-4. Publish
+2. Add your web parts anywhere on the page (or use built-in content types like Markdown, HTML, Mermaid, RSS, etc.)
+3. Click **Configure** in the edit-mode summary card to open the full-screen configuration panel
+4. Assign content to tabs, customize styling, and publish
 
 No Power Platform license required. Works on any modern SharePoint page.
 
@@ -58,6 +58,46 @@ Organize multiple web parts into a clean tabbed interface, reducing page clutter
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### Configuration Panel
+
+PiCanvas uses a full-screen configuration overlay instead of the standard SharePoint property pane. Open it by clicking **Configure** on the edit-mode summary card, or click any individual tab row to jump directly to that tab's settings.
+
+The panel includes:
+
+| Feature | Description |
+|---------|-------------|
+| **Sidebar navigation** | Tabs, Appearance, Colors, Typography, Templates, Advanced, Help |
+| **Tab Builder** | Drag-and-drop reordering, expandable per-tab settings, content type grid |
+| **Live Preview** | See style changes in real time |
+| **Command Palette** | Press Cmd+K (or Ctrl+K) to search settings and jump to any section |
+| **Undo / Redo** | Cmd+Z / Cmd+Shift+Z to undo/redo any change |
+| **Cancel / Done** | Cancel restores all settings to their state when the panel was opened |
+
+### Edit Mode Summary Card
+
+When the page is in edit mode, PiCanvas shows a compact card instead of the full tabbed layout:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  π  PiCanvas          4 tabs          [?]  [⚙ Configure] │
+├──────────────────────────────────────────────────────────┤
+│  1  Dashboard Overview            WP                     │
+│     ↳ Sec 1 | Left | Text: "Welcome to..."              │
+│  2  Org Chart                     DIA  🔒                │
+│     ↳ Mermaid · 245 chars                                │
+│  3  News Feed                     RSS                    │
+│     ↳ https://intranet.com/feed.xml · cards · 10 items   │
+│  4  Help Docs                     HTML                   │
+│     ↳ From Text WebPart · Sec 2 | "Getting started..."   │
+├──────────────────────────────────────────────────────────┤
+│  default · stretch · horizontal              v3.0.0      │
+└──────────────────────────────────────────────────────────┘
+```
+
+Each tab row shows the tab number, label, content type badge, and status icons. The second line shows where the content comes from. Click any row to configure that tab. The footer shows current style, alignment, and orientation.
+
+**Status icons:** 🔒 password locked, 👥 permission-restricted, 🌐 full-width/page, ⚠️ missing configuration.
 
 ### Full Customization
 
@@ -150,7 +190,7 @@ Control which tabs users see based on their SharePoint group membership:
 - All Site Groups
 
 **How to Configure:**
-1. Open the property pane for any tab
+1. Open the configuration panel and expand any tab's **Permissions** section
 2. Enable **"Restrict by Group"** toggle
 3. Select groups from the **"Visible to Groups"** dropdown
 4. Optionally add custom group IDs (comma-separated)
@@ -281,7 +321,7 @@ PiCanvas is a complete modernization of [Mark Rackley's Modern Hillbilly Tabs](h
 | Section Grouping | None | Full section support |
 | Customization | None | Colors, typography, spacing, shadows |
 | Tab Count | Fixed | 1-20 tabs with add/remove buttons |
-| Edit Mode UI | Basic text | Rich feature cards with documentation |
+| Edit Mode UI | Basic text | Compact summary card with per-tab detail, click-to-configure |
 | **Permissions** | None | Group-based tab visibility (Owners/Members/Visitors/Custom) |
 | **Templates** | None | Export/import, built-in templates, Site Assets storage |
 
@@ -397,7 +437,7 @@ When selecting web parts in the property pane, they're highlighted on the page:
 | **Column Preservation** | Maintains 2-col, 3-col, asymmetric layouts |
 | **Responsive Design** | Vertical tabs stack on mobile |
 | **Troubleshooting Tools** | Multiple selectors, reset buttons |
-| **Rich Edit Mode** | Feature cards with interactive documentation |
+| **Compact Edit View** | Per-tab summary with source detail, status icons, click-to-configure |
 | **Permission-Based Visibility** | Hide tabs by SharePoint group membership |
 | **Template System** | Export/import configurations, built-in templates |
 | **Site Assets Storage** | Save custom templates for team sharing |
@@ -553,12 +593,12 @@ Once provisioned, upload the packaged `.sppkg` from `sharepoint/solution/` to th
 
 1. Edit your SharePoint page
 2. Add web parts you want to organize
-3. Add the **PiCanvas** web part
-4. Open the property pane (edit icon)
-5. Click **Add Tab** for each tab you want
-6. Select target web parts from dropdowns
-7. Customize labels, icons, and styling
-8. Publish the page
+3. Add the **PiCanvas** web part — it shows a compact summary card in edit mode
+4. Click **Configure** on the summary card (or click any tab row to jump straight to that tab's settings)
+5. In the configuration panel: add tabs, assign content, customize styling
+6. Click **Done** to save, then publish the page
+
+The edit-mode summary card shows each tab at a glance — label, content type, source detail, and status icons (locked, permission-restricted, full-width, or missing config). Click any tab row to open the configuration panel with that tab already expanded.
 
 ---
 
@@ -613,17 +653,24 @@ PiCanvas/
 │   └── webparts/
 │       └── piCanvas/
 │           ├── PiCanvasWebPart.ts           # Main web part logic
-│           ├── PiCanvasWebPart.module.scss  # Theme styles
+│           ├── PiCanvasWebPart.module.scss  # Theme styles (includes compact edit view)
 │           ├── AddTabs.js                   # Tab UI plugin
 │           ├── AddTabs.css                  # Tab styling
+│           ├── configPanel/                 # Full-screen configuration panel
+│           │   ├── ConfigurationPanel.ts    # Panel overlay, sidebar, undo/redo
+│           │   ├── controls/               # Reusable controls (dropdown, toggle, slider, color picker, command palette)
+│           │   └── sections/               # Tab Builder, Appearance, Colors, Typography, Templates, Advanced, Help
+│           ├── services/                    # Content rendering, RSS, TOC, themes, metadata tokens
 │           └── loc/                         # Localization
 ├── config/
 │   ├── config.json                          # External dependencies
 │   ├── heft.json                            # Heft build pipeline
 │   ├── package-solution.json                # Solution packaging
 │   ├── rig.json                             # Heft rig definition
-│   └── serve.json                           # Dev server config
+│   ├── serve.json                           # Dev server config
 │   └── webpack-patch/                       # Webpack customization
+├── tests/                                   # Playwright tests for configuration panel
+├── docs/                                    # Detailed documentation
 └── package.json
 ```
 
@@ -631,16 +678,17 @@ PiCanvas/
 
 ## Configuration Reference
 
-### Property Pane Groups
+### Configuration Panel Sections
 
-| Group | Options |
-|-------|---------|
-| **Manage Tab Labels** | Add/remove tabs, select web parts, set labels, icons, images |
+| Section | Options |
+|---------|---------|
+| **Tabs** | Add/remove/reorder tabs, assign content types, set labels, icons, images, permissions, locks |
 | **Appearance** | Style, alignment, orientation, image size, theme |
-| **Colors** | Accent, text, backgrounds, hover states |
-| **Typography & Spacing** | Font size/weight, padding, gaps |
-| **Borders & Effects** | Radius, indicators, separators, shadows, animations |
-| **Troubleshooting** | Section/web part selectors, reset buttons |
+| **Colors** | Accent, text, backgrounds, hover states, theme presets |
+| **Typography** | Font size/weight, padding, gaps, border radius, shadows |
+| **Templates** | Built-in templates, export/import JSON, save to Site Assets |
+| **Advanced** | CSS selectors, global lock defaults, reset all styles |
+| **Help & Docs** | Getting started, features, troubleshooting, about |
 
 ### Color Presets
 

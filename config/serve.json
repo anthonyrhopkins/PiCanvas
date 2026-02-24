@@ -2,5 +2,5 @@
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/spfx-serve.schema.json",
   "port": 4321,
   "https": true,
-  "initialPage": "https://pispace.sharepoint.com/_layouts/15/workbench.aspx?debug=true&noredir=true&debugManifestsFile=https://localhost:4321/temp/build/manifests.js"
+  "initialPage": "https://sap.sharepoint.com/sites/206992?debugManifestsFile=https://localhost:4321/temp/build/manifests.js&loadSPFX=true&customActions={\"a7f8c3b1-2d4e-5f6a-8b9c-0d1e2f3a4b5c\":{\"location\":\"ClientSideExtension.ApplicationCustomizer\"}}"
 }

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "d3f8a2c1-5e6b-4d7a-9c8f-1a2b3c4d5e6f",
+  "alias": "PiRadarCommandWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": [
+    "SharePointWebPart",
+    "SharePointFullPage"
+  ],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": { "default": "Other" },
+      "title": { "default": "PiRadar Command" },
+      "description": { "default": "Anduril-inspired landing page for PiRadar business intelligence" },
+      "iconImageUrl": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjggMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTIiIHN0cm9rZT0iIzAwZDRmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiLz48Y2lyY2xlIGN4PSIxNCIgY3k9IjE0IiByPSIzIiBmaWxsPSIjMDBkNGZmIi8+PGxpbmUgeDE9IjE0IiB5MT0iMiIgeDI9IjE0IiB5Mj0iOCIgc3Ryb2tlPSIjMDBkNGZmIiBzdHJva2Utd2lkdGg9IjEuNSIvPjxsaW5lIHgxPSIxNCIgeTE9IjIwIiB4Mj0iMTQiIHkyPSIyNiIgc3Ryb2tlPSIjMDBkNGZmIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC40Ii8+PGxpbmUgeDE9IjIiIHkxPSIxNCIgeDI9IjgiIHkyPSIxNCIgc3Ryb2tlPSIjMDBkNGZmIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC40Ii8+PGxpbmUgeDE9IjIwIiB5MT0iMTQiIHgyPSIyNiIgeTI9IjE0IiBzdHJva2U9IiMwMGQ0ZmYiIHN0cm9rZS13aWR0aD0iMS41Ii8+PC9zdmc+",
+      "properties": {
+        "heroHeadline": "Programmatic Business Intelligence",
+        "appPageUrl": ""
+      }
+    }
+  ]
+}
