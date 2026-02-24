@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 
-const URL = 'http://localhost:8765/harness.html';
+const URL = 'http://localhost:8765/tests/harness.html';
 
 // Helper: open panel and wait for overlay
 async function openPanel(page: Page) {

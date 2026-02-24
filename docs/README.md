@@ -87,6 +87,18 @@ Vertical Layout:
 └──────────┴──────────────────────────────────────────────┘
 ```
 
+### Configuration Panel
+
+The full-screen configuration panel provides all tab and styling settings in one place:
+
+| Tab Builder | Expanded Tab Settings |
+|-------------|----------------------|
+| ![Tab Builder](images/config-panel-tabs.png) | ![Expanded Tab](images/config-panel-tabs-expanded.png) |
+
+| Appearance | Templates |
+|------------|-----------|
+| ![Appearance](images/settings-appearance.png) | ![Templates](images/settings-templates.png) |
+
 ### How to Configure
 
 1. Click **Configure** on the edit-mode summary card (or click any tab row to jump to that tab)
@@ -254,7 +266,7 @@ PiCanvas uses CSS custom properties for consistent theming:
 
 Control tab visibility based on SharePoint group membership.
 
-The Permission Settings panel in the property pane shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior (Hide completely or Show Placeholder).
+The Permission Settings are found by expanding any tab in the Tab Builder and opening the **Permissions** accordion. It shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior (Hide completely or Show Placeholder).
 
 ![Permission Settings](images/settings-permissions.png)
 
@@ -589,13 +601,13 @@ kanban
 
 Save and share PiCanvas configurations across sites.
 
-The Templates panel in the property pane shows a dropdown of built-in templates (Classic, Dashboard, Navigation Dock, Portal Hub, Minimal), plus Export and Import buttons for JSON configuration files, and a "Save to Site Assets" option for team sharing.
+The Templates section in the configuration panel shows built-in templates (Dashboard, Documentation, Team Site), saved templates, and action buttons for Apply, Save Current, Export, and Import.
 
 ![Template Settings](images/settings-templates.png)
 
 ### How to Use Templates
 
-1. Open the web part property pane and expand **Templates**
+1. Open the configuration panel and navigate to **Templates**
 2. Select a built-in template to apply it
 3. Use the export/import controls to download or load a JSON template
 4. Optionally save templates to Site Assets for team reuse
@@ -656,7 +668,7 @@ Prebuilt packages are not provided; build the `.sppkg` locally.
 
 ## Troubleshooting
 
-The Troubleshooting section in the property pane provides diagnostic tools when web parts aren't detected correctly. It includes Section Selector and Web Part Selector dropdowns to try different DOM query strategies, plus Reset buttons to restore defaults.
+The Advanced section in the configuration panel provides diagnostic tools when web parts aren't detected correctly. It includes CSS selector overrides, global lock defaults, and a Reset All Styles button.
 
 ![Troubleshooting Settings](images/settings-troubleshooting.png)
 
@@ -708,7 +720,7 @@ The Troubleshooting section in the property pane provides diagnostic tools when 
 
 ### Colors
 
-The Colors panel provides color pickers for Accent Color, Tab Text Color, Active Tab Text Color, Tab Background, Active Tab Background, and Hover Background. Each setting has a color swatch preview and hex input field.
+The Colors section in the configuration panel provides theme presets (Dashboard, Documentation) and individual color pickers for Accent Color, Tab Text Color, Active Tab Text, Tab Background, Active Tab Background, Hover Background, Indicator Color, and Separator Color. Each setting has a color swatch preview, hex input field, and quick-pick palette.
 
 ![Colors Settings](images/settings-colors.png)
 
@@ -723,7 +735,7 @@ The Colors panel provides color pickers for Accent Color, Tab Text Color, Active
 
 ### Typography & Spacing
 
-The Typography & Spacing panel contains sliders for Font Size (12-20px), Font Weight (400-700), Vertical Padding, Horizontal Padding, and Gap Between Tabs. Each slider shows the current value and updates the preview in real-time.
+The Typography section in the configuration panel contains sliders for Font Size (12-20px), Font Weight (400-700), Vertical Padding, Horizontal Padding, Gap Between Tabs, Content Gap, Corner Radius, and Active Indicator Width. Each slider shows the current value with quick-pick presets and updates the live preview in real-time.
 
 ![Typography Settings](images/settings-typography.png)
 
@@ -737,7 +749,7 @@ The Typography & Spacing panel contains sliders for Font Size (12-20px), Font We
 
 ### Borders & Effects
 
-The Borders & Effects panel includes sliders for Corner Radius and Active Indicator Width, a color picker for Indicator Color, a dropdown for Shadow Effect presets, and toggles for Show Tab Separators and Enable Animations.
+The Borders & Effects settings are in the Typography section (scroll down). They include Corner Radius, Active Indicator Width, Shadow Effect presets, and toggles for Show Tab Separators and Enable Animations.
 
 ![Borders Settings](images/settings-borders.png)
 

@@ -114,11 +114,15 @@ Control every aspect of your tabs:
 <details>
 <summary>View Settings Panels</summary>
 
-Open the web part property pane and use the Colors, Typography, and Borders & Effects groups to reach these panels.
+Open the configuration panel and navigate to the Colors, Typography, or Advanced sections.
 
 | Colors | Typography | Borders & Effects |
 |--------|------------|-------------------|
 | ![Colors](docs/images/settings-colors.png) | ![Typography](docs/images/settings-typography.png) | ![Borders](docs/images/settings-borders.png) |
+
+| Tab Builder | Tab Expanded | Templates |
+|-------------|-------------|-----------|
+| ![Tab Builder](docs/images/config-panel-tabs.png) | ![Tab Expanded](docs/images/config-panel-tabs-expanded.png) | ![Templates](docs/images/settings-templates.png) |
 
 </details>
 
@@ -199,7 +203,7 @@ Control which tabs users see based on their SharePoint group membership:
    - **Show Placeholder** - Tab visible but disabled with custom message
 6. Save changes - permissions apply immediately
 
-The Permission Settings panel shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior.
+The Permission Settings panel in the configuration panel shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior. Expand any tab in the Tab Builder and open the **Permissions** accordion.
 
 ![Permission Settings](docs/images/settings-permissions.png)
 
@@ -271,12 +275,12 @@ Reuse the same web part across multiple PiCanvas instances or tabs on the same p
 
 Export and import PiCanvas configurations for consistent deployments across sites.
 
-The Templates panel in the property pane provides a dropdown of built-in templates (Classic, Dashboard, Navigation Dock, Portal Hub, Minimal), Export and Import buttons for JSON configuration files, and a "Save to Site Assets" option for team sharing.
+The Templates section in the configuration panel shows built-in templates (Dashboard, Documentation, Team Site), saved templates, and action buttons for Apply, Save Current, Export, and Import.
 
 ![Template Settings](docs/images/settings-templates.png)
 
 **How to use templates:**
-1. Open the web part property pane and expand **Templates**
+1. Open the configuration panel and navigate to **Templates**
 2. Choose a built-in template to apply it to the current web part
 3. Use the export/import controls to download or load a JSON template
 4. Optionally save templates to Site Assets for reuse across pages
@@ -707,13 +711,13 @@ PiCanvas/
 
 ## Troubleshooting
 
-The Troubleshooting section in the property pane provides diagnostic tools when web parts aren't detected correctly. It includes Section Selector and Web Part Selector dropdowns to try different DOM query strategies, plus Reset buttons to restore defaults.
+The Advanced section in the configuration panel provides diagnostic tools when web parts aren't detected correctly. It includes CSS selector overrides, global lock defaults, and a Reset All Styles button.
 
 ![Troubleshooting Settings](docs/images/settings-troubleshooting.png)
 
 ### Web parts not detected
 
-1. Open property pane > **Troubleshooting** section
+1. Open configuration panel > **Advanced** section
 2. Try different **Section Selector** options
 3. Try different **Web Part Selector** options
 4. Click **Reset to Defaults** if needed

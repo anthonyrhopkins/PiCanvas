@@ -17,7 +17,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx http-server tests -p 8765 -c-1 --cors -s',
+    command: 'npx http-server . -p 8765 -c-1 --cors -s',
     port: 8765,
     reuseExistingServer: true,
     timeout: 10000,
