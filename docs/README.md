@@ -415,19 +415,6 @@ https://app.powerbi.com/reportEmbed?reportId=...
 https://forms.office.com/Pages/ResponsePage.aspx?id=...
 ```
 
-#### Custom Domain Allow List
-
-Create `/SiteAssets/PiCanvas/embed-allowlist.json`:
-
-```json
-{
-  "allowedDomains": [
-    "custom-app.contoso.com",
-    "internal-tool.company.com"
-  ]
-}
-```
-
 ### Mermaid Diagrams
 
 Create professional diagrams using simple text syntax. 20+ diagram types supported!

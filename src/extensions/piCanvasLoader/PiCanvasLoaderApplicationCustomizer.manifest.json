@@ -1,0 +1,14 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-extension-manifest.schema.json",
+
+  "id": "a7f8c3b1-2d4e-5f6a-8b9c-0d1e2f3a4b5c",
+  "alias": "PiCanvasLoaderApplicationCustomizer",
+  "componentType": "Extension",
+  "extensionType": "ApplicationCustomizer",
+
+  "version": "*",
+  "manifestVersion": 2,
+
+  "requiresCustomScript": false,
+  "safeWithCustomScriptDisabled": true
+}

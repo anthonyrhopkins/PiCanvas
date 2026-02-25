@@ -344,7 +344,7 @@
 }
 
 /* Ensure tab content containers fill full width */
-.hillbilly-tab-content {
+.picanvas-tab-content {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box;
@@ -362,12 +362,12 @@
 
 /* ===== SECTION CONTENT - Preserve original SharePoint layout ===== */
 /* When a section is moved into a tab, preserve its column structure */
-.hillbilly-tab-content.hillbilly-section-content {
+.picanvas-tab-content.picanvas-section-content {
   width: 100%;
 }
 
 /* The section container itself - make it a flex row */
-.hillbilly-tab-content.hillbilly-section-content > div {
+.picanvas-tab-content.picanvas-section-content > div {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: wrap !important;
@@ -377,8 +377,8 @@
 }
 
 /* SharePoint Canvas Section - force flex row layout */
-.hillbilly-tab-content.hillbilly-section-content .CanvasSection,
-.hillbilly-tab-content.hillbilly-section-content [class*="CanvasSection"] {
+.picanvas-tab-content.picanvas-section-content .CanvasSection,
+.picanvas-tab-content.picanvas-section-content [class*="CanvasSection"] {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: wrap !important;
@@ -387,82 +387,82 @@
 
 /* SharePoint Columns - preserve their width percentages */
 /* 2-column layout: each column should be ~50% */
-.hillbilly-tab-content.hillbilly-section-content .CanvasSection-col,
-.hillbilly-tab-content.hillbilly-section-content [class*="CanvasSection-col"] {
+.picanvas-tab-content.picanvas-section-content .CanvasSection-col,
+.picanvas-tab-content.picanvas-section-content [class*="CanvasSection-col"] {
   flex: 0 0 auto !important;
   box-sizing: border-box !important;
 }
 
 /* SharePoint responsive column classes */
 /* Full width on small screens */
-.hillbilly-tab-content.hillbilly-section-content .CanvasSection-sm12 {
+.picanvas-tab-content.picanvas-section-content .CanvasSection-sm12 {
   width: 100% !important;
 }
 
 /* Large screen column widths - 2 column (50% each) */
 @media (min-width: 640px) {
-  .hillbilly-tab-content.hillbilly-section-content .CanvasSection-lg6 {
+  .picanvas-tab-content.picanvas-section-content .CanvasSection-lg6 {
     width: 50% !important;
     flex: 0 0 50% !important;
   }
 
   /* 3 column layout (33% each) */
-  .hillbilly-tab-content.hillbilly-section-content .CanvasSection-lg4 {
+  .picanvas-tab-content.picanvas-section-content .CanvasSection-lg4 {
     width: 33.333% !important;
     flex: 0 0 33.333% !important;
   }
 
   /* 1/3 + 2/3 layout */
-  .hillbilly-tab-content.hillbilly-section-content .CanvasSection-lg8 {
+  .picanvas-tab-content.picanvas-section-content .CanvasSection-lg8 {
     width: 66.666% !important;
     flex: 0 0 66.666% !important;
   }
 
   /* Full width column */
-  .hillbilly-tab-content.hillbilly-section-content .CanvasSection-lg12 {
+  .picanvas-tab-content.picanvas-section-content .CanvasSection-lg12 {
     width: 100% !important;
     flex: 0 0 100% !important;
   }
 }
 
 /* Images in sections should fit within their column */
-.hillbilly-tab-content.hillbilly-section-content img {
+.picanvas-tab-content.picanvas-section-content img {
   max-width: 100%;
   width: auto;
   height: auto;
 }
 
 /* Webparts inside section columns */
-.hillbilly-tab-content.hillbilly-section-content .ControlZone,
-.hillbilly-tab-content.hillbilly-section-content [class*="ControlZone"] {
+.picanvas-tab-content.picanvas-section-content .ControlZone,
+.picanvas-tab-content.picanvas-section-content [class*="ControlZone"] {
   width: 100% !important;
   max-width: 100% !important;
 }
 
 /* ===== INDIVIDUAL WEBPART CONTENT - Full width ===== */
 /* Individual webparts (not from sections) should fill full width */
-.hillbilly-tab-content.hillbilly-single-webpart > div,
-.hillbilly-tab-content.hillbilly-single-webpart > div > div,
-.hillbilly-tab-content.hillbilly-single-webpart > div > div > div {
+.picanvas-tab-content.picanvas-single-webpart > div,
+.picanvas-tab-content.picanvas-single-webpart > div > div,
+.picanvas-tab-content.picanvas-single-webpart > div > div > div {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box;
 }
 
 /* Override SharePoint container restrictions for individual webparts only */
-.hillbilly-tab-content.hillbilly-single-webpart [data-automation-id="CanvasControl"],
-.hillbilly-tab-content.hillbilly-single-webpart [class*="ControlZone"],
-.hillbilly-tab-content.hillbilly-single-webpart [class*="webPartContainer"],
-.hillbilly-tab-content.hillbilly-single-webpart [class*="controlZone"],
-.hillbilly-tab-content.hillbilly-single-webpart [class*="WebPart"],
-.hillbilly-tab-content.hillbilly-single-webpart [class*="webpart"] {
+.picanvas-tab-content.picanvas-single-webpart [data-automation-id="CanvasControl"],
+.picanvas-tab-content.picanvas-single-webpart [class*="ControlZone"],
+.picanvas-tab-content.picanvas-single-webpart [class*="webPartContainer"],
+.picanvas-tab-content.picanvas-single-webpart [class*="controlZone"],
+.picanvas-tab-content.picanvas-single-webpart [class*="WebPart"],
+.picanvas-tab-content.picanvas-single-webpart [class*="webpart"] {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box;
 }
 
 /* Force images inside individual webpart tabs to fill full width */
-.hillbilly-tab-content.hillbilly-single-webpart img {
+.picanvas-tab-content.picanvas-single-webpart img {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
@@ -470,17 +470,17 @@
 }
 
 /* Target SharePoint image webpart containers for individual webparts */
-.hillbilly-tab-content.hillbilly-single-webpart [data-automation-id="imageWebPart"],
-.hillbilly-tab-content.hillbilly-single-webpart [class*="imageWebPart"],
-.hillbilly-tab-content.hillbilly-single-webpart [class*="ImageWebPart"],
-.hillbilly-tab-content.hillbilly-single-webpart figure,
-.hillbilly-tab-content.hillbilly-single-webpart picture {
+.picanvas-tab-content.picanvas-single-webpart [data-automation-id="imageWebPart"],
+.picanvas-tab-content.picanvas-single-webpart [class*="imageWebPart"],
+.picanvas-tab-content.picanvas-single-webpart [class*="ImageWebPart"],
+.picanvas-tab-content.picanvas-single-webpart figure,
+.picanvas-tab-content.picanvas-single-webpart picture {
   width: 100% !important;
   max-width: 100% !important;
 }
 
 /* Remove any margin/padding that creates whitespace for individual webparts */
-.hillbilly-tab-content.hillbilly-single-webpart [class*="image"] {
+.picanvas-tab-content.picanvas-single-webpart [class*="image"] {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
@@ -492,11 +492,11 @@
    to preserve their background images and height when inside PiCanvas tabs. */
 
 /* Preserve Hero web part background images and layout */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"],
-.hillbilly-tab-content [data-automation-id="heroWebPart"],
-.hillbilly-tab-content [class*="heroWebPart"],
-.hillbilly-tab-content [class*="HeroWebPart"],
-.hillbilly-tab-content .picanvas-hero-fixed {
+.picanvas-tab-content [data-automation-id="HeroWebPart"],
+.picanvas-tab-content [data-automation-id="heroWebPart"],
+.picanvas-tab-content [class*="heroWebPart"],
+.picanvas-tab-content [class*="HeroWebPart"],
+.picanvas-tab-content .picanvas-hero-fixed {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 100% !important;
@@ -506,19 +506,19 @@
 }
 
 /* CRITICAL: Force ALL nested elements within Hero to fill full width */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] *,
-.hillbilly-tab-content [class*="heroWebPart"] *,
-.hillbilly-tab-content [class*="HeroWebPart"] *,
-.hillbilly-tab-content .picanvas-hero-fixed * {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] *,
+.picanvas-tab-content [class*="heroWebPart"] *,
+.picanvas-tab-content [class*="HeroWebPart"] *,
+.picanvas-tab-content .picanvas-hero-fixed * {
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
 /* All divs within Hero need explicit width reset */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] div,
-.hillbilly-tab-content [class*="heroWebPart"] div,
-.hillbilly-tab-content [class*="HeroWebPart"] div,
-.hillbilly-tab-content .picanvas-hero-fixed div {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] div,
+.picanvas-tab-content [class*="heroWebPart"] div,
+.picanvas-tab-content [class*="HeroWebPart"] div,
+.picanvas-tab-content .picanvas-hero-fixed div {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
@@ -527,11 +527,11 @@
 }
 
 /* Hero layout containers that use background-image */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="heroLayout"],
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="HeroLayout"],
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] > div,
-.hillbilly-tab-content [class*="heroWebPart"] [class*="heroLayout"],
-.hillbilly-tab-content [class*="heroWebPart"] > div {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="heroLayout"],
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="HeroLayout"],
+.picanvas-tab-content [data-automation-id="HeroWebPart"] > div,
+.picanvas-tab-content [class*="heroWebPart"] [class*="heroLayout"],
+.picanvas-tab-content [class*="heroWebPart"] > div {
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -541,9 +541,9 @@
 }
 
 /* Preserve background-image on all child divs that might have it */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [style*="background-image"],
-.hillbilly-tab-content [class*="heroWebPart"] [style*="background-image"],
-.hillbilly-tab-content [class*="HeroWebPart"] [style*="background-image"] {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [style*="background-image"],
+.picanvas-tab-content [class*="heroWebPart"] [style*="background-image"],
+.picanvas-tab-content [class*="HeroWebPart"] [style*="background-image"] {
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -551,18 +551,18 @@
 }
 
 /* Hero content overlay - ensure proper positioning */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="heroContent"],
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="HeroContent"],
-.hillbilly-tab-content [class*="heroWebPart"] [class*="heroContent"] {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="heroContent"],
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="HeroContent"],
+.picanvas-tab-content [class*="heroWebPart"] [class*="heroContent"] {
   position: relative;
   z-index: 1;
 }
 
 /* Fix for overlap, fade, color block layouts that use absolute positioning */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="imageContainer"],
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="backgroundImage"],
-.hillbilly-tab-content [class*="heroWebPart"] [class*="imageContainer"],
-.hillbilly-tab-content [class*="heroWebPart"] [class*="backgroundImage"] {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="imageContainer"],
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="backgroundImage"],
+.picanvas-tab-content [class*="heroWebPart"] [class*="imageContainer"],
+.picanvas-tab-content [class*="heroWebPart"] [class*="backgroundImage"] {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
@@ -587,11 +587,12 @@
    5. "Overlap" - image with overlapping text box
 */
 
-/* Base Banner container - must fill full width */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"],
-.hillbilly-tab-content [class*="bannerWebPart"],
-.hillbilly-tab-content [class*="BannerWebPart"],
-.hillbilly-tab-content .picanvas-banner-fixed {
+/* Base Banner container - must fill full width ONLY when NOT in contained mode */
+/* Use :not([data-fullwidth-banner="false"]) on parent to exclude contained banners */
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="BannerWebPart"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 100% !important;
@@ -600,21 +601,21 @@
   display: block !important;
 }
 
-/* CRITICAL: Force ALL nested elements within Banner to fill full width */
+/* CRITICAL: Force ALL nested elements within Banner to fill full width - ONLY in full-width mode */
 /* The JavaScript clears inline styles, CSS ensures they stay full width */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] *,
-.hillbilly-tab-content [class*="bannerWebPart"] *,
-.hillbilly-tab-content [class*="BannerWebPart"] *,
-.hillbilly-tab-content .picanvas-banner-fixed * {
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] *,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] *,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="BannerWebPart"] *,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed * {
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* All divs within Banner need explicit width reset */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] div,
-.hillbilly-tab-content [class*="bannerWebPart"] div,
-.hillbilly-tab-content [class*="BannerWebPart"] div,
-.hillbilly-tab-content .picanvas-banner-fixed div {
+/* All divs within Banner need explicit width reset - ONLY in full-width mode */
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] div,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] div,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="BannerWebPart"] div,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed div {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important; /* Allow flex items to shrink */
@@ -622,10 +623,10 @@
   flex-basis: 100% !important;
 }
 
-/* Background images must cover full container */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [style*="background-image"],
-.hillbilly-tab-content [class*="bannerWebPart"] [style*="background-image"],
-.hillbilly-tab-content .picanvas-banner-fixed [style*="background-image"] {
+/* Background images must cover full container - ONLY in full-width mode */
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [style*="background-image"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [style*="background-image"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed [style*="background-image"] {
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -633,48 +634,48 @@
   width: 100% !important;
 }
 
-/* Banner layout containers - handle all configuration types */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="root"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="container"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="wrapper"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="content"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="layout"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Layout"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="image"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Image"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="banner"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Banner"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="heading"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Heading"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="text"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Text"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="root"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="container"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="wrapper"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="content"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="layout"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Layout"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="image"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Image"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="banner"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Banner"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="heading"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Heading"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="text"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Text"] {
+/* Banner layout containers - handle all configuration types - ONLY in full-width mode */
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="root"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="container"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="wrapper"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="content"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="layout"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Layout"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="image"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Image"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="banner"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Banner"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="heading"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Heading"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="text"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] [class*="Text"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="root"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="container"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="wrapper"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="content"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="layout"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Layout"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="image"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Image"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="banner"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Banner"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="heading"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Heading"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="text"],
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] [class*="Text"] {
   width: 100% !important;
   max-width: 100% !important;
   flex: 1 1 100% !important;
   flex-basis: 100% !important;
 }
 
-/* Fix Banner picture/img elements to fill container */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] picture,
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] img,
-.hillbilly-tab-content [class*="bannerWebPart"] picture,
-.hillbilly-tab-content [class*="bannerWebPart"] img,
-.hillbilly-tab-content .picanvas-banner-fixed picture,
-.hillbilly-tab-content .picanvas-banner-fixed img {
+/* Fix Banner picture/img elements to fill container - ONLY in full-width mode */
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] picture,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [data-automation-id="BannerWebPart"] img,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] picture,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) [class*="bannerWebPart"] img,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed picture,
+.picanvas-tab-content:not([data-fullwidth-banner="false"]) .picanvas-banner-fixed img {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
@@ -684,14 +685,14 @@
 
 /* Special handling for "Overlap" and "Color block" layouts */
 /* These have a text container that floats over the image */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="overlay"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="Overlay"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="textContainer"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="TextContainer"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="overlay"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="Overlay"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="textContainer"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="TextContainer"] {
+.picanvas-tab-content [data-automation-id="BannerWebPart"] [class*="overlay"],
+.picanvas-tab-content [data-automation-id="BannerWebPart"] [class*="Overlay"],
+.picanvas-tab-content [data-automation-id="BannerWebPart"] [class*="textContainer"],
+.picanvas-tab-content [data-automation-id="BannerWebPart"] [class*="TextContainer"],
+.picanvas-tab-content [class*="bannerWebPart"] [class*="overlay"],
+.picanvas-tab-content [class*="bannerWebPart"] [class*="Overlay"],
+.picanvas-tab-content [class*="bannerWebPart"] [class*="textContainer"],
+.picanvas-tab-content [class*="bannerWebPart"] [class*="TextContainer"] {
   /* These are okay to have auto width - they're text overlays */
   width: auto !important;
   max-width: 100% !important;
@@ -699,29 +700,29 @@
 }
 
 /* Ensure CTA buttons don't stretch full width */
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] a[class*="button"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] button,
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="cta"],
-.hillbilly-tab-content [data-automation-id="BannerWebPart"] [class*="CTA"],
-.hillbilly-tab-content [class*="bannerWebPart"] a[class*="button"],
-.hillbilly-tab-content [class*="bannerWebPart"] button,
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="cta"],
-.hillbilly-tab-content [class*="bannerWebPart"] [class*="CTA"] {
+.picanvas-tab-content [data-automation-id="BannerWebPart"] a[class*="button"],
+.picanvas-tab-content [data-automation-id="BannerWebPart"] button,
+.picanvas-tab-content [data-automation-id="BannerWebPart"] [class*="cta"],
+.picanvas-tab-content [data-automation-id="BannerWebPart"] [class*="CTA"],
+.picanvas-tab-content [class*="bannerWebPart"] a[class*="button"],
+.picanvas-tab-content [class*="bannerWebPart"] button,
+.picanvas-tab-content [class*="bannerWebPart"] [class*="cta"],
+.picanvas-tab-content [class*="bannerWebPart"] [class*="CTA"] {
   width: auto !important;
   flex: 0 0 auto !important;
 }
 
 /* Ensure the first child container in hero/banner maintains height */
-.hillbilly-tab-content.hillbilly-single-webpart [data-automation-id="HeroWebPart"] > div:first-child,
-.hillbilly-tab-content.hillbilly-single-webpart [class*="heroWebPart"] > div:first-child {
+.picanvas-tab-content.picanvas-single-webpart [data-automation-id="HeroWebPart"] > div:first-child,
+.picanvas-tab-content.picanvas-single-webpart [class*="heroWebPart"] > div:first-child {
   min-height: 300px;
   width: 100% !important;
 }
 
 /* Fix for Hero web part images that use <img> tags instead of background-image */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] img,
-.hillbilly-tab-content [class*="heroWebPart"] img,
-.hillbilly-tab-content [class*="HeroWebPart"] img {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] img,
+.picanvas-tab-content [class*="heroWebPart"] img,
+.picanvas-tab-content [class*="HeroWebPart"] img {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
@@ -729,16 +730,16 @@
 }
 
 /* SharePoint uses cB (Canvas Background) class patterns for hero backgrounds */
-.hillbilly-tab-content [class*="cB"],
-.hillbilly-tab-content [class*="canvasBackground"] {
+.picanvas-tab-content [class*="cB"],
+.picanvas-tab-content [class*="canvasBackground"] {
   min-height: 300px;
   background-size: cover !important;
   background-position: center !important;
 }
 
 /* Handle picture elements used in modern SharePoint */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] picture,
-.hillbilly-tab-content [class*="heroWebPart"] picture {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] picture,
+.picanvas-tab-content [class*="heroWebPart"] picture {
   display: block;
   width: 100%;
   height: 100%;
@@ -747,8 +748,8 @@
   left: 0;
 }
 
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] picture img,
-.hillbilly-tab-content [class*="heroWebPart"] picture img {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] picture img,
+.picanvas-tab-content [class*="heroWebPart"] picture img {
   position: absolute;
   top: 0;
   left: 0;
@@ -758,13 +759,13 @@
 }
 
 /* Force visibility on img elements with loading="lazy" attribute */
-.hillbilly-tab-content img[loading="lazy"] {
+.picanvas-tab-content img[loading="lazy"] {
   content-visibility: auto;
 }
 
 /* Handle Hero layouts with flex containers */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="layout"],
-.hillbilly-tab-content [class*="heroWebPart"] [class*="layout"] {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="layout"],
+.picanvas-tab-content [class*="heroWebPart"] [class*="layout"] {
   display: flex !important;
   flex-direction: column;
   min-height: inherit;
@@ -772,9 +773,9 @@
 }
 
 /* Ensure image wrapper has proper dimensions */
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="imageWrapper"],
-.hillbilly-tab-content [data-automation-id="HeroWebPart"] [class*="ImageWrapper"],
-.hillbilly-tab-content [class*="heroWebPart"] [class*="imageWrapper"] {
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="imageWrapper"],
+.picanvas-tab-content [data-automation-id="HeroWebPart"] [class*="ImageWrapper"],
+.picanvas-tab-content [class*="heroWebPart"] [class*="imageWrapper"] {
   width: 100% !important;
   height: 100% !important;
   position: absolute !important;
@@ -784,16 +785,16 @@
 }
 
 /* Highlight styles for webpart/section selection in property pane */
-.hillbilly-highlight {
+.picanvas-highlight {
   position: relative;
   outline: 3px solid #0078d4 !important;
   outline-offset: 2px;
   box-shadow: 0 0 0 6px rgba(0, 120, 212, 0.3) !important;
-  animation: hillbilly-pulse 1.5s ease-in-out infinite;
+  animation: picanvas-pulse 1.5s ease-in-out infinite;
   z-index: 100;
 }
 
-.hillbilly-highlight::before {
+.picanvas-highlight::before {
   content: '';
   position: absolute;
   top: -8px;
@@ -803,10 +804,10 @@
   border: 2px dashed #0078d4;
   border-radius: 4px;
   pointer-events: none;
-  animation: hillbilly-dash 0.5s linear infinite;
+  animation: picanvas-dash 0.5s linear infinite;
 }
 
-@keyframes hillbilly-pulse {
+@keyframes picanvas-pulse {
   0%, 100% {
     box-shadow: 0 0 0 6px rgba(0, 120, 212, 0.3);
   }
@@ -815,19 +816,19 @@
   }
 }
 
-@keyframes hillbilly-dash {
+@keyframes picanvas-dash {
   to {
     stroke-dashoffset: -10px;
   }
 }
 
 /* Section highlight - slightly different style */
-.hillbilly-section-highlight {
+.picanvas-section-highlight {
   position: relative;
   background-color: rgba(0, 120, 212, 0.08) !important;
   outline: 3px solid #0078d4 !important;
   outline-offset: 4px;
-  animation: hillbilly-pulse 1.5s ease-in-out infinite;
+  animation: picanvas-pulse 1.5s ease-in-out infinite;
 }
 
 /* ===== TAB DIVIDERS ===== */
@@ -950,7 +951,7 @@
   min-width: 0 !important;
   width: auto !important;
   padding: 16px;
-  overflow: auto;
+  overflow: visible;
 }
 
 /* ===== VERTICAL MODE STYLE ADJUSTMENTS ===== */
@@ -1010,26 +1011,26 @@
   flex-direction: column;
 }
 
-[data-tab-orientation="vertical"] .hillbilly-tab-content {
+[data-tab-orientation="vertical"] .picanvas-tab-content {
   width: 100% !important;
   max-width: 100% !important;
 }
 
 /* Sections in vertical mode */
-[data-tab-orientation="vertical"] .hillbilly-tab-content.hillbilly-section-content {
+[data-tab-orientation="vertical"] .picanvas-tab-content.picanvas-section-content {
   width: 100% !important;
 }
 
-[data-tab-orientation="vertical"] .hillbilly-tab-content.hillbilly-section-content > div {
+[data-tab-orientation="vertical"] .picanvas-tab-content.picanvas-section-content > div {
   width: 100% !important;
 }
 
 /* Individual webparts in vertical mode - full width */
-[data-tab-orientation="vertical"] .hillbilly-tab-content.hillbilly-single-webpart {
+[data-tab-orientation="vertical"] .picanvas-tab-content.picanvas-single-webpart {
   width: 100% !important;
 }
 
-[data-tab-orientation="vertical"] .hillbilly-tab-content.hillbilly-single-webpart img {
+[data-tab-orientation="vertical"] .picanvas-tab-content.picanvas-single-webpart img {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
@@ -1125,7 +1126,7 @@
 }
 
 /* Placeholder content area styling */
-.hillbilly-placeholder-content {
+.picanvas-placeholder-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1154,7 +1155,7 @@
 }
 
 /* Dark mode support for placeholders */
-.addui-Tabs[data-theme="dark"] .hillbilly-placeholder-content {
+.addui-Tabs[data-theme="dark"] .picanvas-placeholder-content {
   background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%);
 }
 
@@ -1249,12 +1250,12 @@
   }
 
   /* Disable highlight animations */
-  .hillbilly-highlight,
-  .hillbilly-section-highlight {
+  .picanvas-highlight,
+  .picanvas-section-highlight {
     animation: none !important;
   }
 
-  .hillbilly-highlight::before {
+  .picanvas-highlight::before {
     animation: none !important;
   }
 }
@@ -1270,50 +1271,50 @@
 /* ===== CUSTOM CONTENT STYLES ===== */
 
 /* Base custom content container */
-.hillbilly-tab-content.hillbilly-custom-content {
+.picanvas-tab-content.picanvas-custom-content {
   padding: 16px;
   width: 100%;
   box-sizing: border-box;
 }
 
 /* Markdown content styling */
-.hillbilly-tab-content.markdown-content {
+.picanvas-tab-content.markdown-content {
   line-height: 1.6;
   font-size: 15px;
   color: var(--pi-tab-text, rgba(0, 0, 0, 0.87));
 }
 
-.hillbilly-tab-content.markdown-content h1,
-.hillbilly-tab-content.markdown-content h2,
-.hillbilly-tab-content.markdown-content h3,
-.hillbilly-tab-content.markdown-content h4,
-.hillbilly-tab-content.markdown-content h5,
-.hillbilly-tab-content.markdown-content h6 {
+.picanvas-tab-content.markdown-content h1,
+.picanvas-tab-content.markdown-content h2,
+.picanvas-tab-content.markdown-content h3,
+.picanvas-tab-content.markdown-content h4,
+.picanvas-tab-content.markdown-content h5,
+.picanvas-tab-content.markdown-content h6 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   font-weight: 600;
   line-height: 1.25;
 }
 
-.hillbilly-tab-content.markdown-content h1 { font-size: 2em; }
-.hillbilly-tab-content.markdown-content h2 { font-size: 1.5em; }
-.hillbilly-tab-content.markdown-content h3 { font-size: 1.25em; }
-.hillbilly-tab-content.markdown-content h4 { font-size: 1em; }
+.picanvas-tab-content.markdown-content h1 { font-size: 2em; }
+.picanvas-tab-content.markdown-content h2 { font-size: 1.5em; }
+.picanvas-tab-content.markdown-content h3 { font-size: 1.25em; }
+.picanvas-tab-content.markdown-content h4 { font-size: 1em; }
 
-.hillbilly-tab-content.markdown-content p {
+.picanvas-tab-content.markdown-content p {
   margin: 0 0 1em 0;
 }
 
-.hillbilly-tab-content.markdown-content a {
+.picanvas-tab-content.markdown-content a {
   color: var(--pi-tab-accent, #0078d4);
   text-decoration: none;
 }
 
-.hillbilly-tab-content.markdown-content a:hover {
+.picanvas-tab-content.markdown-content a:hover {
   text-decoration: underline;
 }
 
-.hillbilly-tab-content.markdown-content code {
+.picanvas-tab-content.markdown-content code {
   background: rgba(0, 0, 0, 0.06);
   padding: 2px 6px;
   border-radius: 4px;
@@ -1321,7 +1322,7 @@
   font-size: 0.9em;
 }
 
-.hillbilly-tab-content.markdown-content pre {
+.picanvas-tab-content.markdown-content pre {
   background: rgba(0, 0, 0, 0.06);
   padding: 16px;
   border-radius: 8px;
@@ -1329,13 +1330,13 @@
   margin: 1em 0;
 }
 
-.hillbilly-tab-content.markdown-content pre code {
+.picanvas-tab-content.markdown-content pre code {
   background: none;
   padding: 0;
   font-size: 0.85em;
 }
 
-.hillbilly-tab-content.markdown-content blockquote {
+.picanvas-tab-content.markdown-content blockquote {
   border-left: 4px solid var(--pi-tab-accent, #0078d4);
   margin: 1em 0;
   padding: 0.5em 0 0.5em 1em;
@@ -1343,48 +1344,48 @@
   background: rgba(0, 0, 0, 0.02);
 }
 
-.hillbilly-tab-content.markdown-content ul,
-.hillbilly-tab-content.markdown-content ol {
+.picanvas-tab-content.markdown-content ul,
+.picanvas-tab-content.markdown-content ol {
   margin: 0 0 1em 0;
   padding-left: 2em;
 }
 
-.hillbilly-tab-content.markdown-content li {
+.picanvas-tab-content.markdown-content li {
   margin: 0.25em 0;
 }
 
-.hillbilly-tab-content.markdown-content table {
+.picanvas-tab-content.markdown-content table {
   width: 100%;
   border-collapse: collapse;
   margin: 1em 0;
 }
 
-.hillbilly-tab-content.markdown-content th,
-.hillbilly-tab-content.markdown-content td {
+.picanvas-tab-content.markdown-content th,
+.picanvas-tab-content.markdown-content td {
   border: 1px solid rgba(0, 0, 0, 0.12);
   padding: 8px 12px;
   text-align: left;
 }
 
-.hillbilly-tab-content.markdown-content th {
+.picanvas-tab-content.markdown-content th {
   background: rgba(0, 0, 0, 0.04);
   font-weight: 600;
 }
 
-.hillbilly-tab-content.markdown-content img {
+.picanvas-tab-content.markdown-content img {
   max-width: 100%;
   height: auto;
   border-radius: 4px;
 }
 
-.hillbilly-tab-content.markdown-content hr {
+.picanvas-tab-content.markdown-content hr {
   border: none;
   border-top: 1px solid rgba(0, 0, 0, 0.12);
   margin: 2em 0;
 }
 
 /* HTML content styling */
-.hillbilly-tab-content.html-content {
+.picanvas-tab-content.html-content {
   line-height: 1.6;
 }
 
@@ -1521,41 +1522,41 @@
 }
 
 /* ===== DARK MODE FOR CUSTOM CONTENT ===== */
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content,
-.darkMode .hillbilly-tab-content.markdown-content {
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content,
+.darkMode .picanvas-tab-content.markdown-content {
   color: rgba(255, 255, 255, 0.87);
 }
 
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content code,
-.darkMode .hillbilly-tab-content.markdown-content code {
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content code,
+.darkMode .picanvas-tab-content.markdown-content code {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content pre,
-.darkMode .hillbilly-tab-content.markdown-content pre {
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content pre,
+.darkMode .picanvas-tab-content.markdown-content pre {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content blockquote,
-.darkMode .hillbilly-tab-content.markdown-content blockquote {
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content blockquote,
+.darkMode .picanvas-tab-content.markdown-content blockquote {
   color: rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.04);
 }
 
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content th,
-.darkMode .hillbilly-tab-content.markdown-content th {
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content th,
+.darkMode .picanvas-tab-content.markdown-content th {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content th,
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content td,
-.darkMode .hillbilly-tab-content.markdown-content th,
-.darkMode .hillbilly-tab-content.markdown-content td {
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content th,
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content td,
+.darkMode .picanvas-tab-content.markdown-content th,
+.darkMode .picanvas-tab-content.markdown-content td {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-.addui-Tabs[data-theme="dark"] .hillbilly-tab-content.markdown-content hr,
-.darkMode .hillbilly-tab-content.markdown-content hr {
+.addui-Tabs[data-theme="dark"] .picanvas-tab-content.markdown-content hr,
+.darkMode .picanvas-tab-content.markdown-content hr {
   border-top-color: rgba(255, 255, 255, 0.12);
 }
 
@@ -1576,7 +1577,7 @@
 }
 
 /* In content-only mode, show all content panels stacked */
-.addui-Tabs[data-content-only="true"] .addui-Tabs-content .hillbilly-tab-content {
+.addui-Tabs[data-content-only="true"] .addui-Tabs-content .picanvas-tab-content {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -1598,4 +1599,185 @@
 .addui-Tabs-tab.hidden-label-tab,
 .addui-Tabs-tab[data-hidden-label="true"] {
   display: none !important;
+}
+
+/* ===== GLOBAL BANNER/HERO/PAGE TITLE FIXES ===== */
+/* These fixes apply to ALL Banner, Hero, and PageTitle webparts on pages
+   where PiCanvas is loaded, not just those inside tabs.
+
+   The issue: SharePoint uses max-width constraints on section containers
+   that prevent fullWidthImageLayout from actually being full width.
+
+   Key selectors discovered:
+   - CanvasZone-SectionContainer: Has max-width constraint (e.g. 1236px)
+   - CanvasSection: Inherits the constrained width
+   - CanvasControl: Further constrains
+   - fullWidthImageLayout: The actual image container */
+
+/* CRITICAL: Remove max-width constraint from section containers that have fullWidthImageLayout
+   ONLY when the banner is NOT in contained mode (picanvas-contained-banner class) */
+[data-automation-id="CanvasZone-SectionContainer"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-automation-id="CanvasSection"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-automation-id="CanvasControl"]:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* ControlZone containers that hold banner/title webparts - ONLY when NOT in contained mode */
+.ControlZone--control:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+.ControlZone:has([data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* PageTitle / Banner with fullWidthImageLayout - ONLY when NOT in contained mode */
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+}
+
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) > div,
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) img {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* CRITICAL: Lock banner height to prevent resize on scroll */
+/* SharePoint's resize observers can recalculate image dimensions when scrolling,
+   causing the banner to resize. Once the image is loaded, we lock the container height. */
+[data-automation-id="fullWidthImageLayout"].picanvas-height-locked {
+  overflow: hidden !important;
+}
+
+[data-automation-id="fullWidthImageLayout"].picanvas-height-locked img {
+  object-fit: cover !important;
+  height: 100% !important;
+  min-height: inherit !important;
+}
+
+/* Gradient overlay box - ensure it covers full width (only in full-width mode) */
+[data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner) [data-automation-id="gradientBox"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Force ALL parent containers of fullWidthImageLayout to be full width - ONLY when NOT contained */
+div:has(> [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)),
+div:has(> div > div > div > div > [data-automation-id="fullWidthImageLayout"]:not(.picanvas-contained-banner)) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Global Banner width fix - ensures banners fill their container - ONLY when NOT contained */
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner),
+[class*="bannerWebPart"]:not(.picanvas-contained-banner),
+[class*="BannerWebPart"]:not(.picanvas-contained-banner) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Clear stale width calculations from Banner nested containers - ONLY when NOT contained */
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div,
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) > div > div,
+[class*="bannerWebPart"]:not(.picanvas-contained-banner) > div,
+[class*="bannerWebPart"]:not(.picanvas-contained-banner) > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 100% !important;
+}
+
+/* Ensure Banner background images cover full width - ONLY when NOT contained */
+[data-automation-id="BannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"],
+[class*="bannerWebPart"]:not(.picanvas-contained-banner) [style*="background-image"] {
+  width: 100% !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+/* Global Hero width fix */
+[data-automation-id="HeroWebPart"],
+[class*="heroWebPart"],
+[class*="HeroWebPart"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+[data-automation-id="HeroWebPart"] > div,
+[data-automation-id="HeroWebPart"] > div > div,
+[class*="heroWebPart"] > div,
+[class*="heroWebPart"] > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 100% !important;
+}
+
+/* ===== CONTAINED BANNER MODE ===== */
+/* When Banner Layout is set to "Contained (with margins)",
+   we constrain the banner to SharePoint's standard content width (1236px).
+
+   PROBLEM SOLVED: When PiCanvas is in a full-width section with supportsFlexibleLayout,
+   the tab content container expands to 100% viewport width. The previous scaling
+   approach (transform: scale()) didn't work because:
+   - scaleFactor = containerWidth / viewportWidth ≈ 1.0 when both are full-width
+   - This resulted in barely visible 3% reduction instead of proper containment
+
+   SOLUTION: Apply explicit max-width constraint matching SharePoint's standard
+   contained section width, regardless of the parent container's actual width. */
+
+/* Contained banner mode - constrain tab content to SharePoint's standard 1236px width */
+.picanvas-tab-content[data-fullwidth-banner="false"] {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  max-width: 1236px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  overflow: hidden !important;
+  position: relative !important; /* Create containing block for absolutely positioned children */
+}
+
+/* CRITICAL: Override SharePoint's viewport-width tricks in contained mode */
+/* SharePoint banners use "width: 100vw; margin-left: calc(-50vw + 50%)" to escape containers */
+/* We must force them to use 100% of their container instead */
+.picanvas-contained-banner,
+.picanvas-tab-content[data-fullwidth-banner="false"] [data-automation-id="fullWidthImageLayout"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
+}
+
+/* Force ALL nested elements to respect container width, not viewport */
+.picanvas-tab-content[data-fullwidth-banner="false"] [data-automation-id="fullWidthImageLayout"] *,
+.picanvas-tab-content[data-fullwidth-banner="false"] .picanvas-contained-banner * {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Override any calc() or vw-based widths in contained mode */
+.picanvas-tab-content[data-fullwidth-banner="false"] [style*="100vw"],
+.picanvas-tab-content[data-fullwidth-banner="false"] [style*="calc("] {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  left: 0 !important;
+  transform: none !important;
 }
