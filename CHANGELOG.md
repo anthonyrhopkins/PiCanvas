@@ -5,6 +5,24 @@ All notable changes to PiCanvas will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-02-25
+
+### Added
+- 11 content types: Web Part, Section, Markdown, HTML, Mermaid, Embed, RSS, File, JavaScript, TOC, Profile Report
+- Tab locking with password protection, customizable lock screens, and configurable unlock duration
+- Text WebPart as content source for HTML/Markdown tabs
+- Banner layout control (full-width or contained) with SharePoint focal point preservation
+- Pre-hide Application Customizer extension to prevent content flash before tabs render
+- Custom embed domain allowlist in Advanced > Embed Security settings
+- Position warning when web parts are placed above PiCanvas
+- Enhanced compact edit view with per-tab source detail, status icons, and click-to-configure
+
+### Changed
+- Simplified Application Customizer CSS hiding to single `display: none` rule
+- Replaced universal `*` CSS selector with targeted selectors to avoid breaking third-party web parts
+- Refactored `fixBannerWebparts` into reusable helper functions (`calculateSharePointFocalPoint`, `fixBannerContained`, `fixBannerFullWidth`)
+- Landing content type documented as internal German-language demo feature
+
 ## [2.3.0] - 2026-01-02
 
 ### Changed

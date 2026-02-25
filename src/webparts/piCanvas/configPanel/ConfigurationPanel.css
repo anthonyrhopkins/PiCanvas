@@ -1,0 +1,1425 @@
+/* ============================================================
+   PiCanvas Configuration Panel — Full-Screen Overlay
+   All classes prefixed with .picanvas-config- for isolation
+   ============================================================ */
+
+:root {
+  --piconfig-accent: #0078d4;
+  --piconfig-accent-light: #e8f4fd;
+  --piconfig-bg: #f8f9fa;
+  --piconfig-surface: #ffffff;
+  --piconfig-border: #e0e0e0;
+  --piconfig-text: #1a1a1a;
+  --piconfig-text-secondary: #666666;
+  --piconfig-sidebar-bg: #f0f2f5;
+  --piconfig-sidebar-hover: #e4e6ea;
+  --piconfig-sidebar-active: #e8f4fd;
+  --piconfig-radius: 8px;
+  --piconfig-transition: 0.2s ease;
+}
+
+/* ── Overlay ─────────────────────────────────────────────── */
+
+.picanvas-config-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000001;
+  display: flex;
+  flex-direction: column;
+  background: var(--piconfig-bg);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: var(--piconfig-text);
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+
+.picanvas-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  min-height: 56px;
+  padding: 0 24px;
+  background: var(--piconfig-surface);
+  border-bottom: 1px solid var(--piconfig-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  z-index: 2;
+}
+
+.picanvas-config-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.picanvas-config-header-logo {
+  width: 28px;
+  height: 28px;
+  background: var(--piconfig-accent);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.picanvas-config-header-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.picanvas-config-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picanvas-config-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--piconfig-transition);
+  white-space: nowrap;
+}
+
+.picanvas-config-btn-cancel {
+  background: transparent;
+  color: var(--piconfig-text-secondary);
+  border-color: var(--piconfig-border);
+}
+
+.picanvas-config-btn-cancel:hover {
+  background: #f0f0f0;
+  color: var(--piconfig-text);
+}
+
+.picanvas-config-btn-done {
+  background: var(--piconfig-accent);
+  color: white;
+}
+
+.picanvas-config-btn-done:hover {
+  background: #106ebe;
+}
+
+/* ── Body (sidebar + content) ────────────────────────────── */
+
+.picanvas-config-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+
+.picanvas-config-sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--piconfig-sidebar-bg);
+  border-right: 1px solid var(--piconfig-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.picanvas-config-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  color: var(--piconfig-text-secondary);
+  font-weight: 500;
+  transition: all var(--piconfig-transition);
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+
+.picanvas-config-sidebar-item:hover {
+  background: var(--piconfig-sidebar-hover);
+  color: var(--piconfig-text);
+}
+
+.picanvas-config-sidebar-item.active {
+  background: var(--piconfig-sidebar-active);
+  color: var(--piconfig-accent);
+  border-left-color: var(--piconfig-accent);
+  font-weight: 600;
+}
+
+.picanvas-config-sidebar-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Content Area ────────────────────────────────────────── */
+
+.picanvas-config-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.picanvas-config-content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+
+.picanvas-config-section {
+  display: none;
+}
+
+.picanvas-config-section.active {
+  display: block;
+}
+
+.picanvas-config-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.picanvas-config-section-desc {
+  color: var(--piconfig-text-secondary);
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+/* ── Field Row (2-column layout) ─────────────────────────── */
+
+.picanvas-config-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+  margin-bottom: 16px;
+}
+
+.picanvas-config-field-row.single {
+  grid-template-columns: 1fr;
+}
+
+.picanvas-config-field-group {
+  margin-bottom: 24px;
+}
+
+.picanvas-config-field-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--piconfig-text);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--piconfig-border);
+}
+
+.picanvas-config-field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--piconfig-text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Color Picker ────────────────────────────────────────── */
+
+.picanvas-config-color-picker {
+  margin-bottom: 12px;
+}
+
+.picanvas-config-color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.picanvas-config-color-input {
+  width: 40px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid var(--piconfig-border);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.picanvas-config-color-input::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.picanvas-config-color-input::-webkit-color-swatch {
+  border-radius: 4px;
+  border: none;
+}
+
+.picanvas-config-color-hex {
+  width: 90px;
+  padding: 6px 10px;
+  border: 1px solid var(--piconfig-border);
+  border-radius: 6px;
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  font-size: 13px;
+}
+
+.picanvas-config-color-hex:focus {
+  outline: none;
+  border-color: var(--piconfig-accent);
+  box-shadow: 0 0 0 2px var(--piconfig-accent-light);
+}
+
+.picanvas-config-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.picanvas-config-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--piconfig-transition);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.picanvas-config-color-swatch:hover {
+  transform: scale(1.2);
+}
+
+.picanvas-config-color-swatch.active {
+  border-color: var(--piconfig-accent);
+  box-shadow: 0 0 0 2px var(--piconfig-accent-light);
+}
+
+/* ── Slider Control ──────────────────────────────────────── */
+
+.picanvas-config-slider-control {
+  margin-bottom: 12px;
+}
+
+.picanvas-config-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.picanvas-config-slider-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--piconfig-accent);
+  font-family: "Cascadia Code", "Fira Code", monospace;
+}
+
+.picanvas-config-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--piconfig-border);
+  border-radius: 3px;
+  outline: none;
+  margin: 4px 0;
+}
+
+.picanvas-config-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--piconfig-accent);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: transform var(--piconfig-transition);
+}
+
+.picanvas-config-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.picanvas-config-slider-ticks {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.picanvas-config-slider-tick {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid var(--piconfig-border);
+  background: var(--piconfig-surface);
+  cursor: pointer;
+  color: var(--piconfig-text-secondary);
+  transition: all var(--piconfig-transition);
+}
+
+.picanvas-config-slider-tick:hover {
+  border-color: var(--piconfig-accent);
+  color: var(--piconfig-accent);
+}
+
+.picanvas-config-slider-tick.active {
+  background: var(--piconfig-accent);
+  color: white;
+  border-color: var(--piconfig-accent);
+}
+
+/* ── Dropdown ────────────────────────────────────────────── */
+
+.picanvas-config-dropdown-control {
+  margin-bottom: 12px;
+}
+
+.picanvas-config-dropdown {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--piconfig-border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--piconfig-text);
+  background: var(--piconfig-surface);
+  cursor: pointer;
+  transition: border-color var(--piconfig-transition);
+}
+
+.picanvas-config-dropdown:focus {
+  outline: none;
+  border-color: var(--piconfig-accent);
+  box-shadow: 0 0 0 2px var(--piconfig-accent-light);
+}
+
+/* ── Toggle Switch ───────────────────────────────────────── */
+
+.picanvas-config-toggle-control {
+  margin-bottom: 12px;
+}
+
+.picanvas-config-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.picanvas-config-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picanvas-config-toggle-input {
+  display: none;
+}
+
+.picanvas-config-toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: #ccc;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background var(--piconfig-transition);
+}
+
+.picanvas-config-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--piconfig-transition);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.picanvas-config-toggle-input:checked + .picanvas-config-toggle-switch {
+  background: var(--piconfig-accent);
+}
+
+.picanvas-config-toggle-input:checked + .picanvas-config-toggle-switch::after {
+  transform: translateX(18px);
+}
+
+.picanvas-config-toggle-text {
+  font-size: 12px;
+  color: var(--piconfig-text-secondary);
+  min-width: 50px;
+}
+
+/* ── Text Input ──────────────────────────────────────────── */
+
+.picanvas-config-text-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--piconfig-border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--piconfig-text);
+  transition: border-color var(--piconfig-transition);
+  box-sizing: border-box;
+}
+
+.picanvas-config-text-input:focus {
+  outline: none;
+  border-color: var(--piconfig-accent);
+  box-shadow: 0 0 0 2px var(--piconfig-accent-light);
+}
+
+.picanvas-config-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--piconfig-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  color: var(--piconfig-text);
+  resize: vertical;
+  transition: border-color var(--piconfig-transition);
+  box-sizing: border-box;
+}
+
+.picanvas-config-textarea:focus {
+  outline: none;
+  border-color: var(--piconfig-accent);
+  box-shadow: 0 0 0 2px var(--piconfig-accent-light);
+}
+
+/* ── Tab Builder ─────────────────────────────────────────── */
+
+.picanvas-config-tab-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.picanvas-config-tab-card {
+  background: var(--piconfig-surface);
+  border: 1px solid var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  overflow: hidden;
+  transition: box-shadow var(--piconfig-transition), border-color var(--piconfig-transition);
+}
+
+.picanvas-config-tab-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.picanvas-config-tab-card.dragging {
+  opacity: 0.5;
+  border-color: var(--piconfig-accent);
+}
+
+.picanvas-config-tab-card.drag-over {
+  border-color: var(--piconfig-accent);
+  box-shadow: 0 0 0 2px var(--piconfig-accent-light);
+}
+
+.picanvas-config-tab-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.picanvas-config-tab-drag-handle {
+  cursor: grab;
+  color: #999;
+  font-size: 16px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+
+.picanvas-config-tab-drag-handle:active {
+  cursor: grabbing;
+}
+
+.picanvas-config-tab-home-icon {
+  color: var(--piconfig-accent);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.picanvas-config-tab-card-title {
+  flex: 1;
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picanvas-config-tab-card-subtitle {
+  font-size: 12px;
+  color: var(--piconfig-text-secondary);
+  flex-shrink: 0;
+}
+
+.picanvas-config-tab-card-chevron {
+  font-size: 12px;
+  color: #999;
+  transition: transform var(--piconfig-transition);
+  flex-shrink: 0;
+}
+
+.picanvas-config-tab-card.expanded .picanvas-config-tab-card-chevron {
+  transform: rotate(180deg);
+}
+
+.picanvas-config-tab-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.picanvas-config-tab-action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #999;
+  font-size: 14px;
+  padding: 0;
+  transition: all var(--piconfig-transition);
+}
+
+.picanvas-config-tab-action-btn:hover {
+  background: #f0f0f0;
+  color: var(--piconfig-text);
+}
+
+.picanvas-config-tab-action-btn.delete:hover {
+  background: #fde8e8;
+  color: #d83b01;
+}
+
+.picanvas-config-tab-card-body {
+  display: none;
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--piconfig-border);
+}
+
+.picanvas-config-tab-card.expanded .picanvas-config-tab-card-body {
+  display: block;
+}
+
+/* ── Content Type Grid ───────────────────────────────────── */
+
+.picanvas-config-content-type-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.picanvas-config-content-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 2px solid var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  cursor: pointer;
+  transition: all var(--piconfig-transition);
+  background: var(--piconfig-surface);
+  text-align: center;
+}
+
+.picanvas-config-content-type-card:hover {
+  border-color: #bbb;
+  background: #fafafa;
+}
+
+.picanvas-config-content-type-card.active {
+  border-color: var(--piconfig-accent);
+  background: var(--piconfig-accent-light);
+}
+
+.picanvas-config-content-type-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.picanvas-config-content-type-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* ── Accordion ───────────────────────────────────────────── */
+
+.picanvas-config-accordion {
+  border: 1px solid var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.picanvas-config-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: #fafafa;
+  font-weight: 500;
+  font-size: 13px;
+  user-select: none;
+}
+
+.picanvas-config-accordion-header:hover {
+  background: #f0f0f0;
+}
+
+.picanvas-config-accordion-chevron {
+  font-size: 12px;
+  color: #999;
+  transition: transform var(--piconfig-transition);
+}
+
+.picanvas-config-accordion.open .picanvas-config-accordion-chevron {
+  transform: rotate(180deg);
+}
+
+.picanvas-config-accordion-body {
+  display: none;
+  padding: 12px 14px;
+}
+
+.picanvas-config-accordion.open .picanvas-config-accordion-body {
+  display: block;
+}
+
+/* ── Style Cards (for Tab Style, Alignment, etc.) ────────── */
+
+.picanvas-config-style-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.picanvas-config-style-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 2px solid var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  cursor: pointer;
+  transition: all var(--piconfig-transition);
+  background: var(--piconfig-surface);
+  text-align: center;
+}
+
+.picanvas-config-style-card:hover {
+  border-color: #bbb;
+}
+
+.picanvas-config-style-card.active {
+  border-color: var(--piconfig-accent);
+  background: var(--piconfig-accent-light);
+}
+
+.picanvas-config-style-card-icon {
+  font-size: 20px;
+}
+
+.picanvas-config-style-card-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── Template Gallery ────────────────────────────────────── */
+
+.picanvas-config-template-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.picanvas-config-template-card {
+  padding: 16px;
+  border: 2px solid var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  cursor: pointer;
+  transition: all var(--piconfig-transition);
+  background: var(--piconfig-surface);
+}
+
+.picanvas-config-template-card:hover {
+  border-color: #bbb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.picanvas-config-template-card.active {
+  border-color: var(--piconfig-accent);
+  background: var(--piconfig-accent-light);
+}
+
+.picanvas-config-template-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.picanvas-config-template-desc {
+  font-size: 12px;
+  color: var(--piconfig-text-secondary);
+  line-height: 1.4;
+}
+
+.picanvas-config-template-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ── Theme Preset Cards ──────────────────────────────────── */
+
+.picanvas-config-theme-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.picanvas-config-theme-card {
+  padding: 12px;
+  border: 2px solid var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  cursor: pointer;
+  transition: all var(--piconfig-transition);
+  background: var(--piconfig-surface);
+}
+
+.picanvas-config-theme-card:hover {
+  border-color: #bbb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.picanvas-config-theme-card.active {
+  border-color: var(--piconfig-accent);
+}
+
+.picanvas-config-theme-card-preview {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.picanvas-config-theme-card-swatch {
+  flex: 1;
+  border-radius: 3px;
+}
+
+.picanvas-config-theme-card-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Add Tab Button ──────────────────────────────────────── */
+
+.picanvas-config-add-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  background: transparent;
+  color: var(--piconfig-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--piconfig-transition);
+}
+
+.picanvas-config-add-tab-btn:hover {
+  border-color: var(--piconfig-accent);
+  color: var(--piconfig-accent);
+  background: var(--piconfig-accent-light);
+}
+
+/* ── Preview Bar (sticky bottom) ─────────────────────────── */
+
+.picanvas-config-preview {
+  border-top: 1px solid var(--piconfig-border);
+  background: var(--piconfig-surface);
+  flex-shrink: 0;
+}
+
+.picanvas-config-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.picanvas-config-preview-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--piconfig-text-secondary);
+}
+
+.picanvas-config-preview-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 12px;
+  padding: 4px;
+}
+
+.picanvas-config-preview-body {
+  padding: 0 16px 12px;
+}
+
+/* ── Info Box ────────────────────────────────────────────── */
+
+.picanvas-config-info {
+  padding: 10px 14px;
+  background: var(--piconfig-accent-light);
+  border-radius: var(--piconfig-radius);
+  color: var(--piconfig-accent);
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .picanvas-config-body {
+    flex-direction: column;
+  }
+
+  .picanvas-config-sidebar {
+    width: 100%;
+    min-width: 100%;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--piconfig-border);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+    height: 48px;
+    min-height: 48px;
+  }
+
+  .picanvas-config-sidebar-item {
+    padding: 8px 14px;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+
+  .picanvas-config-sidebar-item.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--piconfig-accent);
+  }
+
+  .picanvas-config-content-scroll {
+    padding: 16px;
+  }
+
+  .picanvas-config-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .picanvas-config-content-type-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .picanvas-config-style-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================
+   Command Palette (Cmd+K) — The Standout Feature
+   ============================================================ */
+
+.picanvas-cmd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000002;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.picanvas-cmd-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: picanvas-cmd-fade-in 0.15s ease;
+}
+
+@keyframes picanvas-cmd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes picanvas-cmd-slide-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.picanvas-cmd-dialog {
+  position: relative;
+  width: 560px;
+  max-width: 90vw;
+  max-height: 60vh;
+  background: var(--piconfig-surface, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: picanvas-cmd-slide-in 0.2s ease;
+}
+
+.picanvas-cmd-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--piconfig-border, #e0e0e0);
+}
+
+.picanvas-cmd-search-icon {
+  color: #999;
+  flex-shrink: 0;
+}
+
+.picanvas-cmd-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--piconfig-text, #1a1a1a);
+  background: transparent;
+}
+
+.picanvas-cmd-input::placeholder {
+  color: #aaa;
+}
+
+.picanvas-cmd-shortcut {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #999;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.picanvas-cmd-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.picanvas-cmd-empty {
+  padding: 24px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.picanvas-cmd-category {
+  padding: 6px 18px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.picanvas-cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.picanvas-cmd-item:hover,
+.picanvas-cmd-item.selected {
+  background: var(--piconfig-accent-light, #e8f4fd);
+}
+
+.picanvas-cmd-item.selected {
+  background: var(--piconfig-accent-light, #e8f4fd);
+}
+
+.picanvas-cmd-item-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.picanvas-cmd-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.picanvas-cmd-item-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--piconfig-text, #1a1a1a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picanvas-cmd-item-desc {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picanvas-cmd-item-section {
+  font-size: 11px;
+  color: #bbb;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.picanvas-cmd-footer {
+  display: flex;
+  gap: 16px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--piconfig-border, #e0e0e0);
+  font-size: 11px;
+  color: #999;
+}
+
+.picanvas-cmd-footer kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: inherit;
+  margin: 0 2px;
+}
+
+/* ── Undo/Redo Toast ─────────────────────────────────────── */
+
+.picanvas-config-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: #1a1a1a;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 1000003;
+  animation: picanvas-toast-in 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.picanvas-config-toast.fade-out {
+  animation: picanvas-toast-out 0.3s ease forwards;
+}
+
+@keyframes picanvas-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes picanvas-toast-out {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to { opacity: 0; transform: translateX(-50%) translateY(12px); }
+}
+
+/* ── Header Search Button ────────────────────────────────── */
+
+.picanvas-config-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border: 1px solid var(--piconfig-border, #e0e0e0);
+  border-radius: 6px;
+  color: #999;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.picanvas-config-search-btn:hover {
+  background: #eee;
+  color: #666;
+  border-color: #ccc;
+}
+
+.picanvas-config-search-btn kbd {
+  font-size: 11px;
+  padding: 1px 5px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-family: inherit;
+}
+
+/* ── Undo/Redo Header Buttons ────────────────────────────── */
+
+.picanvas-config-history-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.picanvas-config-history-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: #333;
+  border-color: var(--piconfig-border, #e0e0e0);
+}
+
+.picanvas-config-history-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ── Help & Docs Section ─────────────────────────────────── */
+
+.picanvas-help-accordion {
+  border: 1px solid var(--piconfig-border);
+  border-radius: var(--piconfig-radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.picanvas-help-accordion-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--piconfig-surface);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--piconfig-text);
+  cursor: pointer;
+  transition: background var(--piconfig-transition);
+  text-align: left;
+}
+
+.picanvas-help-accordion-header:hover {
+  background: var(--piconfig-sidebar-hover);
+}
+
+.picanvas-help-accordion-icon {
+  font-size: 10px;
+  color: var(--piconfig-text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.picanvas-help-accordion.open .picanvas-help-accordion-icon {
+  transform: rotate(90deg);
+}
+
+.picanvas-help-accordion-body {
+  display: none;
+  padding: 0 16px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--piconfig-text-secondary);
+}
+
+.picanvas-help-accordion.open .picanvas-help-accordion-body {
+  display: block;
+}
+
+.picanvas-help-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.picanvas-help-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.picanvas-help-step-num {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  background: var(--piconfig-accent);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.picanvas-help-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.picanvas-help-feature {
+  padding: 10px 12px;
+  background: var(--piconfig-bg);
+  border-radius: 6px;
+  border: 1px solid var(--piconfig-border);
+}
+
+.picanvas-help-feature strong {
+  color: var(--piconfig-text);
+  font-size: 13px;
+}
+
+.picanvas-help-feature p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.picanvas-help-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.picanvas-help-tip {
+  padding: 10px 12px;
+  background: #fff8e6;
+  border-left: 3px solid #f0ad4e;
+  border-radius: 4px;
+}
+
+.picanvas-help-tip strong {
+  color: var(--piconfig-text);
+  font-size: 13px;
+}
+
+.picanvas-help-tip p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.picanvas-help-about p {
+  margin: 0 0 10px;
+}
+
+.picanvas-help-about a {
+  color: var(--piconfig-accent);
+  text-decoration: none;
+}
+
+.picanvas-help-about a:hover {
+  text-decoration: underline;
+}
+
+.picanvas-help-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.picanvas-help-links a {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--piconfig-accent);
+  background: var(--piconfig-accent-light);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background var(--piconfig-transition);
+}
+
+.picanvas-help-links a:hover {
+  background: #d0e8f7;
+}

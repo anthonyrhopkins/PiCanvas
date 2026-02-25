@@ -36,8 +36,11 @@ obj
 # Heft
 .heft
 
-# Playwright MCP testing artifacts
+# Playwright testing artifacts
 .playwright-mcp
+.playwright-cli
+playwright-cli.json
+test-results/
 
 # IDE and editor files
 .vscode
@@ -45,6 +48,13 @@ obj
 *.swp
 *.swo
 *~
+
+# Development scratch files
+js_sample.txt
+jsconversation.txt
+test-tabs.html
+samples/
+scripts/
 
 # Environment files
 .env

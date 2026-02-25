@@ -9,6 +9,9 @@ const PICANVAS_STORAGE_KEY = 'picanvas-connected-webparts';
 // CSS class added to hide webparts before PiCanvas moves them
 const HIDING_STYLE_ID = 'picanvas-pre-hide-styles';
 
+// CSS for global banner webpart full-width fix
+const GLOBAL_BANNER_STYLE_ID = 'picanvas-global-banner-css';
+
 export interface IPiCanvasLoaderApplicationCustomizerProperties {
   // No configurable properties needed
 }
@@ -19,6 +22,9 @@ export default class PiCanvasLoaderApplicationCustomizer
   public onInit(): Promise<void> {
     Log.info(LOG_SOURCE, 'Application Customizer initializing...');
 
+    // Inject global banner CSS immediately (makes banner webparts full-width)
+    this.injectGlobalBannerStyles();
+
     // Inject hiding styles immediately on init (before render cycle)
     this.injectHidingStyles();
 
@@ -27,9 +33,83 @@ export default class PiCanvasLoaderApplicationCustomizer
   }
 
   /**
+   * Inject CSS that makes Banner webparts full-width outside of PiCanvas tabs.
+   * This uses viewport-escaping CSS tricks to make banners span the full viewport.
+   * Must run BEFORE page renders to prevent layout shift.
+   */
+  private injectGlobalBannerStyles(): void {
+    try {
+      // Check if already injected
+      if (document.getElementById(GLOBAL_BANNER_STYLE_ID)) {
+        Log.verbose(LOG_SOURCE, 'Global banner styles already injected');
+        return;
+      }
+
+      // Use body class to conditionally apply - PiCanvas adds 'picanvas-banner-fullwidth' class in read mode
+      const styleContent = `
+        /* PiCanvas Global Banner Fix - Injected by Application Customizer */
+        /* Make Banner webparts full-width using viewport-escaping CSS */
+        /* ONLY applies when body has 'picanvas-banner-fullwidth' class (set by PiCanvas in Read mode) */
+        /* ONLY applies to banners OUTSIDE of .picanvas-tab-content */
+
+        /* Make the banner full-width - target banners NOT inside .picanvas-tab-content */
+        body.picanvas-banner-fullwidth [data-automation-id="CanvasControl"]:has([data-automation-id="fullWidthImageLayout"]) [data-automation-id="fullWidthImageLayout"] {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          margin-left: calc(-50vw + 50%) !important;
+          margin-right: calc(-50vw + 50%) !important;
+          position: relative !important;
+        }
+
+        /* UNDO full-width for banners INSIDE tabs */
+        body.picanvas-banner-fullwidth .picanvas-tab-content [data-automation-id="fullWidthImageLayout"] {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }
+
+        /* Constrain sibling (non-banner) webparts in sections with full-width banners - OUTSIDE tabs only */
+        body.picanvas-banner-fullwidth [data-automation-id="CanvasSection"]:has([data-automation-id="fullWidthImageLayout"]) [data-automation-id="CanvasControl"]:not(:has([data-automation-id="fullWidthImageLayout"])) {
+          max-width: 1236px !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }
+
+        /* UNDO sibling constraints for webparts INSIDE tabs */
+        body.picanvas-banner-fullwidth .picanvas-tab-content [data-automation-id="CanvasControl"] {
+          max-width: none !important;
+          margin-left: unset !important;
+          margin-right: unset !important;
+        }
+      `;
+
+      const styleElement = document.createElement('style');
+      styleElement.id = GLOBAL_BANNER_STYLE_ID;
+      styleElement.textContent = styleContent;
+
+      // Insert at the TOP of head to apply as early as possible
+      const head = document.head || document.getElementsByTagName('head')[0];
+      if (head.firstChild) {
+        head.insertBefore(styleElement, head.firstChild);
+      } else {
+        head.appendChild(styleElement);
+      }
+
+      Log.info(LOG_SOURCE, 'Global banner styles injected successfully');
+    } catch (error) {
+      Log.error(LOG_SOURCE, error as Error);
+    }
+  }
+
+  /**
    * Inject CSS that hides all webparts connected to any PiCanvas instance.
    * This runs BEFORE the page renders, ensuring connected webparts are never
    * visible at their original DOM location.
+   *
+   * The hiding styles are ALWAYS injected, but they only apply when:
+   * - The body has the class 'picanvas-hiding-active' (set by PiCanvas in Read mode)
+   * - This allows PiCanvas to control when hiding is active based on display mode
    */
   private injectHidingStyles(): void {
     try {
@@ -88,17 +168,26 @@ export default class PiCanvasLoaderApplicationCustomizer
 
       // Create style element with hiding CSS
       // Use !important and multiple properties to ensure webparts are hidden
+      // IMPORTANT: Styles only apply when body has 'picanvas-hiding-active' class
+      // This class is added by PiCanvas webpart in Read mode, removed in Edit mode
+      const conditionalSelectors = selectors.map(sel => `body.picanvas-hiding-active ${sel}`);
+      // Create override selectors for elements inside tabs (should NOT be hidden)
+      // Use higher specificity: body + picanvas-hiding-active + picanvas-tab-content to override the hiding
+      const overrideSelectors = selectors.map(sel => `body.picanvas-hiding-active .picanvas-tab-content ${sel}`);
       const styleContent = `
         /* PiCanvas Pre-Hide Styles - Injected by PiCanvasLoader Application Customizer */
         /* These styles hide connected webparts until PiCanvas moves them into tabs */
-        ${selectors.join(',\n        ')} {
-          visibility: hidden !important;
-          opacity: 0 !important;
-          height: 0 !important;
-          overflow: hidden !important;
-          position: absolute !important;
-          pointer-events: none !important;
-          z-index: -9999 !important;
+        /* ONLY applies when body has 'picanvas-hiding-active' class (set by PiCanvas in Read mode) */
+        /* Hide connected webparts until PiCanvas moves them into tabs.
+           display:none is sufficient because PiCanvas clones/moves content into tab containers. */
+        ${conditionalSelectors.join(',\n        ')} {
+          display: none !important;
+        }
+
+        /* OVERRIDE: Elements inside tabs should be visible (they've been moved into tabs) */
+        /* Higher specificity overrides the hiding rules above */
+        ${overrideSelectors.join(',\n        ')} {
+          display: block !important;
         }
       `;
 

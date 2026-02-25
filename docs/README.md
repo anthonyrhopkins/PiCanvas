@@ -12,6 +12,7 @@
 | [Permission-Based Visibility](#permission-based-visibility) | Control tab visibility based on group membership |
 | [Content Types](#content-types) | Markdown, HTML, Embed, and Mermaid diagrams |
 | [Installation](#installation) | Deploy to SharePoint |
+| [Architecture & Deployment](#architecture--deployment) | How PiCanvas works under the hood |
 | [Troubleshooting](#troubleshooting) | Common issues and solutions |
 
 ---
@@ -87,16 +88,67 @@ Vertical Layout:
 └──────────┴──────────────────────────────────────────────┘
 ```
 
+### Configuration Panel
+
+The full-screen configuration panel provides all tab and styling settings in one place:
+
+| Tab Builder | Expanded Tab Settings |
+|-------------|----------------------|
+| ![Tab Builder](images/config-panel-tabs.png) | ![Expanded Tab](images/config-panel-tabs-expanded.png) |
+
+| Appearance | Templates |
+|------------|-----------|
+| ![Appearance](images/settings-appearance.png) | ![Templates](images/settings-templates.png) |
+
 ### How to Configure
 
-1. Open the property pane (edit web part settings)
-2. Click **Add Tab** for each tab you need
-3. Select a web part or section from the dropdown
+1. Click **Configure** on the edit-mode summary card (or click any tab row to jump to that tab)
+2. In the **Tabs** section, click **Add Tab** for each tab you need
+3. Select a content type and assign a web part, section, or built-in content
 4. Choose label type: Text or Web Part
 5. For text labels: enter text and optionally add icons/images
 6. For web part labels: select the web part to use as the label
 7. Optionally enable dividers between tabs
 8. Adjust **Label Image Size** if using images
+9. Click **Done** to save (or **Cancel** to discard all changes)
+
+### Edit Mode Compact View
+
+When you edit a SharePoint page, PiCanvas displays a compact summary card instead of the full tabbed layout. This gives page authors a quick overview without taking up space.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  π  PiCanvas          6 tabs          [?]  [⚙ Configure] │
+├──────────────────────────────────────────────────────────┤
+│  1  Dashboard Overview            WP                     │
+│     ↳ Sec 1 | Left | Text: "Welcome to..."              │
+│  2  Org Chart                     DIA  🔒                │
+│     ↳ Mermaid · 245 chars                                │
+│  3  News Feed                     RSS                    │
+│     ↳ https://intranet.com/feed.xml · cards · 10 items   │
+│  4  Help Docs                     HTML 🌐                │
+│     ↳ From Text WebPart · Sec 2 | "Getting started..."   │
+├──────────────────────────────────────────────────────────┤
+│  default · stretch · horizontal              v3.0.0      │
+└──────────────────────────────────────────────────────────┘
+```
+
+Each tab row shows:
+
+| Element | Description |
+|---------|-------------|
+| **Tab number** | Numbered circle for quick identification |
+| **Label** | The tab's display name |
+| **Type badge** | Content type abbreviation (WP, SEC, MD, HTML, DIA, EMB, RSS, TOC, JS, FILE, RPT, TXT) |
+| **Status icons** | 🔒 locked, 👥 permission-restricted, 🌐 full-width, ⚠️ missing config |
+| **Source detail** | Second line showing where content comes from (web part zone, URL, char count, etc.) |
+
+**Quick actions from the edit view:**
+- **Click any tab row** to open the configuration panel with that tab already expanded
+- **Click "?"** to open the Help & Docs section
+- **Click "⚙ Configure"** to open the full configuration panel
+
+The footer displays the current tab style, alignment, and orientation at a glance.
 
 ---
 
@@ -215,7 +267,7 @@ PiCanvas uses CSS custom properties for consistent theming:
 
 Control tab visibility based on SharePoint group membership.
 
-The Permission Settings panel in the property pane shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior (Hide completely or Show Placeholder).
+The Permission Settings are found by expanding any tab in the Tab Builder and opening the **Permissions** accordion. It shows the "Restrict by Group" toggle, a multi-select dropdown for choosing Site Owners/Members/Visitors, a text field for custom group IDs, and radio buttons for visibility behavior (Hide completely or Show Placeholder).
 
 ![Permission Settings](images/settings-permissions.png)
 
@@ -276,7 +328,7 @@ For advanced scenarios, enter SharePoint group IDs directly:
 
 ### How to Configure
 
-1. Open the property pane for any tab
+1. Open the configuration panel and expand any tab's **Permissions** section
 2. Enable **"Restrict by Group"** toggle
 3. Select groups from the **"Visible to Groups"** dropdown
 4. Optionally add custom group IDs
@@ -301,7 +353,7 @@ For advanced scenarios, enter SharePoint group IDs directly:
 
 ## Content Types
 
-PiCanvas supports four custom content types that let you create rich tab content without adding extra web parts.
+PiCanvas supports 11 content types that let you create rich tab content without adding extra web parts. The most commonly used custom types are documented below.
 
 ### Markdown Content
 
@@ -397,6 +449,10 @@ Embed videos, apps, dashboards, and external content securely.
 | **Forms** | Microsoft Forms, Typeform, Calendly |
 | **Design** | Canva, Figma, Miro, Lucidchart |
 | **Productivity** | Notion, Airtable, Coda, Mural |
+
+#### Custom Domains
+
+To embed content from domains not in the built-in list, add them in the configuration panel under **Advanced > Embed Security > Custom Embed Domains**. Enter comma-separated domain names (e.g. `myapp.example.com, internal.corp.net`). These are added to the allowlist alongside the built-in trusted domains.
 
 #### Getting Embed URLs
 
@@ -550,13 +606,13 @@ kanban
 
 Save and share PiCanvas configurations across sites.
 
-The Templates panel in the property pane shows a dropdown of built-in templates (Classic, Dashboard, Navigation Dock, Portal Hub, Minimal), plus Export and Import buttons for JSON configuration files, and a "Save to Site Assets" option for team sharing.
+The Templates section in the configuration panel shows built-in templates (Dashboard, Documentation, Team Site), saved templates, and action buttons for Apply, Save Current, Export, and Import.
 
 ![Template Settings](images/settings-templates.png)
 
 ### How to Use Templates
 
-1. Open the web part property pane and expand **Templates**
+1. Open the configuration panel and navigate to **Templates**
 2. Select a built-in template to apply it
 3. Use the export/import controls to download or load a JSON template
 4. Optionally save templates to Site Assets for team reuse
@@ -615,9 +671,120 @@ Prebuilt packages are not provided; build the `.sppkg` locally.
 
 ---
 
+## Architecture & Deployment
+
+This section explains how PiCanvas works under the hood — what it does to the page DOM, why, and how it stays safe. It's intended for administrators evaluating PiCanvas for deployment and developers maintaining it.
+
+### How PiCanvas Works
+
+PiCanvas reorganizes existing SharePoint page content into a tabbed layout at render time. It does not modify, replace, or intercept web part data — it moves the rendered DOM elements into tab containers so users see one tab at a time instead of a long scrolling page.
+
+The render lifecycle has three phases:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     PiCanvas Render Lifecycle                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Phase 1: Pre-Hide (before page paint)                              │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Application Customizer (PiCanvasLoader)                       │  │
+│  │  • Reads localStorage for connected web part IDs              │  │
+│  │  • Injects <style> at top of <head> with display:none rules   │  │
+│  │  • Rules gated by body.picanvas-hiding-active class           │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                            ↓                                        │
+│  Phase 2: Instance Hiding (WebPart onInit)                          │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ PiCanvas WebPart onInit()                                     │  │
+│  │  • Injects per-instance <style> with visibility:hidden rules  │  │
+│  │  • Toggles body.picanvas-hiding-active in Read mode           │  │
+│  │  • Removes hiding class in Edit mode (web parts stay visible) │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                            ↓                                        │
+│  Phase 3: Tab Render (WebPart render)                               │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ PiCanvas WebPart render()                                     │  │
+│  │  • Scaffolds tab container with role="tabs" accessibility     │  │
+│  │  • Moves web part elements into their assigned tab panels     │  │
+│  │  • Writes connected IDs to localStorage (for next page load)  │  │
+│  │  • Removes pre-hide styles → web parts visible in tabs        │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Why two hiding phases?** The Application Customizer runs before any web part initializes, preventing the brief flash of unhidden content on page load. The web part's own hiding handles first-time visits (before localStorage data exists) and ensures per-instance correctness.
+
+### DOM Manipulation Approach
+
+SharePoint does not provide a native API for reorganizing web parts into tabs or alternative layouts at render time. PiCanvas uses direct DOM manipulation to achieve this, following responsible practices:
+
+| Principle | How PiCanvas implements it |
+|-----------|---------------------------|
+| **Defensive coding** | All DOM operations wrapped in try/catch blocks. Element existence is checked before every move or query. |
+| **Non-destructive** | Web parts are moved (not modified or recreated). Their internal state, event handlers, and data bindings remain intact. |
+| **Fail-safe** | If any operation fails, the page still works — content simply appears unhidden in its original layout. |
+| **Reversible** | Removing PiCanvas from a page restores the original layout with no residual changes. |
+| **Edit-mode aware** | In Edit mode, PiCanvas removes all hiding classes and styles so authors see the standard SharePoint editing experience. |
+
+When multiple PiCanvas instances exist on the same page, a global registry tracks which instance owns each web part. If a web part is already claimed by another instance, PiCanvas creates a deep clone (with suffixed IDs to avoid conflicts) rather than fighting for the original element.
+
+### Application Customizer (PiCanvasLoader)
+
+The PiCanvasLoader Application Customizer is an optional but recommended companion to the PiCanvas web part. Its sole purpose is to inject CSS that hides configured web parts before the page renders, preventing a flash of unstyled content.
+
+| Aspect | Detail |
+|--------|--------|
+| **What it does** | Injects a `<style>` element at the top of `<head>` with `display: none !important` rules for configured web parts |
+| **How it coordinates** | Reads the `picanvas-connected-webparts` localStorage key, which the web part writes during render |
+| **Body class gating** | All hiding rules are scoped under `body.picanvas-hiding-active`, so they only take effect when the web part activates them in Read mode |
+| **Security** | Every ID from localStorage is passed through `CSS.escape()` before being used in a selector, preventing CSS injection |
+| **Failure behavior** | Entire injection is wrapped in try/catch — if it fails, the page loads normally (with a brief content flash) |
+
+**When to deploy:** Without the Application Customizer, PiCanvas still works perfectly — users will just see a brief flash of all web parts before they're moved into tabs. For production sites, deploying the customizer provides a polished loading experience.
+
+### Content Security
+
+PiCanvas handles user-authored content (Markdown, HTML, embeds) and applies multiple layers of sanitization:
+
+| Layer | Implementation |
+|-------|---------------|
+| **HTML sanitization** | All Markdown and HTML content is processed through [DOMPurify](https://github.com/cure53/DOMPurify) before rendering. `<script>` tags and event handler attributes (`onerror`, `onload`, `onclick`, etc.) are explicitly forbidden. |
+| **CSS selector escaping** | All dynamic values used in CSS selectors pass through `CSS.escape()` to prevent injection from localStorage or web part properties. |
+| **Embed domain allowlist** | Embed URLs must use HTTPS and match a curated allowlist of 50+ trusted domains (YouTube, Power BI, Microsoft Forms, Figma, etc.). Administrators can extend the allowlist via the web part property pane. Unrecognized domains are blocked with a visible error message. |
+| **Iframe sandboxing** | Embedded iframes use `sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"` with `referrerpolicy="no-referrer-when-downgrade"`. |
+| **HTML entity encoding** | Tab labels, error messages, and any user-supplied strings injected into HTML are entity-encoded (`&`, `<`, `>`, `"`, `'`) before insertion. |
+| **No inline script execution** | PiCanvas never evaluates user-supplied strings as JavaScript. Content rendering is strictly HTML-only. |
+
+### Enterprise Deployment Considerations
+
+| Topic | Detail |
+|-------|--------|
+| **App catalog approval** | PiCanvas is a standard SPFx solution ("full trust client-side") that runs under the current user's context. It requires SharePoint Admin approval in the App Catalog. |
+| **Tenant-wide vs site-scoped** | Can be deployed tenant-wide (available on all sites) or to individual Site Collection App Catalogs. Site collection deployment is required for guest user access (see [Guest User Access](#guest-user-access)). |
+| **CDN dependencies** | All assets are bundled in the `.sppkg` file. There are no external CDN dependencies — PiCanvas works in air-gapped and restricted network environments. |
+| **Guest users** | Guest users require deployment to a Site Collection App Catalog. See [Guest User Access](#guest-user-access) above for details. |
+| **Removing PiCanvas** | Removing the web part from a page restores the original layout immediately. Uninstalling the solution leaves no residual DOM changes, localStorage entries, or other artifacts. The Application Customizer's hiding styles become inert (no matching body class) and are cleaned up on the next page load. |
+| **Multiple instances** | Multiple PiCanvas web parts can coexist on the same page. Each instance tracks its own web parts and coordinates with others via a shared registry to avoid conflicts. |
+
+### What Happens If SharePoint Changes
+
+PiCanvas targets stable SharePoint selectors — primarily `data-automation-id` attributes (`CanvasZone`, `CanvasSection`, `CanvasControl`) and web part element IDs, which have remained consistent across SharePoint updates. Additionally, the section and web part selectors are configurable in the property pane, allowing administrators to adapt to layout changes without code modifications.
+
+If a selector stops matching:
+
+1. **Tabs render empty** — the affected web parts simply don't appear in their tab panels
+2. **Content falls back to unhidden** — the pre-hide CSS targets specific IDs, so unmatched elements remain visible in their original positions
+3. **No SharePoint functionality is blocked** — PiCanvas never intercepts clicks, network requests, or SharePoint APIs
+
+**Recommendation for production deployments:** After SharePoint tenant updates, spot-check PiCanvas pages to verify web parts still appear in their tabs. The Troubleshooting section below provides diagnostic tools for identifying selector mismatches.
+
+---
+
 ## Troubleshooting
 
-The Troubleshooting section in the property pane provides diagnostic tools when web parts aren't detected correctly. It includes Section Selector and Web Part Selector dropdowns to try different DOM query strategies, plus Reset buttons to restore defaults.
+The Advanced section in the configuration panel provides diagnostic tools when web parts aren't detected correctly. It includes CSS selector overrides, global lock defaults, embed security settings (custom domain allowlist), and a Reset All Styles button.
 
 ![Troubleshooting Settings](images/settings-troubleshooting.png)
 
@@ -669,7 +836,7 @@ The Troubleshooting section in the property pane provides diagnostic tools when 
 
 ### Colors
 
-The Colors panel provides color pickers for Accent Color, Tab Text Color, Active Tab Text Color, Tab Background, Active Tab Background, and Hover Background. Each setting has a color swatch preview and hex input field.
+The Colors section in the configuration panel provides theme presets (Dashboard, Documentation) and individual color pickers for Accent Color, Tab Text Color, Active Tab Text, Tab Background, Active Tab Background, Hover Background, Indicator Color, and Separator Color. Each setting has a color swatch preview, hex input field, and quick-pick palette.
 
 ![Colors Settings](images/settings-colors.png)
 
@@ -684,7 +851,7 @@ The Colors panel provides color pickers for Accent Color, Tab Text Color, Active
 
 ### Typography & Spacing
 
-The Typography & Spacing panel contains sliders for Font Size (12-20px), Font Weight (400-700), Vertical Padding, Horizontal Padding, and Gap Between Tabs. Each slider shows the current value and updates the preview in real-time.
+The Typography section in the configuration panel contains sliders for Font Size (12-20px), Font Weight (400-700), Vertical Padding, Horizontal Padding, Gap Between Tabs, Content Gap, Corner Radius, and Active Indicator Width. Each slider shows the current value with quick-pick presets and updates the live preview in real-time.
 
 ![Typography Settings](images/settings-typography.png)
 
@@ -698,7 +865,7 @@ The Typography & Spacing panel contains sliders for Font Size (12-20px), Font We
 
 ### Borders & Effects
 
-The Borders & Effects panel includes sliders for Corner Radius and Active Indicator Width, a color picker for Indicator Color, a dropdown for Shadow Effect presets, and toggles for Show Tab Separators and Enable Animations.
+The Borders & Effects settings are in the Typography section (scroll down). They include Corner Radius, Active Indicator Width, Shadow Effect presets, and toggles for Show Tab Separators and Enable Animations.
 
 ![Borders Settings](images/settings-borders.png)
 

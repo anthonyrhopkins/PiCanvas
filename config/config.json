@@ -10,6 +10,14 @@
         }
       ]
     },
+    "pi-radar-command-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/piRadarCommand/PiRadarCommandWebPart.js",
+          "manifest": "./src/webparts/piRadarCommand/PiRadarCommandWebPart.manifest.json"
+        }
+      ]
+    },
     "pi-canvas-loader-extension": {
       "components": [
         {
@@ -22,6 +30,7 @@
   "externals": {},
   "localizedResources": {
     "PiCanvasWebPartStrings": "lib/webparts/piCanvas/loc/{locale}.js",
+    "PiRadarCommandWebPartStrings": "lib/webparts/piRadarCommand/loc/{locale}.js",
     "PiCanvasLoaderApplicationCustomizerStrings": "lib/extensions/piCanvasLoader/loc/{locale}.js",
     "PropertyControlStrings": "node_modules/@pnp/spfx-property-controls/lib/loc/{locale}.js"
   }
