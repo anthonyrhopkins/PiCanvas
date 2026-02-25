@@ -1194,6 +1194,13 @@ export class ContentRenderer {
   }
 
   // ========== Landing Page Rendering ==========
+  //
+  // Internal demo feature for a German-language pilot deployment.
+  // The 'landing' content type renders an animated landing page with a hero section,
+  // snake-path timeline, and CTA. It is NOT exposed in the config panel UI — it can
+  // only be activated by manually setting a tab's contentType to 'landing'.
+  // All German-language defaults (labels, descriptions, nav items) are overridable
+  // via the ILandingConfig interface passed to renderLanding().
 
   // SVG Icons for landing page
   private static readonly LANDING_ICONS: Record<string, string> = {
@@ -1209,7 +1216,7 @@ export class ContentRenderer {
     arrowRight: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`
   };
 
-  // Default landing nodes
+  // Default landing nodes — German-language demo data, overridable via ILandingConfig.nodes
   private static readonly DEFAULT_LANDING_NODES: ILandingNode[] = [
     { id: 1, title: "Dokumente", description: "Alle wichtigen Dateien und Dokumente an einem Ort verwalten und teilen.", icon: 'fileText', stats: "2,847 Dateien" },
     { id: 2, title: "Team", description: "Zusammenarbeit mit Ihrem Team in Echtzeit - effizient und transparent.", icon: 'users', stats: "24 Mitglieder" },
@@ -1248,7 +1255,9 @@ export class ContentRenderer {
   }
 
   /**
-   * Render animated landing page
+   * Render animated landing page (internal demo feature).
+   * German-language defaults are used when no config is supplied;
+   * callers can override every label via ILandingConfig.
    */
   public static renderLanding(config: ILandingConfig = {}): IRenderResult {
     const {

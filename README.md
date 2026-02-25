@@ -1,13 +1,13 @@
 # PiCanvas
 
-![Version](https://img.shields.io/badge/Version-2.3-blue.svg)
+![Version](https://img.shields.io/badge/Version-3.0-blue.svg)
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2022%2B-green.svg)
 
 ## Table of Contents
 
 - [Features](#features) — Tabbed layouts, configuration panel, customization, permissions, templates
-- [What's New in v2.x](#whats-new-in-v2x) — Version comparison, new capabilities
+- [What's New in v3.x](#whats-new-in-v3x) — Version comparison, new capabilities
 - [Installation](#installation) — Deploy to SharePoint, guest user access
 - [Development](#development) — Local setup, build commands, project structure
 - [Configuration Reference](#configuration-reference) — Panel sections, CSS variables
@@ -305,13 +305,13 @@ The Templates section in the configuration panel shows built-in templates (Dashb
 
 ---
 
-## What's New in v2.x
+## What's New in v3.x
 
 PiCanvas is a complete modernization of [Mark Rackley's Modern Hillbilly Tabs](http://www.markrackley.net/2022/06/29/the-return-of-hillbilly-tabs/). The original was built on SPFx 1.13.1 (2021). As SharePoint Framework evolved through 8+ major versions, the codebase needed a full rebuild to leverage modern tooling and capabilities while honoring the original concept.
 
 ### Version Comparison
 
-| Aspect | Original (Hillbilly Tabs) | PiCanvas 2.x |
+| Aspect | Original (Hillbilly Tabs) | PiCanvas 3.x |
 |--------|--------------------------|--------------|
 | SPFx Version | 1.13.1 (2021) | 1.22.0 (2026) |
 | Node.js | 14.x / 16.x | 18.17.1+ / 22.14+ |
@@ -445,6 +445,12 @@ When selecting web parts in the property pane, they're highlighted on the page:
 | **Permission-Based Visibility** | Hide tabs by SharePoint group membership |
 | **Template System** | Export/import configurations, built-in templates |
 | **Site Assets Storage** | Save custom templates for team sharing |
+| **11 Content Types** | Web Part, Section, Markdown, HTML, Mermaid, Embed, RSS, File, JavaScript, TOC, Profile Report |
+| **Tab Locking** | Password-protect individual tabs with customizable lock screens |
+| **Text WebPart Source** | Use existing Text web parts as content source for HTML/Markdown tabs |
+| **Banner Layout Control** | Full-width or contained banner display with focal point preservation |
+| **Pre-Hide Extension** | Application customizer prevents content flash before tabs render |
+| **Custom Embed Domains** | Add trusted domains for iframe embeds via Advanced settings |
 
 ### Full Customization Options
 
@@ -531,6 +537,7 @@ All styling uses CSS custom properties for easy theming and overrides:
 | **Animation System** | CSS keyframes for pulse/dash effects |
 | **PnP Telemetry** | Opt-out by default for privacy |
 | **XSS Prevention** | HTML encoding and URL sanitization for all user inputs |
+| **Embed Domain Allowlist** | Built-in trusted domains + configurable custom domains via Advanced settings |
 | **Security Linting** | 14 ESLint rules blocking eval, script URLs, prototype pollution |
 
 ---
@@ -654,18 +661,21 @@ The `.sppkg` file will be in `sharepoint/solution/`.
 ```
 PiCanvas/
 ├── src/
-│   └── webparts/
-│       └── piCanvas/
-│           ├── PiCanvasWebPart.ts           # Main web part logic
-│           ├── PiCanvasWebPart.module.scss  # Theme styles (includes compact edit view)
-│           ├── AddTabs.js                   # Tab UI plugin
-│           ├── AddTabs.css                  # Tab styling
-│           ├── configPanel/                 # Full-screen configuration panel
-│           │   ├── ConfigurationPanel.ts    # Panel overlay, sidebar, undo/redo
-│           │   ├── controls/               # Reusable controls (dropdown, toggle, slider, color picker, command palette)
-│           │   └── sections/               # Tab Builder, Appearance, Colors, Typography, Templates, Advanced, Help
-│           ├── services/                    # Content rendering, RSS, TOC, themes, metadata tokens
-│           └── loc/                         # Localization
+│   ├── webparts/
+│   │   └── piCanvas/
+│   │       ├── PiCanvasWebPart.ts           # Main web part logic
+│   │       ├── PiCanvasWebPart.module.scss  # Theme styles (includes compact edit view)
+│   │       ├── AddTabs.js                   # Tab UI plugin (banner fixes, layout)
+│   │       ├── AddTabs.css                  # Tab styling
+│   │       ├── configPanel/                 # Full-screen configuration panel
+│   │       │   ├── ConfigurationPanel.ts    # Panel overlay, sidebar, undo/redo
+│   │       │   ├── controls/               # Reusable controls (dropdown, toggle, slider, color picker, command palette)
+│   │       │   └── sections/               # Tab Builder, Appearance, Colors, Typography, Templates, Advanced, Help
+│   │       ├── services/                    # Content rendering, RSS, TOC, themes, templates, metadata tokens
+│   │       ├── models/                      # Template models, JavaScript template definitions
+│   │       └── loc/                         # Localization
+│   └── extensions/
+│       └── piCanvasLoader/                  # Application customizer (pre-hides webparts, banner full-width fix)
 ├── config/
 │   ├── config.json                          # External dependencies
 │   ├── heft.json                            # Heft build pipeline
@@ -691,7 +701,7 @@ PiCanvas/
 | **Colors** | Accent, text, backgrounds, hover states, theme presets |
 | **Typography** | Font size/weight, padding, gaps, border radius, shadows |
 | **Templates** | Built-in templates, export/import JSON, save to Site Assets |
-| **Advanced** | CSS selectors, global lock defaults, reset all styles |
+| **Advanced** | CSS selectors, global lock defaults, embed security (custom domain allowlist), reset all styles |
 | **Help & Docs** | Getting started, features, troubleshooting, about |
 
 ### Color Presets
@@ -711,7 +721,7 @@ PiCanvas/
 
 ## Troubleshooting
 
-The Advanced section in the configuration panel provides diagnostic tools when web parts aren't detected correctly. It includes CSS selector overrides, global lock defaults, and a Reset All Styles button.
+The Advanced section in the configuration panel provides diagnostic tools when web parts aren't detected correctly. It includes CSS selector overrides, global lock defaults, embed security settings (custom domain allowlist), and a Reset All Styles button.
 
 ![Troubleshooting Settings](docs/images/settings-troubleshooting.png)
 
@@ -790,6 +800,23 @@ if (DEBUG) {
 ---
 
 ## Changelog
+
+### v3.0 (February 2026)
+
+**New Features:**
+- **11 Content Types** - Web Part, Section, Markdown, HTML, Mermaid, Embed, RSS, File, JavaScript, TOC, and Profile Report
+- **Tab Locking** - Password-protect individual tabs with customizable lock screens, messages, and unlock duration
+- **Text WebPart Content Source** - Use existing Text web parts as content source for HTML/Markdown tabs instead of manual input
+- **Banner Layout Control** - Choose full-width or contained banner display; focal point preservation for cropped images
+- **Pre-Hide Application Customizer** - Extension injects CSS to hide connected web parts before PiCanvas renders, preventing content flash
+- **Custom Embed Domain Allowlist** - Add trusted domains for iframe embeds via Advanced > Embed Security settings
+- **Position Warning** - Warns when web parts are placed above PiCanvas (which prevents proper tab capture)
+
+**Improvements:**
+- Enhanced compact edit view with per-tab source detail, status icons, and click-to-configure
+- Simplified CSS hiding in Application Customizer (single `display: none` rule)
+- Targeted CSS selectors replace universal `*` selector to avoid breaking third-party web parts
+- Refactored banner fix logic into reusable helper functions
 
 ### v2.3 (January 2026)
 

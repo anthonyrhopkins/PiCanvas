@@ -39,50 +39,143 @@ RenderTabs = function () {
          *
          * @param {jQuery} $container - The tab content container to fix
          */
+        /**
+         * Calculate object-position from SharePoint's legacy top/left offsets.
+         * Returns a CSS object-position value (e.g. "50% 30%").
+         */
+        function calculateSharePointFocalPoint(img, container) {
+            // If it already has one, honor it
+            if (img.style.objectPosition && img.style.objectPosition !== '50% 50%') {
+                return img.style.objectPosition;
+            }
+
+            // Get SharePoint's calculated offsets
+            var top = parseFloat(img.style.top || '0');
+            var left = parseFloat(img.style.left || '0');
+
+            // If no offsets, default to center
+            if (top === 0 && left === 0) return '50% 50%';
+
+            // Get true image dimensions from SharePoint attributes
+            var h = parseFloat(img.getAttribute('imgheight') || img.naturalHeight || '0');
+            var w = parseFloat(img.getAttribute('imgwidth') || img.naturalWidth || '0');
+
+            // Get container dimensions (visible area)
+            var containerH = container.offsetHeight || parseFloat(container.style.height || '200'); // fallback
+            var containerW = container.offsetWidth || parseFloat(container.style.width || '1000'); // fallback
+
+            if (h === 0 || w === 0) return '50% 50%';
+
+            // Calculate the center of the VISIBLE portion relative to the FULL image
+            // SharePoint sets 'top' to a negative value to shift the image up.
+            // Visible Center Y = Abs(Top) + (ContainerHeight / 2)
+            var centerY = Math.abs(top) + (containerH / 2);
+            var centerX = Math.abs(left) + (containerW / 2);
+
+            // Convert to percentage
+            var posY = (centerY / h) * 100;
+            var posX = (centerX / w) * 100;
+
+            // Clamp to 0-100
+            posY = Math.max(0, Math.min(100, posY));
+            posX = Math.max(0, Math.min(100, posX));
+
+            return posX.toFixed(2) + '% ' + posY.toFixed(2) + '%';
+        }
+
+        /**
+         * Fix a banner/hero element in contained mode.
+         * Applies inline styles to override SharePoint's viewport-escaping CSS.
+         */
+        function fixBannerContained($banner, $container) {
+            $banner.addClass('picanvas-contained-banner');
+
+            // Find and fix the fullWidthImageLayout element
+            var $fullWidthLayout = $banner.find('[data-automation-id="fullWidthImageLayout"]');
+            if ($fullWidthLayout.length === 0) {
+                // Banner might BE the fullWidthImageLayout
+                $fullWidthLayout = $container.find('[data-automation-id="fullWidthImageLayout"]');
+            }
+
+            $fullWidthLayout.each(function () {
+                var el = this;
+                el.style.cssText = 'width: 100% !important; max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; min-width: 0 !important;';
+                el.classList.add('picanvas-contained-banner');
+
+                // Also fix the image inside - preserve focal point (object-position)
+                var img = el.querySelector('img');
+                if (img) {
+                    // 1. Calculate focal point BEFORE clearing styles
+                    var focalPoint = calculateSharePointFocalPoint(img, el);
+
+                    img.style.setProperty('width', '100%', 'important');
+                    img.style.setProperty('max-width', '100%', 'important');
+                    img.style.setProperty('height', '100%', 'important');
+                    img.style.setProperty('object-fit', 'cover', 'important');
+
+                    // 2. Apply calculated focal point
+                    if (focalPoint) {
+                        img.style.setProperty('object-position', focalPoint, 'important');
+                    }
+
+                    // CRITICAL: Clear legacy SharePoint positioning that pushes image out of view
+                    img.style.setProperty('top', '0', 'important');
+                    img.style.setProperty('left', '0', 'important');
+                    img.style.setProperty('margin-top', '0', 'important');
+                    img.style.setProperty('margin-left', '0', 'important');
+                    img.style.setProperty('transform', 'none', 'important');
+                }
+            });
+
+            // Clear ONLY viewport-relative styles from the banner root that force full width
+            var bannerEl = $banner[0];
+            if (bannerEl.style.width && (bannerEl.style.width.includes('vw') || bannerEl.style.width.includes('calc'))) bannerEl.style.removeProperty('width');
+            if (bannerEl.style.maxWidth && (bannerEl.style.maxWidth.includes('vw') || bannerEl.style.maxWidth.includes('calc'))) bannerEl.style.removeProperty('max-width');
+
+            // Only remove transform if it looks like a centering hack
+            if (bannerEl.style.transform && bannerEl.style.transform.includes('translate')) {
+                bannerEl.style.removeProperty('transform');
+            }
+
+            // Gentle clearing for nested elements
+            $banner.find('div, span, section, aside').each(function () {
+                var el = this;
+                var inlineWidth = el.style.width;
+                if (inlineWidth && (inlineWidth.includes('vw') || inlineWidth.includes('calc') || inlineWidth.includes('100%'))) {
+                    if (inlineWidth.includes('vw') || inlineWidth.includes('calc')) {
+                        el.style.removeProperty('width');
+                    }
+                }
+                if (el.style.transform && el.style.transform.includes('translate')) {
+                    el.style.removeProperty('transform');
+                }
+            });
+        }
+
+        /**
+         * Fix a banner/hero element in full-width mode.
+         * Clears pixel-based inline styles so CSS can make the banner full-width.
+         */
+        function fixBannerFullWidth($banner, cssClass) {
+            $banner.removeClass('picanvas-contained-banner');
+
+            $banner.find('*').addBack().each(function () {
+                var el = this;
+                var style = el.style;
+
+                // Clear width-related inline styles - ONLY PIXELS
+                if (style.width && style.width.includes('px')) style.width = '';
+                if (style.maxWidth && style.maxWidth.includes('px')) style.maxWidth = '';
+                if (style.minWidth && style.minWidth.includes('px')) style.minWidth = '';
+                if (style.flexBasis && style.flexBasis.includes('px')) style.flexBasis = '';
+            });
+
+            $banner.addClass(cssClass);
+        }
+
         function fixBannerWebparts($container) {
             // Check if this container is in contained mode
             var isContainedMode = $container.attr('data-fullwidth-banner') === 'false';
-
-            // Helper to calculate object-position from SharePoint's legacy top/left offsets
-            function calculateSharePointFocalPoint(img, container) {
-                // If it already has one, honor it
-                if (img.style.objectPosition && img.style.objectPosition !== '50% 50%') {
-                    return img.style.objectPosition;
-                }
-
-                // Get SharePoint's calculated offsets
-                var top = parseFloat(img.style.top || '0');
-                var left = parseFloat(img.style.left || '0');
-
-                // If no offsets, default to center
-                if (top === 0 && left === 0) return '50% 50%';
-
-                // Get true image dimensions from SharePoint attributes
-                var h = parseFloat(img.getAttribute('imgheight') || img.naturalHeight || '0');
-                var w = parseFloat(img.getAttribute('imgwidth') || img.naturalWidth || '0');
-
-                // Get container dimensions (visible area)
-                var containerH = container.offsetHeight || parseFloat(container.style.height || '200'); // fallback
-                var containerW = container.offsetWidth || parseFloat(container.style.width || '1000'); // fallback
-
-                if (h === 0 || w === 0) return '50% 50%';
-
-                // Calculate the center of the VISIBLE portion relative to the FULL image
-                // SharePoint sets 'top' to a negative value to shift the image up.
-                // Visible Center Y = Abs(Top) + (ContainerHeight / 2)
-                var centerY = Math.abs(top) + (containerH / 2);
-                var centerX = Math.abs(left) + (containerW / 2);
-
-                // Convert to percentage
-                var posY = (centerY / h) * 100;
-                var posX = (centerX / w) * 100;
-
-                // Clamp to 0-100
-                posY = Math.max(0, Math.min(100, posY));
-                posX = Math.max(0, Math.min(100, posX));
-
-                return posX.toFixed(2) + '% ' + posY.toFixed(2) + '%';
-            }
 
             // Find all Banner webparts in this container
             var $banners = $container.find('[data-automation-id="BannerWebPart"], [class*="bannerWebPart"], [class*="BannerWebPart"]');
@@ -91,95 +184,9 @@ RenderTabs = function () {
                 var $banner = a(this);
 
                 if (isContainedMode) {
-                    // CONTAINED MODE: Apply inline styles to override SharePoint's viewport-escaping CSS
-                    // SharePoint uses CSS classes with "width: 100vw; margin-left: calc(-50vw + 50%)"
-                    // Our CSS can't override these, so we use inline styles
-                    $banner.addClass('picanvas-contained-banner');
-
-                    // Find and fix the fullWidthImageLayout element
-                    var $fullWidthLayout = $banner.find('[data-automation-id="fullWidthImageLayout"]');
-                    if ($fullWidthLayout.length === 0) {
-                        // Banner might BE the fullWidthImageLayout
-                        $fullWidthLayout = $container.find('[data-automation-id="fullWidthImageLayout"]');
-                    }
-
-                    $fullWidthLayout.each(function () {
-                        var el = this;
-                        el.style.cssText = 'width: 100% !important; max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; min-width: 0 !important;';
-                        el.classList.add('picanvas-contained-banner');
-
-                        // Also fix the image inside - preserve focal point (object-position)
-                        var img = el.querySelector('img');
-                        if (img) {
-                            // 1. Calculate focal point BEFORE clearing styles
-                            var focalPoint = calculateSharePointFocalPoint(img, el);
-
-                            img.style.setProperty('width', '100%', 'important');
-                            img.style.setProperty('max-width', '100%', 'important');
-                            img.style.setProperty('height', '100%', 'important');
-                            img.style.setProperty('object-fit', 'cover', 'important');
-
-                            // 2. Apply calculated focal point
-                            if (focalPoint) {
-                                img.style.setProperty('object-position', focalPoint, 'important');
-                            }
-
-                            // CRITICAL: Clear legacy SharePoint positioning that pushes image out of view
-                            // SharePoint manages focal point via top/left offsets (e.g. top: -287px),
-                            // but we use object-fit: cover which handles this automatically.
-                            // We must unintentional offsets.
-                            img.style.setProperty('top', '0', 'important');
-                            img.style.setProperty('left', '0', 'important');
-                            img.style.setProperty('margin-top', '0', 'important');
-                            img.style.setProperty('margin-left', '0', 'important');
-                            img.style.setProperty('transform', 'none', 'important');
-
-                            // CRITICAL: Lock container height after image loads to prevent resize animations
-                            // lockBannerHeight(el, img);
-                        }
-                    });
-
-                    // Clear ONLY viewport-relative styles from the banner root that force full width
-                    // This fixes "Image and Text" layouts that don't use fullWidthImageLayout
-                    var bannerEl = $banner[0];
-                    if (bannerEl.style.width && (bannerEl.style.width.includes('vw') || bannerEl.style.width.includes('calc'))) bannerEl.style.removeProperty('width');
-                    if (bannerEl.style.maxWidth && (bannerEl.style.maxWidth.includes('vw') || bannerEl.style.maxWidth.includes('calc'))) bannerEl.style.removeProperty('max-width');
-
-                    // Only remove transform if it looks like a centering hack
-                    if (bannerEl.style.transform && bannerEl.style.transform.includes('translate')) {
-                        bannerEl.style.removeProperty('transform');
-                    }
-
-                    // Gentle clearing for nested elements
-                    $banner.find('div, span, section, aside').each(function () {
-                        var el = this;
-                        var inlineWidth = el.style.width;
-                        if (inlineWidth && (inlineWidth.includes('vw') || inlineWidth.includes('calc') || inlineWidth.includes('100%'))) {
-                            if (inlineWidth.includes('vw') || inlineWidth.includes('calc')) {
-                                el.style.removeProperty('width');
-                            }
-                        }
-                        if (el.style.transform && el.style.transform.includes('translate')) {
-                            el.style.removeProperty('transform');
-                        }
-                    });
-
+                    fixBannerContained($banner, $container);
                 } else {
-                    // FULL-WIDTH MODE: Clear inline styles so CSS can make banner full-width
-                    $banner.removeClass('picanvas-contained-banner');
-
-                    $banner.find('*').addBack().each(function () {
-                        var el = this;
-                        var style = el.style;
-
-                        // Clear width-related inline styles - ONLY PIXELS
-                        if (style.width && style.width.includes('px')) style.width = '';
-                        if (style.maxWidth && style.maxWidth.includes('px')) style.maxWidth = '';
-                        if (style.minWidth && style.minWidth.includes('px')) style.minWidth = '';
-                        if (style.flexBasis && style.flexBasis.includes('px')) style.flexBasis = '';
-                    });
-
-                    $banner.addClass('picanvas-banner-fixed');
+                    fixBannerFullWidth($banner, 'picanvas-banner-fixed');
                 }
 
                 // Force the banner to recalculate its layout
@@ -193,48 +200,9 @@ RenderTabs = function () {
                 var $hero = a(this);
 
                 if (isContainedMode) {
-                    $hero.addClass('picanvas-contained-banner');
-                    $hero.find('[data-automation-id="fullWidthImageLayout"]').each(function () {
-                        var el = this;
-                        el.style.cssText = 'width: 100% !important; max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; min-width: 0 !important;';
-                        var img = el.querySelector('img');
-                        if (img) {
-                            // 1. Calculate focal point BEFORE clearing styles
-                            var focalPoint = calculateSharePointFocalPoint(img, el);
-
-                            img.style.setProperty('width', '100%', 'important');
-                            img.style.setProperty('max-width', '100%', 'important');
-                            img.style.setProperty('height', '100%', 'important');
-                            img.style.setProperty('object-fit', 'cover', 'important');
-
-                            // 2. Apply calculated focal point
-                            if (focalPoint) {
-                                img.style.setProperty('object-position', focalPoint, 'important');
-                            }
-
-                            // CRITICAL: Clear legacy SharePoint positioning
-                            img.style.setProperty('top', '0', 'important');
-                            img.style.setProperty('left', '0', 'important');
-                            img.style.setProperty('margin-top', '0', 'important');
-                            img.style.setProperty('margin-left', '0', 'important');
-                            img.style.setProperty('transform', 'none', 'important');
-
-                            // CRITICAL: Lock container height after image loads to prevent resize animations
-                            // lockBannerHeight(el, img);
-                        }
-                    });
+                    fixBannerContained($hero, $container);
                 } else {
-                    $hero.find('*').addBack().each(function () {
-                        var el = this;
-                        var style = el.style;
-
-                        if (style.width && style.width.includes('px')) style.width = '';
-                        if (style.maxWidth && style.maxWidth.includes('px')) style.maxWidth = '';
-                        if (style.minWidth && style.minWidth.includes('px')) style.minWidth = '';
-                        if (style.flexBasis && style.flexBasis.includes('px')) style.flexBasis = '';
-                    });
-
-                    $hero.addClass('picanvas-hero-fixed');
+                    fixBannerFullWidth($hero, 'picanvas-hero-fixed');
                 }
 
                 void $hero[0].offsetHeight;

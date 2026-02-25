@@ -519,6 +519,8 @@ export class TemplateService {
       // Features (v2.0+)
       enableDeepLinking: properties.enableDeepLinking,
       enableLazyLoading: properties.enableLazyLoading,
+      // Embed security
+      embedCustomDomains: properties.embedCustomDomains,
       // Lock defaults (v3.0+)
       lockDefaultTemplateEnabled: properties.lockDefaultTemplateEnabled,
       lockDefaultTemplate: properties.lockDefaultTemplate,
@@ -691,6 +693,9 @@ export class TemplateService {
     // Apply feature flags (v2.0+)
     if (template.enableDeepLinking !== undefined) properties.enableDeepLinking = template.enableDeepLinking;
     if (template.enableLazyLoading !== undefined) properties.enableLazyLoading = template.enableLazyLoading;
+
+    // Apply embed security
+    if (template.embedCustomDomains) properties.embedCustomDomains = template.embedCustomDomains;
 
     // Apply lock defaults (v3.0+)
     if (template.lockDefaultTemplateEnabled !== undefined) {

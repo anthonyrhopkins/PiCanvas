@@ -4,8 +4,9 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.2.x   | :white_check_mark: |
-| < 2.2   | :x:                |
+| 3.0.x   | :white_check_mark: |
+| 2.3.x   | :white_check_mark: |
+| < 2.3   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -27,6 +28,7 @@ PiCanvas implements the following security measures:
 - All user inputs are validated through SharePoint property pane controls
 - HTML encoding is applied to prevent XSS attacks
 - URL sanitization for external links
+- Embed iframes restricted to a domain allowlist (built-in trusted domains + configurable custom domains)
 
 ### Code Quality
 - ESLint security rules enforced (no-eval, no-script-url, no-new-func)

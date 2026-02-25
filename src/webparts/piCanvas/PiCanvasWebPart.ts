@@ -140,6 +140,9 @@ export interface IPiCanvasWebPartProps {
   enableLazyLoading: boolean;   // Lazy load tab content (default: true)
   enableFullWidthFix: boolean;  // Force banners to full-width (default: true) - set false for contained layout
 
+  // Embed security
+  embedCustomDomains?: string;  // Comma-separated custom embed domains (e.g. "myapp.example.com, internal.corp.net")
+
   // Lock defaults (v3.0+)
   lockDefaultTemplateEnabled?: boolean;
   lockDefaultTemplate?: string;
@@ -4175,7 +4178,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               const embedFullWidthAttr = embedFullWidth ? 'data-embed-fullwidth="true"' : '';
               const embedFullHeightAttr = embedFullHeight ? 'data-embed-fullheight="true"' : '';
               const deferEmbed = lockEnabled && !lockState.isUnlocked;
-              const rendered = ContentRenderer.renderEmbed({ url: embedUrl, height: embedHeight, defer: deferEmbed });
+              const additionalDomains = this.properties.embedCustomDomains
+                ? this.properties.embedCustomDomains.split(',').map((d: string) => d.trim()).filter((d: string) => d.length > 0)
+                : [];
+              const rendered = ContentRenderer.renderEmbed({ url: embedUrl, height: embedHeight, defer: deferEmbed, additionalDomains });
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
               tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content embed-content' ${lazyAttr} ${embedFullWidthAttr} ${embedFullHeightAttr}></div>`);
               $contentHost = this.attachLockElements(tabContentContainer, tabIndex, tabLabelForLock, lockState);

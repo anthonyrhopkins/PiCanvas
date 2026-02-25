@@ -122,6 +122,9 @@ export interface IPiCanvasTemplate {
   enableDeepLinking?: boolean;    // URL hash navigation (default: true)
   enableLazyLoading?: boolean;    // Lazy load tab content (default: true)
 
+  // Embed security
+  embedCustomDomains?: string;  // Comma-separated custom embed domains
+
   // Lock defaults (v3.0+)
   lockDefaultTemplateEnabled?: boolean;
   lockDefaultTemplate?: string;

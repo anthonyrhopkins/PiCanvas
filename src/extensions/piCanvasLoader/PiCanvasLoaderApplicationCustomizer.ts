@@ -178,26 +178,16 @@ export default class PiCanvasLoaderApplicationCustomizer
         /* PiCanvas Pre-Hide Styles - Injected by PiCanvasLoader Application Customizer */
         /* These styles hide connected webparts until PiCanvas moves them into tabs */
         /* ONLY applies when body has 'picanvas-hiding-active' class (set by PiCanvas in Read mode) */
+        /* Hide connected webparts until PiCanvas moves them into tabs.
+           display:none is sufficient because PiCanvas clones/moves content into tab containers. */
         ${conditionalSelectors.join(',\n        ')} {
-          visibility: hidden !important;
-          opacity: 0 !important;
-          height: 0 !important;
-          overflow: hidden !important;
-          position: absolute !important;
-          pointer-events: none !important;
-          z-index: -9999 !important;
+          display: none !important;
         }
 
         /* OVERRIDE: Elements inside tabs should be visible (they've been moved into tabs) */
         /* Higher specificity overrides the hiding rules above */
         ${overrideSelectors.join(',\n        ')} {
-          visibility: visible !important;
-          opacity: 1 !important;
-          height: auto !important;
-          overflow: visible !important;
-          position: static !important;
-          pointer-events: auto !important;
-          z-index: auto !important;
+          display: block !important;
         }
       `;
 

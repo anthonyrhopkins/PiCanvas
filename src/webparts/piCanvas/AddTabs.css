@@ -288,8 +288,18 @@
   margin-right: calc(50% - 50vw) !important;
 }
 
-/* Full-width content: override max-width on all children */
-.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content * {
+/* Full-width content: override max-width on direct children and media elements */
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content > div,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content > section,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content > article,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content > [data-automation-id],
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content > .ControlZone,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content > .CanvasSection,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content img,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content video,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content iframe,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content table,
+.addui-Tabs[data-has-fullwidth-content="true"] .addui-Tabs-content[data-content-fullwidth="true"] .picanvas-tab-content pre {
   max-width: 100%;
 }
 
@@ -484,8 +494,23 @@
   contain: layout style; /* Prevent child viewport-escape from expanding container */
 }
 
-/* Force ALL children of tab content to respect container bounds */
-.picanvas-tab-content * {
+/* Force direct children and media elements of tab content to respect container bounds.
+   Targeted selectors avoid breaking styles of third-party web parts. */
+.picanvas-tab-content > div,
+.picanvas-tab-content > section,
+.picanvas-tab-content > article,
+.picanvas-tab-content > [data-automation-id],
+.picanvas-tab-content > .ControlZone,
+.picanvas-tab-content > .CanvasSection {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.picanvas-tab-content img,
+.picanvas-tab-content video,
+.picanvas-tab-content iframe,
+.picanvas-tab-content table,
+.picanvas-tab-content pre {
   max-width: 100%;
   box-sizing: border-box;
 }

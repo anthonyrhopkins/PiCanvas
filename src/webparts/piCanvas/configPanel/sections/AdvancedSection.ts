@@ -48,6 +48,12 @@ export class AdvancedSection {
       </div>
 
       <div class="picanvas-config-field-group">
+        <div class="picanvas-config-field-group-title">Embed Security</div>
+        <div class="picanvas-config-info">Add custom domains to the embed allowlist. Built-in domains (YouTube, Vimeo, etc.) are always allowed.</div>
+        <div data-embed-security></div>
+      </div>
+
+      <div class="picanvas-config-field-group">
         <div class="picanvas-config-field-group-title">Reset</div>
         <button type="button" class="picanvas-config-btn picanvas-config-btn-cancel" data-action="reset-all" style="color:#d83b01;border-color:#d83b01;">Reset All Styles to Defaults</button>
       </div>
@@ -132,6 +138,12 @@ export class AdvancedSection {
       });
       wpDd.render(selectorsArea);
       this._controls.push(wpDd);
+    }
+
+    // Embed Security
+    const embedSecurityArea = this._el.querySelector('[data-embed-security]') as HTMLElement;
+    if (embedSecurityArea) {
+      this._renderTextField(embedSecurityArea, 'embedCustomDomains', 'Custom Embed Domains', 'e.g. myapp.example.com, internal.corp.net');
     }
 
     // Reset button
