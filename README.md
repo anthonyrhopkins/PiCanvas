@@ -8,6 +8,7 @@
 
 - [Features](#features) — Tabbed layouts, configuration panel, customization, permissions, templates
 - [What's New in v3.x](#whats-new-in-v3x) — Version comparison, new capabilities
+- [Content Security Policy (CSP) Compliance](#content-security-policy-csp-compliance) — SharePoint Online CSP readiness
 - [Installation](#installation) — Deploy to SharePoint, guest user access
 - [Development](#development) — Local setup, build commands, project structure
 - [Configuration Reference](#configuration-reference) — Panel sections, CSS variables
@@ -539,6 +540,57 @@ All styling uses CSS custom properties for easy theming and overrides:
 | **XSS Prevention** | HTML encoding and URL sanitization for all user inputs |
 | **Embed Domain Allowlist** | Built-in trusted domains + configurable custom domains via Advanced settings |
 | **Security Linting** | 14 ESLint rules blocking eval, script URLs, prototype pollution |
+
+---
+
+## Content Security Policy (CSP) Compliance
+
+SharePoint Online is enforcing [Content Security Policy (CSP)](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/content-securty-policy-trusted-script-sources) for script sources starting **March 1, 2026**. This restricts where JavaScript can be loaded from and blocks inline scripts on modern pages.
+
+**PiCanvas is CSP-compliant out of the box.** No action is required.
+
+### Why PiCanvas Is Unaffected
+
+| CSP Concern | PiCanvas Status | Details |
+|-------------|-----------------|---------|
+| **External CDN scripts** | Not used | All dependencies (jQuery, DOMPurify, Mermaid, marked) are bundled via npm into the `.sppkg` package. No `cdnBasePath` override or `externals` configured. |
+| **`SPComponentLoader.loadScript()`** | Not used | No dynamic script loading from remote URLs. |
+| **Inline `<script>` tags** | Not used | No script elements are injected into the DOM. |
+| **`new Function()` / `eval()`** | Safe | Used for the JavaScript content type tab execution (`ContentRenderer.ts`). Microsoft confirms `'unsafe-eval'` remains in the standard CSP header ([FAQ](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/content-securty-policy-trusted-script-sources#can-i-still-use-eval)). |
+| **`innerHTML`** | Safe | Used in 40+ locations but all HTML is sanitized through DOMPurify with `FORBID_TAGS: ['style', 'script']` and `FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']`. The browser does not execute `<script>` tags inserted via `innerHTML`. |
+| **Style injection** | Safe | Uses `document.createElement('style')` with `textContent`, which is CSP-compliant. Compiled bundle includes nonce support via jQuery's CSP-aware code. |
+| **Mermaid rendering** | Safe | Bundled as an npm dependency with `securityLevel: 'strict'`. SVG output is inserted via `innerHTML`. |
+| **Embedded iframes** | N/A | Governed by `frame-src`, not `script-src`. PiCanvas enforces its own domain allowlist with HTTPS-only validation. |
+
+### How It Works
+
+PiCanvas follows the recommended SPFx deployment model:
+
+1. All JavaScript bundles are included in the `.sppkg` package (the SPFx default)
+2. When installed, assets deploy to the site's `ClientSideAssets` folder
+3. SharePoint Online's CSP is pre-configured to allow scripts from `ClientSideAssets`
+
+No entries need to be added to the **Trusted Script Sources** in SharePoint Admin Center.
+
+### Testing CSP Enforcement
+
+To verify CSP compliance before enforcement begins, append `?csp=enforce` to any SharePoint page URL containing PiCanvas:
+
+```
+https://yourtenant.sharepoint.com/sites/yoursite/SitePages/YourPage.aspx?csp=enforce
+```
+
+Check the browser console (F12) for any `Refused to load...` or `Refused to execute...` errors.
+
+### Delaying Enforcement
+
+If you need more time to audit your tenant's other solutions, you can delay CSP enforcement by 90 days (until June 1, 2026):
+
+```powershell
+Set-SPOTenant -DelayContentSecurityPolicyEnforcement $true
+```
+
+> **Reference:** [Support for Content Security Policy (CSP) in SharePoint Online](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/content-securty-policy-trusted-script-sources)
 
 ---
 
