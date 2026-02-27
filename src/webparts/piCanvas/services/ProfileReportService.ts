@@ -15,6 +15,8 @@ export type { ICompanyEntry } from './ContentRenderer';
 export interface IMetadataDiscoveryConfig {
   companyColumn: string;          // e.g., "Pi_CompanyID"
   fileCategoryColumn: string;     // e.g., "FileCategory"
+  visibilityColumn?: string;      // e.g., "ShowInProfile" — Yes/No column; only files where this is true are shown
+  listSource?: string;            // e.g., "ProfileFiles" — if set, queries this SP list instead of the document library
 }
 
 export interface IMetadataFileInfo {
@@ -432,7 +434,10 @@ export class ProfileReportService {
 
   /**
    * Fetch files tagged with metadata for a specific company.
-   * Uses $filter on an indexed column — per-company results are small (well under 5K threshold).
+   * Supports two sources:
+   *   1. Document library (default) — queries files with metadata columns
+   *   2. SharePoint list (listSource) — queries a custom list with file URL references
+   * Optional visibilityColumn filters to only include items flagged as visible.
    */
   public async fetchMetadataFiles(
     libraryName: string,
@@ -441,15 +446,31 @@ export class ProfileReportService {
   ): Promise<IMetadataFileEntry[]> {
     if (this.detectWorkbenchEnvironment()) return [];
 
-    const sanitized = this.sanitizeLibraryName(libraryName);
     const siteUrl = this.context.pageContext.web.absoluteUrl;
     const safeCompanyKey = companyKey.replace(/'/g, "''");
     const companyCol = encodeURIComponent(metadataConfig.companyColumn);
     const categoryCol = encodeURIComponent(metadataConfig.fileCategoryColumn);
 
-    const apiUrl = `${siteUrl}/_api/web/lists/getbytitle('${sanitized}')/items` +
-      `?$filter=${companyCol} eq '${safeCompanyKey}'` +
-      `&$select=FileLeafRef,FileRef,${companyCol},${categoryCol},Title,Modified` +
+    // Determine source: custom SP list or the document library itself
+    const sourceName = metadataConfig.listSource
+      ? this.sanitizeLibraryName(metadataConfig.listSource)
+      : this.sanitizeLibraryName(libraryName);
+
+    // Build filter: company match + optional visibility flag
+    let filter = `${companyCol} eq '${safeCompanyKey}'`;
+    if (metadataConfig.visibilityColumn) {
+      const visCol = encodeURIComponent(metadataConfig.visibilityColumn);
+      filter += ` and ${visCol} eq 1`;
+    }
+
+    // Select columns — include FileLeafRef/FileRef for library items, FileUrl for list items
+    const selectCols = metadataConfig.listSource
+      ? `Title,${companyCol},${categoryCol},Modified,FileUrl,FileName${metadataConfig.visibilityColumn ? ',' + encodeURIComponent(metadataConfig.visibilityColumn) : ''}`
+      : `FileLeafRef,FileRef,${companyCol},${categoryCol},Title,Modified${metadataConfig.visibilityColumn ? ',' + encodeURIComponent(metadataConfig.visibilityColumn) : ''}`;
+
+    const apiUrl = `${siteUrl}/_api/web/lists/getbytitle('${sourceName}')/items` +
+      `?$filter=${filter}` +
+      `&$select=${selectCols}` +
       `&$top=500`;
 
     try {
@@ -467,6 +488,20 @@ export class ProfileReportService {
       const data = await response.json();
       if (!data.value || data.value.length === 0) return [];
 
+      if (metadataConfig.listSource) {
+        // List source: items have FileUrl and FileName columns (or Title as fallback)
+        return data.value
+          .filter((item: any) => item.FileUrl)
+          .map((item: any) => ({
+            name: item.FileName || item.Title || item.FileUrl.split('/').pop() || 'file',
+            url: item.FileUrl,
+            category: item[metadataConfig.fileCategoryColumn] || 'Uncategorized',
+            title: item.Title || item.FileName || 'Untitled',
+            modified: item.Modified ? new Date(item.Modified).toLocaleDateString() : ''
+          }));
+      }
+
+      // Library source: items have FileLeafRef and FileRef
       return data.value
         .filter((item: any) => item.FileLeafRef && item.FileRef)
         .map((item: any) => ({

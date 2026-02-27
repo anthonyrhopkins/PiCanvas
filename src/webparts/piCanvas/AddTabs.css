@@ -3163,7 +3163,7 @@
 .picanvas-profilereport[data-view="explorer"] .pr-explorer-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .picanvas-profilereport[data-view="explorer"] .pr-detail-view { display: none; }
 .picanvas-profilereport[data-view="detail"] .pr-explorer-view { display: none; }
-.picanvas-profilereport[data-view="detail"] .pr-detail-view { display: flex; flex-direction: column; flex: 1; }
+.picanvas-profilereport[data-view="detail"] .pr-detail-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 /* View transition animations */
 .pr-explorer-view, .pr-detail-view {
@@ -3470,6 +3470,7 @@
   flex: 1;
   min-height: 0;
   align-content: start;
+  overscroll-behavior: contain;
 }
 
 .pr-company-card {
@@ -3745,6 +3746,8 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 /* Metrics Grid */
@@ -3956,6 +3959,15 @@
 .picanvas-profilereport .method-panel td { padding: 12px; text-align: left; border: 1px solid var(--pr-border-main); }
 .picanvas-profilereport .method-panel th { background: var(--pr-bg-tertiary); font-weight: 600; color: var(--pr-text-primary); }
 .picanvas-profilereport .method-panel td { background: var(--pr-bg-secondary); }
+
+/* Method HTML iframe (full interactive documents like Method-M) */
+.picanvas-profilereport .method-html-frame {
+  width: 100%;
+  border: none;
+  display: block;
+  background: var(--pr-bg-secondary);
+  border-radius: 6px;
+}
 
 /* JSON Viewer */
 .picanvas-profilereport .json-viewer {
@@ -4362,4 +4374,10 @@
   .picanvas-profilereport .method-panel { display: block !important; page-break-inside: avoid; }
   .picanvas-profilereport .pr-display-close,
   .picanvas-profilereport .pr-detail-nav { display: none !important; }
+  .picanvas-profilereport .method-html-frame { page-break-inside: avoid; max-height: 100vh; }
+}
+
+/* Method HTML iframe — responsive */
+@media (max-width: 768px) {
+  .picanvas-profilereport .method-html-frame { min-height: 300px; }
 }

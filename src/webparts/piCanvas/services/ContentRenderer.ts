@@ -129,7 +129,7 @@ export interface ICompanyProfile {
   ownerRegion?: string;
   methodK?: string;      // Markdown content
   methodL?: string;      // Markdown content
-  methodM?: string;      // Markdown content
+  methodM?: string;      // HTML content (final report)
   profileJson?: any;     // JSON object
   generated?: Date;
   metrics?: {
@@ -177,6 +177,8 @@ export interface IProfileReportDisplayConfig {
   enableMetadataDiscovery?: boolean;
   metadataCompanyColumn?: string;       // e.g., "Pi_CompanyID"
   metadataFileCategoryColumn?: string;  // e.g., "FileCategory"
+  metadataVisibilityColumn?: string;    // e.g., "ShowInProfile" — Yes/No filter column
+  metadataListSource?: string;          // e.g., "ProfileFiles" — query a SP list instead of the library
 }
 
 export interface ILandingConfig {
@@ -2146,6 +2148,12 @@ export class ContentRenderer {
         contentHtml = `<pre class="json-viewer">${this.encodeHtml(tab.content || '')}</pre>`;
       } else if (intelTabKeys.has(tab.key)) {
         contentHtml = tab.content || '';
+      } else if (tab.flag === 'HTML') {
+        // Render full HTML documents in a sandboxed iframe to preserve scripts, styles, and interactivity
+        const srcdocValue = (tab.content || '<p>No content available.</p>')
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;');
+        contentHtml = `<iframe class="method-html-frame" srcdoc="${srcdocValue}" sandbox="allow-scripts allow-same-origin" frameborder="0" scrolling="no" style="width:100%;border:none;min-height:400px;"></iframe>`;
       } else {
         contentHtml = `<div class="markdown">${this.renderMarkdown(tab.content || '## No Content\n\nThis method has no content available.').html}</div>`;
       }

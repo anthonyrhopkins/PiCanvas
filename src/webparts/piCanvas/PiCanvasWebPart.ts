@@ -296,7 +296,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ProfileReportSidebarWidth',        // CSS value like '280px'
     'ProfileReportEnableMetadata',      // boolean
     'ProfileReportMetadataCompanyCol',  // string (column internal name)
-    'ProfileReportMetadataFileCategory' // string (column internal name)
+    'ProfileReportMetadataFileCategory', // string (column internal name)
+    'ProfileReportMetadataVisibilityCol', // string (Yes/No column name)
+    'ProfileReportMetadataListSource'    // string (SP list name for file references)
   ];
 
   private static readonly DEFAULT_LOCK_TEMPLATE = `
@@ -1332,7 +1334,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     try {
       const metadataConfig = config.enableMetadataDiscovery && config.metadataCompanyColumn
-        ? { companyColumn: config.metadataCompanyColumn, fileCategoryColumn: config.metadataFileCategoryColumn || 'FileCategory' }
+        ? {
+            companyColumn: config.metadataCompanyColumn,
+            fileCategoryColumn: config.metadataFileCategoryColumn || 'FileCategory',
+            visibilityColumn: config.metadataVisibilityColumn || undefined,
+            listSource: config.metadataListSource || undefined
+          }
         : undefined;
 
       // Fetch profile files and company intel in parallel
@@ -1351,7 +1358,44 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       }
 
       const panelHtml = ContentRenderer.renderCompanyPanel(profile, config);
+      // Disconnect any existing ResizeObservers on old iframes before replacing content
+      $body.find('iframe.method-html-frame').each(function () {
+        if ((this as any).__picanvasRO) {
+          (this as any).__picanvasRO.disconnect();
+        }
+      });
       $body.html(panelHtml);
+
+      // Auto-resize any HTML iframes to fit their content
+      $body.find('iframe.method-html-frame').each(function () {
+        const iframe = this as HTMLIFrameElement;
+        const resizeIframe = (): void => {
+          try {
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (doc && doc.body) {
+              iframe.style.height = doc.body.scrollHeight + 'px';
+            }
+          } catch { /* cross-origin guard */ }
+        };
+        iframe.addEventListener('load', () => {
+          resizeIframe();
+          // Re-check after scripts run
+          setTimeout(resizeIframe, 500);
+          // Observe for dynamic content changes
+          try {
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (doc && doc.body) {
+              // Disconnect any previous observer stored on this iframe
+              if ((iframe as any).__picanvasRO) {
+                (iframe as any).__picanvasRO.disconnect();
+              }
+              const ro = new ResizeObserver(() => resizeIframe());
+              ro.observe(doc.body);
+              (iframe as any).__picanvasRO = ro;
+            }
+          } catch { /* cross-origin guard */ }
+        });
+      });
     } catch (error) {
       console.error(`[PiCanvas] Failed to load profile for ${entry.domain}:`, error);
       $body.html(`<div class="profile-error">Failed to load profile for ${ContentRenderer.encodeHtmlPublic(entry.domain)}</div>`);
@@ -1548,6 +1592,28 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     // ---- Navigation ----
 
+    // ---- Deep linking helpers ----
+
+    const companyToSlug = (entry: ICompanyEntry): string => {
+      // Prefer domain as slug (unique, URL-friendly), fall back to slugified name
+      if (entry.domain) return entry.domain.replace(/\./g, '-');
+      return entry.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    };
+
+    const updateCompanyHash = (entry: ICompanyEntry): void => {
+      const slug = companyToSlug(entry);
+      if (!slug) return; // Skip hash update for empty/invalid slugs
+      if (history.replaceState) {
+        history.replaceState(null, '', `#company=${encodeURIComponent(slug)}`);
+      }
+    };
+
+    const clearCompanyHash = (): void => {
+      if (history.replaceState) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+
     const navigateToDetail = async (filteredIndex: number): Promise<void> => {
       if (filteredIndex < 0 || filteredIndex >= filteredCompanies.length) return;
 
@@ -1557,6 +1623,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       currentCompanyIndex = filteredIndex;
       const { entry, originalIndex } = filteredCompanies[filteredIndex];
+
+      // Update URL hash for deep linking
+      updateCompanyHash(entry);
 
       // Update header
       $report.find('.pr-detail-header').html(
@@ -1574,6 +1643,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     const navigateToExplorer = (): void => {
       currentView = 'explorer';
       $report.attr('data-view', 'explorer');
+
+      // Clear company hash
+      clearCompanyHash();
 
       // Restore scroll position
       requestAnimationFrame(() => {
@@ -1761,12 +1833,49 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           const result = ContentRenderer.renderMarkdown(content);
           renderedContent = `<div class="markdown">${result.html}</div>`;
         } else if (fileExt === 'html' || fileExt === 'htm') {
-          renderedContent = ContentRenderer.renderHtml(content).html;
+          // Render HTML files in a sandboxed iframe to preserve scripts, styles, and interactivity
+          const srcdocValue = content.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+          renderedContent = `<iframe class="method-html-frame" srcdoc="${srcdocValue}" sandbox="allow-scripts allow-same-origin" frameborder="0" scrolling="no" style="width:100%;border:none;min-height:400px;"></iframe>`;
         } else {
           renderedContent = `<pre>${ContentRenderer.encodeHtmlPublic(content)}</pre>`;
         }
 
+        // Disconnect any existing ResizeObservers on old iframes before replacing content
+        $viewer.find('iframe.method-html-frame').each(function () {
+          if ((this as any).__picanvasRO) {
+            (this as any).__picanvasRO.disconnect();
+          }
+        });
         $viewer.html(renderedContent);
+
+        // Auto-resize HTML iframes
+        $viewer.find('iframe.method-html-frame').each(function () {
+          const iframe = this as HTMLIFrameElement;
+          const resizeIframe = (): void => {
+            try {
+              const doc = iframe.contentDocument || iframe.contentWindow?.document;
+              if (doc && doc.body) {
+                iframe.style.height = doc.body.scrollHeight + 'px';
+              }
+            } catch { /* cross-origin guard */ }
+          };
+          iframe.addEventListener('load', () => {
+            resizeIframe();
+            setTimeout(resizeIframe, 500);
+            try {
+              const doc = iframe.contentDocument || iframe.contentWindow?.document;
+              if (doc && doc.body) {
+                // Disconnect any previous observer stored on this iframe
+                if ((iframe as any).__picanvasRO) {
+                  (iframe as any).__picanvasRO.disconnect();
+                }
+                const ro = new ResizeObserver(() => resizeIframe());
+                ro.observe(doc.body);
+                (iframe as any).__picanvasRO = ro;
+              }
+            } catch { /* cross-origin guard */ }
+          });
+        });
       } catch (error) {
         console.error('[PiCanvas] Failed to load metadata file:', error);
         $viewer.html(`<div class="profile-error">Failed to load file: ${ContentRenderer.encodeHtmlPublic((error as Error).message || 'Unknown error')}</div>`);
@@ -1814,6 +1923,25 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     // Initialize: build initial list + observer
     setupIntersectionObserver();
 
+    // ---- Deep link: navigate to company from URL hash on load ----
+    const hash = window.location.hash.substring(1); // Remove #
+    if (hash) {
+      const companyMatch = hash.match(/^company=(.+)$/);
+      if (companyMatch) {
+        const slug = decodeURIComponent(companyMatch[1]).toLowerCase();
+        // Find matching company by domain-slug or name-slug
+        const matchIndex = filteredCompanies.findIndex(({ entry }) => {
+          const domainSlug = entry.domain ? entry.domain.replace(/\./g, '-').toLowerCase() : '';
+          const nameSlug = entry.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          return domainSlug === slug || nameSlug === slug || entry.domain.toLowerCase() === slug;
+        });
+        if (matchIndex >= 0) {
+          console.log(`[PiCanvas] Deep link: navigating to company "${filteredCompanies[matchIndex].entry.companyName}"`);
+          navigateToDetail(matchIndex);
+        }
+      }
+    }
+
     console.log(`[PiCanvas] Profile report interactions initialized for ${companies.length} companies (explorer/detail mode)`);
   }
 
@@ -1846,6 +1974,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     }
 
     // --- Body-append portal ---
+    const savedBodyOverflow = document.body.style.overflow;
     if (reportEl.parentElement !== document.body) {
       const placeholder = document.createElement('div');
       placeholder.className = 'pr-display-placeholder';
@@ -1853,6 +1982,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       placeholder.style.display = 'none';
       reportEl.parentElement?.insertBefore(placeholder, reportEl);
       document.body.appendChild(reportEl);
+
+      // Lock body scroll to prevent scroll bleed-through behind the overlay
+      document.body.style.overflow = 'hidden';
 
       ContentRenderer.injectEditButton(reportEl, 'fullScreen');
 
@@ -1867,6 +1999,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     const returnToContained = (): void => {
       reportEl.style.cssText = '';
       reportEl.setAttribute('data-display-mode', 'contained');
+
+      // Restore body scroll to its original value
+      document.body.style.overflow = savedBodyOverflow;
 
       const placeholder = document.querySelector(`.pr-display-placeholder[data-report-id="${reportEl.id}"]`);
       if (placeholder && placeholder.parentElement) {
@@ -4446,7 +4581,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                 sidebarWidth: (this.properties[`tab${tabIndex}ProfileReportSidebarWidth`] as string) || '280px',
                 enableMetadataDiscovery: this.properties[`tab${tabIndex}ProfileReportEnableMetadata`] === true,
                 metadataCompanyColumn: (this.properties[`tab${tabIndex}ProfileReportMetadataCompanyCol`] as string) || 'Pi_CompanyID',
-                metadataFileCategoryColumn: (this.properties[`tab${tabIndex}ProfileReportMetadataFileCategory`] as string) || 'FileCategory'
+                metadataFileCategoryColumn: (this.properties[`tab${tabIndex}ProfileReportMetadataFileCategory`] as string) || 'FileCategory',
+                metadataVisibilityColumn: (this.properties[`tab${tabIndex}ProfileReportMetadataVisibilityCol`] as string) || '',
+                metadataListSource: (this.properties[`tab${tabIndex}ProfileReportMetadataListSource`] as string) || ''
               };
 
               // Show loading state immediately
@@ -7533,6 +7670,20 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               label: strings.ProfileReportMetadataFileCategoryLabel || 'File Category Column Name',
               placeholder: 'FileCategory',
               description: 'Internal name of the column used to categorize files'
+            })
+          );
+          fields.push(
+            PropertyPaneTextField(`tab${i}ProfileReportMetadataVisibilityCol`, {
+              label: 'Visibility Column (optional)',
+              placeholder: 'ShowInProfile',
+              description: 'Yes/No column — only items flagged Yes will appear as tabs'
+            })
+          );
+          fields.push(
+            PropertyPaneTextField(`tab${i}ProfileReportMetadataListSource`, {
+              label: 'List Source (optional)',
+              placeholder: 'ProfileFiles',
+              description: 'Query a separate SP list instead of the document library. List items need a FileUrl column pointing to the file.'
             })
           );
         }
