@@ -1373,15 +1373,28 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           }
         : undefined;
 
-      // Fetch profile files and company intel in parallel
+      // Fetch profile files, company intel, and detail fields in parallel
       const listName = config.listName || '';
       const hasPiRadarId = entry.piRadarId !== undefined && entry.piRadarId !== null;
-      const [profile, companyIntel] = await Promise.all([
+      const [profile, companyIntel, companyDetail] = await Promise.all([
         service.loadCompanyProfile(libraryName, entry, metadataConfig),
         (hasPiRadarId && listName)
           ? service.fetchCompanyIntel(listName, entry.piRadarId!)
+          : Promise.resolve(null),
+        (hasPiRadarId && listName)
+          ? service.fetchCompanyDetail(listName, entry.piRadarId!)
           : Promise.resolve(null)
       ]);
+
+      // Attach detail fields from SP list to profile
+      if (companyDetail) {
+        profile.companyDescription = companyDetail.CompanyDescription || undefined;
+        profile.competitors = companyDetail.Competitors || undefined;
+        profile.products = companyDetail.Products || undefined;
+        profile.customers = companyDetail.Customers || undefined;
+        profile.executives = companyDetail.Executives || undefined;
+        profile.executiveSummary = companyDetail.ExecutiveSummary || undefined;
+      }
 
       // Attach intel to profile before rendering
       if (companyIntel) {

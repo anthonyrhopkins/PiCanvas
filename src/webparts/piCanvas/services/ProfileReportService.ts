@@ -80,7 +80,7 @@ export class ProfileReportService {
     if (!sanitized) throw new Error('Invalid list name');
 
     const siteUrl = this.context.pageContext.web.absoluteUrl;
-    const selectFields = 'Title,PiRadarID,CompanyDomain,Ticker,Industry,Sector,Revenue,Employees,AccountOwner,OwnerEmail,OwnerRegion,Status,SearchTerms';
+    const selectFields = 'Id,Title,PiRadarID,CompanyDomain,Ticker,Industry,Sector,Revenue,Employees,AccountOwner,OwnerEmail,OwnerRegion,Status,SearchTerms,Headquarters,Founded,LegalName,SubIndustry,LogoUrl';
     // Note: $orderby is omitted to avoid the list view threshold on large lists (>5000 items).
     // Results are sorted client-side after all pages are fetched.
     const firstUrl = `${siteUrl}/_api/web/lists/getbytitle('${sanitized}')/items` +
@@ -134,6 +134,7 @@ export class ProfileReportService {
           jsonFileUrl: '', // Not used for list-based entries
           timeCreated: '',
           piRadarId: item.PiRadarID ? Number(item.PiRadarID) : undefined,
+          spListItemId: item.Id ? Number(item.Id) : undefined,
           industry: item.Industry || undefined,
           sector: item.Sector || undefined,
           accountOwner: item.AccountOwner || undefined,
@@ -142,7 +143,13 @@ export class ProfileReportService {
           ticker: item.Ticker || undefined,
           revenue: item.Revenue || undefined,
           employees: item.Employees || undefined,
-          searchTerms: item.SearchTerms || undefined
+          searchTerms: item.SearchTerms || undefined,
+          headquarters: item.Headquarters || undefined,
+          founded: item.Founded || undefined,
+          legalName: item.LegalName || undefined,
+          subIndustry: item.SubIndustry || undefined,
+          status: item.Status || undefined,
+          logoUrl: item.LogoUrl || undefined
         }))
         .sort((a, b) => a.companyName.localeCompare(b.companyName));
 
@@ -259,7 +266,18 @@ export class ProfileReportService {
       industry: entry.industry,
       sector: entry.sector,
       accountOwner: entry.accountOwner,
-      ownerRegion: entry.ownerRegion
+      ownerRegion: entry.ownerRegion,
+      // Pass through list fields for rich Overview rendering
+      spListItemId: entry.spListItemId,
+      headquarters: entry.headquarters,
+      founded: entry.founded,
+      legalName: entry.legalName,
+      subIndustry: entry.subIndustry,
+      status: entry.status,
+      logoUrl: entry.logoUrl,
+      ticker: entry.ticker,
+      revenue: entry.revenue,
+      employees: entry.employees,
     };
 
     // Determine file prefix: "{piRadarId}-{domain}" for list-based, just "{domain}" for legacy
@@ -571,6 +589,43 @@ export class ProfileReportService {
     } catch (error) {
       console.warn(`ProfileReportService: fetchMetadataFiles error for ${companyKey}`, error);
       return [];
+    }
+  }
+
+  /**
+   * Fetch enrichment detail fields from the Pi_Companies list.
+   * Returns the large Note fields (description, executives, competitors, etc.)
+   * that are too heavy for the initial bulk list load.
+   */
+  public async fetchCompanyDetail(listName: string, piRadarId: number): Promise<Record<string, string> | null> {
+    if (this.detectWorkbenchEnvironment()) return null;
+    if (!listName || !piRadarId) return null;
+
+    const sanitized = this.sanitizeLibraryName(listName);
+    if (!sanitized) return null;
+
+    const siteUrl = this.context.pageContext.web.absoluteUrl;
+    const detailFields = 'CompanyDescription,Competitors,Products,Customers,Executives,ExecutiveSummary';
+    const apiUrl = `${siteUrl}/_api/web/lists/getbytitle('${sanitized}')/items` +
+      `?$filter=PiRadarID eq ${piRadarId}` +
+      `&$select=${detailFields}` +
+      `&$top=1`;
+
+    try {
+      const response = await this.context.spHttpClient.get(
+        apiUrl,
+        SPHttpClient.configurations.v1,
+        { headers: { 'Accept': 'application/json;odata.metadata=none' } }
+      );
+
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!data.value || data.value.length === 0) return null;
+
+      return data.value[0] as Record<string, string>;
+    } catch (error) {
+      console.warn(`ProfileReportService: fetchCompanyDetail error for PiRadarID=${piRadarId}`, error);
+      return null;
     }
   }
 

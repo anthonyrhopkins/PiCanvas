@@ -139,6 +139,24 @@ export interface ICompanyProfile {
   growthPropensity?: string;       // te-growth-propensity/method-A/{id}-{domain}-method-A.md
   aiSynthesis?: string;            // final-html/ai-synthesis/{id}-{domain}-method-M-final.md
   teRelevance?: string;            // te-relevance/method-I/{domain}.md
+  // List-sourced fields for rich Overview
+  spListItemId?: number;
+  headquarters?: string;
+  founded?: string;
+  legalName?: string;
+  subIndustry?: string;
+  status?: string;
+  logoUrl?: string;
+  ticker?: string;
+  revenue?: string;
+  employees?: string;
+  // Detail fields (fetched on demand from SP list)
+  companyDescription?: string;
+  competitors?: string;
+  products?: string;
+  customers?: string;
+  executives?: string;
+  executiveSummary?: string;
   generated?: Date;
   metrics?: {
     events: number;
@@ -158,6 +176,7 @@ export interface ICompanyEntry {
   jsonFileUrl: string;      // ServerRelativeUrl of the condensed JSON (may be empty for list-based entries)
   timeCreated: string;
   piRadarId?: number;       // PiRadarID from Pi_Companies list
+  spListItemId?: number;    // SharePoint list item ID (for linking back)
   industry?: string;
   sector?: string;
   accountOwner?: string;
@@ -166,7 +185,13 @@ export interface ICompanyEntry {
   ticker?: string;
   revenue?: string;
   employees?: string;
-  searchTerms?: string;  // Entities + previous domains for search (semicolon-separated)
+  searchTerms?: string;     // Entities + previous domains for search (semicolon-separated)
+  headquarters?: string;
+  founded?: string;
+  legalName?: string;
+  subIndustry?: string;
+  status?: string;
+  logoUrl?: string;
 }
 
 export interface IProfileReportDisplayConfig {
@@ -2267,7 +2292,7 @@ export class ContentRenderer {
 
   /**
    * Generate overview content for a company profile.
-   * Uses company intel data when available for a richer view.
+   * Uses company intel data when available, otherwise builds from SP list fields.
    */
   private static generateOverviewContent(profile: ICompanyProfile): string {
     // If intel data is available, render the enriched overview
@@ -2275,29 +2300,124 @@ export class ContentRenderer {
       return this.renderIntelOverview(profile.companyIntel, profile);
     }
 
-    // Fallback: basic overview for companies without intel
-    const hasK = !!profile.methodK;
-    const hasL = !!profile.methodL;
-    const hasM = !!profile.methodM;
-    const hasJson = !!profile.profileJson;
+    // Build rich overview from SP list fields
+    const e = this.encodeHtml.bind(this);
+    const siteUrl = 'https://sap.sharepoint.com/sites/213105';
 
-    const methods: string[] = [];
-    if (hasK) methods.push('Method-K');
-    if (hasL) methods.push('Method-L');
-    if (hasM) methods.push('Method-M (AI Synthesis)');
-    if (hasJson) methods.push('Profile JSON');
+    // Company header with logo
+    const logoHtml = profile.logoUrl
+      ? `<img src="${e(profile.logoUrl)}" alt="" class="overview-logo" style="width:48px;height:48px;border-radius:8px;object-fit:contain;background:#f5f5f5;margin-right:16px;" onerror="this.style.display='none'" />`
+      : '';
+    const legalHtml = profile.legalName && profile.legalName !== profile.companyName
+      ? `<div class="overview-legal" style="font-size:12px;color:#666;margin-top:2px;">${e(profile.legalName)}</div>`
+      : '';
+    const statusBadge = profile.status
+      ? `<span class="overview-status-badge" style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${profile.status === 'Active' ? '#e6f4ea' : '#fce8e6'};color:${profile.status === 'Active' ? '#137333' : '#c5221f'};">${e(profile.status)}</span>`
+      : '';
 
-    const methodsList = methods.length > 0
-      ? `<ul>${methods.map(m => `<li>${this.encodeHtml(m)}</li>`).join('')}</ul>`
-      : '<p>No methods available.</p>';
+    const headerHtml = `
+      <div class="overview-header" style="display:flex;align-items:center;margin-bottom:20px;">
+        ${logoHtml}
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h3 style="margin:0;font-size:20px;">${e(profile.companyName)}</h3>
+            ${statusBadge}
+          </div>
+          ${legalHtml}
+          <div style="font-size:13px;color:#5f6368;margin-top:4px;">
+            <a href="https://${e(profile.domain)}" target="_blank" rel="noopener" style="color:#1a73e8;text-decoration:none;">${e(profile.domain)}</a>
+            ${profile.ticker ? ` · <strong>${e(profile.ticker)}</strong>` : ''}
+          </div>
+        </div>
+      </div>`;
+
+    // Description
+    const descHtml = profile.companyDescription
+      ? `<div class="overview-description" style="margin-bottom:16px;line-height:1.6;color:#3c4043;">${e(profile.companyDescription)}</div>`
+      : (profile.executiveSummary
+        ? `<div class="overview-description" style="margin-bottom:16px;line-height:1.6;color:#3c4043;">${e(profile.executiveSummary)}</div>`
+        : '');
+
+    // Info grid
+    const infoItems: string[] = [];
+    const addInfo = (label: string, value: string | undefined): void => {
+      if (value) infoItems.push(`<div style="padding:8px 0;border-bottom:1px solid #e8eaed;"><span style="font-weight:500;color:#5f6368;min-width:120px;display:inline-block;">${label}</span><span style="color:#202124;">${e(value)}</span></div>`);
+    };
+    addInfo('Industry', profile.industry);
+    addInfo('Sub-Industry', profile.subIndustry);
+    addInfo('Sector', profile.sector);
+    addInfo('Headquarters', profile.headquarters);
+    addInfo('Founded', profile.founded);
+    addInfo('Revenue', profile.revenue);
+    addInfo('Employees', profile.employees);
+    addInfo('Account Owner', profile.accountOwner);
+    addInfo('Region', profile.ownerRegion);
+
+    const infoHtml = infoItems.length > 0
+      ? `<div class="overview-info" style="margin-bottom:20px;">${infoItems.join('')}</div>`
+      : '';
+
+    // Executives
+    const execsHtml = profile.executives ? (() => {
+      const execs = profile.executives.split(';').map(s => s.trim()).filter(Boolean).slice(0, 8);
+      if (execs.length === 0) return '';
+      const cards = execs.map(ex => {
+        const parts = ex.split(' — ');
+        const name = parts[0] || ex;
+        const title = parts[1] || '';
+        return `<div style="padding:8px 12px;background:#f8f9fa;border-radius:6px;"><div style="font-weight:500;font-size:13px;">${e(name)}</div>${title ? `<div style="font-size:12px;color:#5f6368;">${e(title)}</div>` : ''}</div>`;
+      }).join('');
+      return `<div style="margin-bottom:16px;"><h4 style="font-size:14px;color:#202124;margin:0 0 8px;">Leadership</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">${cards}</div></div>`;
+    })() : '';
+
+    // Competitors, Products, Customers as tag clouds
+    const renderTags = (label: string, data: string | undefined, color: string): string => {
+      if (!data) return '';
+      const items = data.split(';').map(s => s.trim()).filter(Boolean).slice(0, 12);
+      if (items.length === 0) return '';
+      const tags = items.map(item =>
+        `<span style="display:inline-block;padding:4px 10px;margin:3px;border-radius:14px;font-size:12px;background:${color};white-space:nowrap;">${e(item)}</span>`
+      ).join('');
+      return `<div style="margin-bottom:14px;"><h4 style="font-size:14px;color:#202124;margin:0 0 6px;">${label}</h4><div style="display:flex;flex-wrap:wrap;">${tags}</div></div>`;
+    };
+
+    const competitorsHtml = renderTags('Competitors', profile.competitors, '#fce8e6');
+    const productsHtml = renderTags('Products & Services', profile.products, '#e8f0fe');
+    const customersHtml = renderTags('Customers', profile.customers, '#e6f4ea');
+
+    // SharePoint list item link
+    const listLinkHtml = profile.spListItemId
+      ? `<div style="margin-top:16px;padding-top:12px;border-top:1px solid #e8eaed;"><a href="${siteUrl}/Lists/Pi_Companies/DispForm.aspx?ID=${profile.spListItemId}" target="_blank" rel="noopener" style="color:#1a73e8;text-decoration:none;font-size:13px;">View in SharePoint List →</a></div>`
+      : '';
+
+    // Content inventory
+    const available: string[] = [];
+    if (profile.executiveBrief) available.push('Executive Brief');
+    if (profile.competitiveLandscape) available.push('Competitive Landscape');
+    if (profile.investorMemo) available.push('Investor Memo');
+    if (profile.fullDossierNarrative) available.push('Full Dossier');
+    if (profile.growthPropensity) available.push('Growth Propensity');
+    if (profile.teRelevance) available.push('T&E Relevance');
+    if (profile.aiSynthesis) available.push('AI Synthesis');
+    if (profile.methodK) available.push('Method-K');
+    if (profile.methodM) available.push('Method-M');
+    if (profile.profileJson) available.push('Profile JSON');
+
+    const inventoryHtml = available.length > 0
+      ? `<div style="margin-top:14px;"><h4 style="font-size:14px;color:#202124;margin:0 0 6px;">Available Reports (${available.length})</h4><div style="display:flex;flex-wrap:wrap;">${available.map(r => `<span style="display:inline-block;padding:4px 10px;margin:3px;border-radius:14px;font-size:12px;background:#f3e8fd;">${e(r)}</span>`).join('')}</div></div>`
+      : '';
 
     return `
-      <div class="overview-content">
-        <h3>Profile Overview</h3>
-        <p>This profile contains T&E (Travel & Expense) analysis for <strong>${this.encodeHtml(profile.companyName)}</strong>.</p>
-        <h4>Available Methods</h4>
-        ${methodsList}
-        <p class="overview-hint">Use the tabs above to view each method's detailed analysis.</p>
+      <div class="overview-content" style="max-width:800px;">
+        ${headerHtml}
+        ${descHtml}
+        ${infoHtml}
+        ${execsHtml}
+        ${competitorsHtml}
+        ${productsHtml}
+        ${customersHtml}
+        ${inventoryHtml}
+        ${listLinkHtml}
       </div>
     `;
   }
