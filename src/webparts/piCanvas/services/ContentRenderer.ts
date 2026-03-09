@@ -177,6 +177,13 @@ export interface IProfileReportDisplayConfig {
   showMethodL: boolean;
   showMethodM: boolean;
   showProfileJson: boolean;
+  showExecutiveBrief: boolean;
+  showCompetitiveLandscape: boolean;
+  showInvestorMemo: boolean;
+  showFullDossier: boolean;
+  showGrowthPropensity: boolean;
+  showTeRelevance: boolean;
+  showAiSynthesis: boolean;
   companyLimit?: number;        // Max companies to display
   sortBy: 'name' | 'date' | 'key';
   theme: string;
@@ -2163,13 +2170,13 @@ export class ContentRenderer {
       { key: 'landscape', label: 'Landscape', flag: 'REL', content: intel ? this.renderCompetitiveLandscape(intel.competitors, intel.customers, intel.partners) : undefined, show: !!intel && (intel.competitors.length > 0 || intel.customers.length > 0 || intel.partners.length > 0) },
       { key: 'activity', label: 'Activity', flag: 'EVT', content: intel ? this.renderActivityTimeline(intel.recentActivity) : undefined, show: !!intel && intel.recentActivity.length > 0 },
       { key: 'earnings', label: 'Earnings', flag: 'ERN', content: intel ? this.renderEarningsSection(intel.earnings) : undefined, show: !!intel && intel.earnings.length > 0 },
-      { key: 'executiveBrief', label: 'Executive Brief', flag: 'MD', content: profile.executiveBrief, show: !!profile.executiveBrief },
-      { key: 'competitiveLandscape', label: 'Competitive Landscape', flag: 'MD', content: profile.competitiveLandscape, show: !!profile.competitiveLandscape },
-      { key: 'investorMemo', label: 'Investor Memo', flag: 'MD', content: profile.investorMemo, show: !!profile.investorMemo },
-      { key: 'fullDossierNarrative', label: 'Full Dossier', flag: 'MD', content: profile.fullDossierNarrative, show: !!profile.fullDossierNarrative },
-      { key: 'growthPropensity', label: 'Growth Propensity', flag: 'MD', content: profile.growthPropensity, show: !!profile.growthPropensity },
-      { key: 'teRelevance', label: 'T&E Relevance', flag: 'MD', content: profile.teRelevance, show: !!profile.teRelevance },
-      { key: 'aiSynthesis', label: 'AI Synthesis', flag: 'MD', content: profile.aiSynthesis, show: !!profile.aiSynthesis },
+      { key: 'executiveBrief', label: 'Executive Brief', flag: 'MD', content: profile.executiveBrief, show: config.showExecutiveBrief && !!profile.executiveBrief },
+      { key: 'competitiveLandscape', label: 'Competitive Landscape', flag: 'MD', content: profile.competitiveLandscape, show: config.showCompetitiveLandscape && !!profile.competitiveLandscape },
+      { key: 'investorMemo', label: 'Investor Memo', flag: 'MD', content: profile.investorMemo, show: config.showInvestorMemo && !!profile.investorMemo },
+      { key: 'fullDossierNarrative', label: 'Full Dossier', flag: 'MD', content: profile.fullDossierNarrative, show: config.showFullDossier && !!profile.fullDossierNarrative },
+      { key: 'growthPropensity', label: 'Growth Propensity', flag: 'MD', content: profile.growthPropensity, show: config.showGrowthPropensity && !!profile.growthPropensity },
+      { key: 'teRelevance', label: 'T&E Relevance', flag: 'MD', content: profile.teRelevance, show: config.showTeRelevance && !!profile.teRelevance },
+      { key: 'aiSynthesis', label: 'AI Synthesis', flag: 'MD', content: profile.aiSynthesis, show: config.showAiSynthesis && !!profile.aiSynthesis },
       { key: 'methodK', label: 'Method-K', flag: 'MD', content: profile.methodK, show: config.showMethodK },
       { key: 'methodL', label: 'Method-L', flag: 'MD', content: profile.methodL, show: config.showMethodL },
       { key: 'methodM', label: 'Method-M', flag: 'HTML', content: profile.methodM, show: config.showMethodM },

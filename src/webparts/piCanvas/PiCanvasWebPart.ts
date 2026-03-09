@@ -25,6 +25,7 @@ import { ConfigurationPanel } from './configPanel/ConfigurationPanel';
 require('./configPanel/ConfigurationPanel.css');
 
 import { BUILTIN_TEMPLATES } from './data/BuiltinTemplates';
+import { TAB_ICON_SVGS } from './data/TabIconSvgs';
 
 // Metadata token imports
 import { MetadataTokenService } from './services/MetadataTokenService';
@@ -57,6 +58,9 @@ import { ProfileReportService, ICompanyEntry } from './services/ProfileReportSer
 // Theme service + theme model
 import { ThemeService } from './services/ThemeService';
 import { IProfileReportTheme, BUILTIN_THEMES } from './models/ProfileReportThemes';
+
+// Microsoft Graph client for JS sandbox graphFetch
+import { MSGraphClientV3 } from '@microsoft/sp-http';
 
 // Table of Contents service
 import { TocService, ITocConfig } from './services/TocService';
@@ -140,6 +144,9 @@ export interface IPiCanvasWebPartProps {
   enableLazyLoading: boolean;   // Lazy load tab content (default: true)
   enableFullWidthFix: boolean;  // Force banners to full-width (default: true) - set false for contained layout
 
+  // Icon rendering
+  iconStyle: 'emoji' | 'svg';  // 'emoji' = native platform emoji, 'svg' = cross-platform Lucide SVG icons
+
   // Embed security
   embedCustomDomains?: string;  // Comma-separated custom embed domains (e.g. "myapp.example.com, internal.corp.net")
 
@@ -198,11 +205,13 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ContentSourceWebPartID',  // ID of Text WebPart to use as HTML/Markdown source
     'ContentFullWidth',  // Full-width toggle for HTML/Markdown content
     'JavaScriptDisplayMode',  // Display mode for JavaScript tabs: contained, fullSection, fullScreen
+    'JavaScriptHeight',  // Container height for JavaScript tabs (e.g. '300px', 'auto')
     'JavaScriptTemplate',  // Template ID for JavaScript tabs
     'JavaScriptTemplateConfig',  // JSON-encoded template configuration
     'LabelType',
     'LabelWebPartID',
     'Icon',
+    'IconKey',
     'Image',
     'ImagePosition',
     'DividerAfter',
@@ -288,6 +297,13 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ProfileReportShowMethodL',     // boolean
     'ProfileReportShowMethodM',     // boolean
     'ProfileReportShowProfileJson', // boolean
+    'ProfileReportShowExecBrief',       // boolean
+    'ProfileReportShowCompLandscape',   // boolean
+    'ProfileReportShowInvestorMemo',    // boolean
+    'ProfileReportShowFullDossier',     // boolean
+    'ProfileReportShowGrowthProp',      // boolean
+    'ProfileReportShowTeRelevance',     // boolean
+    'ProfileReportShowAiSynthesis',     // boolean
     'ProfileReportCompanyLimit',    // number (default: 500)
     'ProfileReportSortBy',          // 'name' | 'date' | 'key'
     'ProfileReportTheme',           // 'light' | 'dark' | 'auto'
@@ -372,6 +388,18 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
   // TOC scrollspy cleanup functions
   private _tocScrollspyCleanups: Array<() => void> = [];
+
+  // Height resize: cleanup for document-level drag listeners, drained on each render
+  private _resizeCleanup: Array<() => void> = [];
+
+  // Height resize: stores auto-detected heights per tab index
+  private _autoDetectedHeights: Map<number, number> = new Map();
+
+  // Graph API: cached client promise and sandboxed graphFetch function
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _graphClientPromise: Promise<MSGraphClientV3> | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _graphFetch: ((endpoint: string, options?: any) => Promise<any>) | undefined;
 
   /**
    * Security: Encode HTML entities to prevent XSS attacks
@@ -837,6 +865,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     await this.loadPermissionData().catch(err => {
       console.warn('Failed to load permission data:', err);
     });
+
+    // Initialize Graph fetch function for JS sandbox
+    this._graphFetch = this._createGraphFetch();
 
     return super.onInit();
   }
@@ -1920,7 +1951,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     document.addEventListener('keydown', keyHandler);
     ($report[0] as any)._prKeyHandler = keyHandler;
 
-    // Initialize: build initial list + observer
+    // Initialize: build filtered list (replaces initial cards with properly attributed ones) + observer
+    buildFilteredList();
     setupIntersectionObserver();
 
     // ---- Deep link: navigate to company from URL hash on load ----
@@ -2260,7 +2292,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       $altJsContent.each((_i, el) => {
         console.log('[PiCanvas] Executing JavaScript (alt):', el);
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement);
+        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
       });
 
       // Initialize TOC elements (alt path)
@@ -2282,7 +2314,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     $jsContent.each((_i, el) => {
       console.log('[PiCanvas] Executing JavaScript:', el);
-      ContentRenderer.executeJavaScriptElement(el as HTMLElement);
+      ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
     });
 
     // Initialize TOC elements in the active panel
@@ -2496,7 +2528,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // Initialize JavaScript containers in this panel
       const $jsContainers = $panel.find('.picanvas-js-container');
       $jsContainers.each((_i, el) => {
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement);
+        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
       });
 
       // Initialize TOC elements in this panel
@@ -2530,7 +2562,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const $jsContainers = $activePanel.find('.picanvas-js-container:not(.picanvas-js-executed)');
       $jsContainers.each((_i, el) => {
         console.log('[PiCanvas] Tab change: Executing JavaScript:', el);
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement);
+        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
       });
 
       // Render any Mermaid diagrams that haven't been rendered yet
@@ -3689,6 +3721,18 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       this.properties[`tab${tabIndex}Icon`] = '';
     }
 
+    // Handle iconStyle change — re-render to switch between emoji/SVG rendering
+    if (propertyPath === 'iconStyle') {
+      this.context.propertyPane.refresh();
+      this.render();
+    }
+
+    // Handle IconKey change (used in SVG mode via config panel dropdown)
+    const iconKeyMatch = propertyPath.match(/^tab(\d+)IconKey$/);
+    if (iconKeyMatch) {
+      this.render();
+    }
+
     // Check if content type dropdown was changed - refresh property pane to show/hide conditional fields
     if (propertyPath.match(/^tab\d+ContentType$/)) {
       const match = propertyPath.match(/^tab(\d+)ContentType$/);
@@ -3941,6 +3985,96 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   public render(): void {
+    try {
+      this._renderInternal();
+    } catch (error) {
+      console.error('[PiCanvas] render() crashed — showing recovery UI:', error);
+      // Remove any pre-hide styles so hidden webparts become visible again
+      this.removePreHideStyles();
+      // Show a visible error UI so the author can fix it in edit mode
+      const isDark = this.isDarkMode();
+      const themeClass = isDark ? styles.darkMode : '';
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.domElement.innerHTML = `
+        <div class="${styles.piCanvas} ${themeClass}" data-theme="${isDark ? 'dark' : 'light'}" style="border:2px solid #d13438;border-radius:8px;padding:16px;margin:8px 0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:20px;">&#9888;</span>
+            <strong style="color:#d13438;">PiCanvas failed to render</strong>
+          </div>
+          <p style="margin:4px 0;font-size:13px;color:#605e5c;">This webpart encountered an error. Edit the page and reconfigure it, or delete and re-add it.</p>
+          <pre style="margin:8px 0;padding:8px;background:#faf9f8;border-radius:4px;font-size:11px;overflow:auto;max-height:80px;color:#323130;">${errMsg}</pre>
+        </div>`;
+      // In edit mode, still try to bind the configure button
+      if (this.displayMode !== DisplayMode.Read) {
+        const configBtn = this.domElement.querySelector('[data-action="configure"]');
+        if (configBtn) {
+          configBtn.addEventListener('click', () => this.openConfigPanel());
+        }
+      }
+    }
+  }
+
+  /**
+   * Create a graphFetch function for the JS sandbox.
+   * Returns an async (endpoint, options?) => JSON function that lazily acquires
+   * an MSGraphClientV3 and supports GET/POST with JSON bodies.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _createGraphFetch(): (endpoint: string, options?: any) => Promise<any> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return async (endpoint: string, options?: any): Promise<any> => {
+      // Lazily acquire client (cached)
+      if (!this._graphClientPromise) {
+        this._graphClientPromise = this.context.msGraphClientFactory.getClient('3');
+      }
+      const client = await this._graphClientPromise;
+
+      const method = (options?.method || 'GET').toUpperCase();
+
+      // Detect version from endpoint prefix and strip it for .api()
+      // MSGraphClient's .version() sets the base, so /v1.0/search/query → api('/search/query').version('v1.0')
+      let version = 'v1.0';
+      let apiPath = endpoint;
+      if (endpoint.startsWith('/beta/') || endpoint.startsWith('/beta')) {
+        version = 'beta';
+        apiPath = endpoint.replace(/^\/beta\/?/, '/');
+      } else if (endpoint.startsWith('/v1.0/') || endpoint.startsWith('/v1.0')) {
+        version = 'v1.0';
+        apiPath = endpoint.replace(/^\/v1\.0\/?/, '/');
+      }
+
+      try {
+        if (method === 'POST') {
+          const response = await client
+            .api(apiPath)
+            .version(version)
+            .post(options?.body || {});
+          return response;
+        } else {
+          const response = await client
+            .api(apiPath)
+            .version(version)
+            .get();
+          return response;
+        }
+      } catch (err: unknown) {
+        const error = err as { statusCode?: number; code?: string; message?: string };
+        const status = error.statusCode || 0;
+        const code = error.code || '';
+        const msg = error.message || String(err);
+
+        if (status === 401 || status === 403) {
+          throw new Error(`Graph API ${status}: Access denied for ${endpoint}. Ensure the API permission is approved in SharePoint Admin > API Access. (${code}: ${msg})`);
+        }
+        if (status === 429) {
+          throw new Error(`Graph API 429: Rate limited on ${endpoint}. Try again in a few seconds. (${msg})`);
+        }
+        throw new Error(`Graph API error on ${endpoint}: ${status} ${code} — ${msg}`);
+      }
+    };
+  }
+
+  private _renderInternal(): void {
 
     // Clear any TOC re-scan intervals and scrollspy observers before re-rendering
     this._tocIntervals.forEach((intervalId) => clearInterval(intervalId));
@@ -4104,6 +4238,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
             // Security: Encode tab label to prevent XSS
             const tabLabel = this.encodeHtml(thisTabData[x].TabLabel || `Tab ${tabIndex}`);
 
+            // SVG icon prefix (only in SVG mode when an IconKey is set)
+            const iconKey = (this.properties[`tab${tabIndex}IconKey`] as string) || '';
+            const svgIconHtml = (this.properties.iconStyle === 'svg' && iconKey && TAB_ICON_SVGS[iconKey])
+              ? `<span class="pi-tab-icon">${TAB_ICON_SVGS[iconKey]}</span>`
+              : '';
+
             // Check for per-tab image URL
             // Security: Sanitize image URL to prevent javascript: and other malicious protocols
             const rawImageUrl = this.properties[`tab${tabIndex}Image`] as string;
@@ -4115,19 +4255,22 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                 // Background image mode - set as background style
                 tabDiv.attr('data-has-bg-image', 'true');
                 tabDiv.css('background-image', `url(${tabImageUrl})`);
-                tabDiv.html(`<span>${tabLabel}</span>`);
+                tabDiv.html(`${svgIconHtml}<span>${tabLabel}</span>`);
               } else if (imagePosition === 'top') {
                 // Image above text
-                tabDiv.html(`<img src="${tabImageUrl}" class="tab-image tab-image-top" alt="" /><span>${tabLabel}</span>`);
+                tabDiv.html(`<img src="${tabImageUrl}" class="tab-image tab-image-top" alt="" />${svgIconHtml}<span>${tabLabel}</span>`);
               } else if (imagePosition === 'right') {
                 // Image to the right of text
-                tabDiv.html(`<span>${tabLabel}</span><img src="${tabImageUrl}" class="tab-image tab-image-right" alt="" />`);
+                tabDiv.html(`${svgIconHtml}<span>${tabLabel}</span><img src="${tabImageUrl}" class="tab-image tab-image-right" alt="" />`);
               } else {
                 // Default: Image to the left of text
-                tabDiv.html(`<img src="${tabImageUrl}" class="tab-image" alt="" /><span>${tabLabel}</span>`);
+                tabDiv.html(`<img src="${tabImageUrl}" class="tab-image" alt="" />${svgIconHtml}<span>${tabLabel}</span>`);
               }
+            } else if (svgIconHtml) {
+              // SVG icon with label
+              tabDiv.html(`${svgIconHtml}<span>${tabLabel}</span>`);
             } else {
-              // No image - just render label as before
+              // No image, no SVG icon - just render label as before
               tabDiv.html(tabLabel);
             }
           }
@@ -4481,7 +4624,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
               // Render if we have code
               if (jsCode) {
-                const rendered = ContentRenderer.prepareJavaScript(jsCode, jsId, jsDisplayMode);
+                const jsHeight = (this.properties[`tab${tabIndex}JavaScriptHeight`] as string) || '';
+                const rendered = ContentRenderer.prepareJavaScript(jsCode, jsId, jsDisplayMode, jsHeight);
                 $contentHost.html(rendered.html);
               }
 
@@ -4574,6 +4718,13 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                 showMethodL: this.properties[`tab${tabIndex}ProfileReportShowMethodL`] !== false,
                 showMethodM: this.properties[`tab${tabIndex}ProfileReportShowMethodM`] !== false,
                 showProfileJson: this.properties[`tab${tabIndex}ProfileReportShowProfileJson`] !== false,
+                showExecutiveBrief: this.properties[`tab${tabIndex}ProfileReportShowExecBrief`] !== false,
+                showCompetitiveLandscape: this.properties[`tab${tabIndex}ProfileReportShowCompLandscape`] !== false,
+                showInvestorMemo: this.properties[`tab${tabIndex}ProfileReportShowInvestorMemo`] !== false,
+                showFullDossier: this.properties[`tab${tabIndex}ProfileReportShowFullDossier`] !== false,
+                showGrowthPropensity: this.properties[`tab${tabIndex}ProfileReportShowGrowthProp`] !== false,
+                showTeRelevance: this.properties[`tab${tabIndex}ProfileReportShowTeRelevance`] !== false,
+                showAiSynthesis: this.properties[`tab${tabIndex}ProfileReportShowAiSynthesis`] !== false,
                 companyLimit: (this.properties[`tab${tabIndex}ProfileReportCompanyLimit`] as number) || 0,
                 sortBy: (sortByValue === 'name' || sortByValue === 'date' || sortByValue === 'key') ? sortByValue : 'name',
                 theme: themeValue || 'auto',
@@ -4974,7 +5125,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
             <div class="${styles.compactTabDetail}">
               <span>\u21B3 ${esc(summary.sourceDetail)}</span>
             </div>
-          </div>`;
+          </div>${summary.isContainedJs ? `<div class="${styles.compactJsResize}" data-js-resize="${summary.index}">
+            <div class="${styles.compactJsResizeHandle}" data-drag-handle="${summary.index}" title="Drag to resize height"></div>
+            <span class="${styles.compactJsHeightLabel}" data-height-label="${summary.index}">${summary.jsHeight || 'auto'}</span>
+            <button class="${styles.compactJsAutoBtn}" data-auto-height="${summary.index}" type="button" title="Auto-detect content height">Auto</button>
+            <span class="${styles.compactJsHeightWarning}" data-height-warning="${summary.index}" title="Height may not match content">&#9888;</span>
+          </div>` : ''}`;
         }).join('');
 
         this.domElement.innerHTML = `
@@ -5055,10 +5211,85 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           }
         });
       });
+
+      // Clean up previous resize listeners
+      this._resizeCleanup.forEach(fn => fn());
+      this._resizeCleanup = [];
+
+      // Bind drag-to-resize handles for JavaScript tabs
+      this.domElement.querySelectorAll('[data-drag-handle]').forEach(handle => {
+        const tabIndex = parseInt((handle as HTMLElement).dataset.dragHandle || '0', 10);
+        if (!tabIndex) return;
+
+        // Use pointerdown with capture to beat SPFx's edit-mode drag-to-reorder handlers
+        const onPointerDown = (e: Event): void => {
+          const pe = e as PointerEvent;
+          pe.preventDefault();
+          pe.stopImmediatePropagation();
+          (handle as HTMLElement).setPointerCapture(pe.pointerId);
+
+          const label = this.domElement.querySelector(`[data-height-label="${tabIndex}"]`) as HTMLElement;
+          const currentVal = (this.properties[`tab${tabIndex}JavaScriptHeight`] as string) || '';
+          const startHeight = parseInt(currentVal, 10) || 300;
+          const startY = pe.clientY;
+
+          document.body.classList.add(styles.compactJsResizeActive);
+
+          const onPointerMove = (moveEvt: Event): void => {
+            const pm = moveEvt as PointerEvent;
+            const delta = pm.clientY - startY;
+            const newHeight = Math.max(50, startHeight + delta);
+            if (label) label.textContent = `${newHeight}px`;
+          };
+
+          const onPointerUp = (upEvt: Event): void => {
+            const pu = upEvt as PointerEvent;
+            document.body.classList.remove(styles.compactJsResizeActive);
+            handle.removeEventListener('pointermove', onPointerMove);
+            handle.removeEventListener('pointerup', onPointerUp);
+
+            const delta = pu.clientY - startY;
+            const finalHeight = Math.max(50, startHeight + delta);
+            (this.properties as Record<string, unknown>)[`tab${tabIndex}JavaScriptHeight`] = `${finalHeight}px`;
+            if (label) label.textContent = `${finalHeight}px`;
+
+            // Check for height mismatch warning
+            this._checkHeightWarning(tabIndex, finalHeight);
+          };
+
+          handle.addEventListener('pointermove', onPointerMove);
+          handle.addEventListener('pointerup', onPointerUp);
+
+          // Store cleanup in case render happens during drag
+          this._resizeCleanup.push(() => {
+            handle.removeEventListener('pointermove', onPointerMove);
+            handle.removeEventListener('pointerup', onPointerUp);
+            document.body.classList.remove(styles.compactJsResizeActive);
+          });
+        };
+
+        handle.addEventListener('pointerdown', onPointerDown, { capture: true });
+      });
+
+      // Bind auto-size buttons for JavaScript tabs
+      this.domElement.querySelectorAll('[data-auto-height]').forEach(btn => {
+        const tabIndex = parseInt((btn as HTMLElement).dataset.autoHeight || '0', 10);
+        if (!tabIndex) return;
+
+        btn.addEventListener('click', (e: Event) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._autoDetectHeight(tabIndex);
+        });
+      });
     }
   }
 
   protected onDispose(): void {
+    // Clean up resize listeners
+    this._resizeCleanup.forEach(fn => fn());
+    this._resizeCleanup = [];
+
     // Clean up profile report display mode (portal) if active
     const prEl = document.querySelector('.picanvas-profilereport[data-display-mode="fullSection"], .picanvas-profilereport[data-display-mode="fullScreen"]') as any;
     if (prEl && prEl._prDisplayCleanup) {
@@ -5069,6 +5300,91 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
   protected get dataVersion(): Version {
     return Version.parse('1.0');
+  }
+
+  /**
+   * Auto-detect JavaScript content height by rendering in a hidden offscreen container.
+   */
+  private _autoDetectHeight(tabIndex: number): void {
+    const label = this.domElement.querySelector(`[data-height-label="${tabIndex}"]`) as HTMLElement;
+    const jsCode = (this.properties[`tab${tabIndex}CustomContent`] as string) || '';
+
+    if (!jsCode) {
+      if (label) label.textContent = 'auto';
+      return;
+    }
+
+    // Show measuring indicator
+    if (label) label.textContent = '...';
+
+    try {
+      // Create hidden offscreen container matching webpart width
+      const offscreen = document.createElement('div');
+      const wpWidth = this.domElement.offsetWidth || 400;
+      offscreen.style.cssText = `position:absolute;left:-9999px;top:-9999px;width:${wpWidth}px;overflow:auto;visibility:hidden;`;
+      document.body.appendChild(offscreen);
+
+      // Use ContentRenderer to prepare the JavaScript
+      const elementId = `picanvas-autosize-${tabIndex}-${Date.now()}`;
+      const result = ContentRenderer.prepareJavaScript(jsCode, elementId, 'contained', '');
+      offscreen.innerHTML = result.html;
+
+      // Execute the JavaScript
+      const jsContainer = offscreen.querySelector('.picanvas-js-container') as HTMLElement;
+      if (jsContainer) {
+        ContentRenderer.executeJavaScriptElement(jsContainer, undefined);
+      }
+
+      // Wait for async content to render, then measure
+      setTimeout(() => {
+        try {
+          const output = offscreen.querySelector('.picanvas-js-output') as HTMLElement;
+          const measuredHeight = output ? output.scrollHeight : 0;
+
+          if (measuredHeight > 0) {
+            const finalHeight = Math.max(50, measuredHeight);
+            (this.properties as Record<string, unknown>)[`tab${tabIndex}JavaScriptHeight`] = `${finalHeight}px`;
+            if (label) label.textContent = `${finalHeight}px`;
+            this._autoDetectedHeights.set(tabIndex, finalHeight);
+            this._checkHeightWarning(tabIndex, finalHeight);
+          } else {
+            if (label) label.textContent = 'auto';
+          }
+        } finally {
+          // Clean up
+          if (offscreen.parentNode) {
+            offscreen.parentNode.removeChild(offscreen);
+          }
+        }
+      }, 500);
+    } catch (err) {
+      console.warn('[PiCanvas] Auto-detect height failed for tab', tabIndex, err);
+      if (label) label.textContent = 'auto';
+    }
+  }
+
+  /**
+   * Check if manual height differs significantly from auto-detected height and show/hide warning.
+   */
+  private _checkHeightWarning(tabIndex: number, currentHeight: number): void {
+    const warningEl = this.domElement.querySelector(`[data-height-warning="${tabIndex}"]`) as HTMLElement;
+    if (!warningEl) return;
+
+    const autoHeight = this._autoDetectedHeights.get(tabIndex);
+    if (autoHeight === undefined) {
+      warningEl.style.display = 'none';
+      return;
+    }
+
+    const diff = Math.abs(currentHeight - autoHeight);
+    const percentDiff = autoHeight > 0 ? diff / autoHeight : 0;
+
+    if (percentDiff > 0.2 || diff > 50) {
+      warningEl.style.display = 'inline';
+      warningEl.title = `Height mismatch: set to ${currentHeight}px, content is ~${autoHeight}px`;
+    } else {
+      warningEl.style.display = 'none';
+    }
   }
 
   /**
@@ -5165,6 +5481,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     isFullWidth: boolean;
     hasWarning: boolean;
     warningText: string;
+    jsHeight: string;
+    isContainedJs: boolean;
   } {
     const props = this.properties;
     const label = (props[`tab${tabIndex}Label`] as string) || `Tab ${tabIndex}`;
@@ -5274,7 +5592,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       case 'javascript': {
         const content = (props[`tab${tabIndex}CustomContent`] as string) || '';
         const displayMode = (props[`tab${tabIndex}JavaScriptDisplayMode`] as string) || 'contained';
-        sourceDetail = content ? `JavaScript \u00b7 ${content.length} chars \u00b7 ${displayMode}` : 'JavaScript \u00b7 Empty';
+        const jsHeight = (props[`tab${tabIndex}JavaScriptHeight`] as string) || '';
+        const heightInfo = jsHeight ? ` \u00b7 ${jsHeight}` : '';
+        sourceDetail = content ? `JavaScript \u00b7 ${content.length} chars \u00b7 ${displayMode}${heightInfo}` : 'JavaScript \u00b7 Empty';
         break;
       }
       case 'toc': {
@@ -5315,6 +5635,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       || props[`tab${tabIndex}EmbedFullPage`] === true
       || props[`tab${tabIndex}ContentFullWidth`] === true;
 
+    // JavaScript height/display mode info
+    const jsDisplayMode = (props[`tab${tabIndex}JavaScriptDisplayMode`] as string) || 'contained';
+    const jsHeightVal = (props[`tab${tabIndex}JavaScriptHeight`] as string) || '';
+    const isContainedJs = contentType === 'javascript' && jsDisplayMode === 'contained';
+
     return {
       index: tabIndex,
       label,
@@ -5325,7 +5650,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       hasPermission,
       isFullWidth,
       hasWarning,
-      warningText
+      warningText,
+      jsHeight: jsHeightVal,
+      isContainedJs
     };
   }
 
@@ -6791,42 +7118,50 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   private insertIconIntoLabel(tabIndex: number, iconKey: string): void {
     if (!iconKey) return;
 
-    const currentLabel = (this.properties[`tab${tabIndex}Label`] as string) || '';
-    const iconMap: Record<string, string> = {
-      'Home': '🏠',
-      'Info': 'ℹ️',
-      'Settings': '⚙️',
-      'Mail': '✉️',
-      'Calendar': '📅',
-      'Contact': '👤',
-      'People': '👥',
-      'Document': '📄',
-      'Folder': '📁',
-      'Chart': '📊',
-      'Search': '🔍',
-      'Star': '⭐',
-      'Heart': '❤️',
-      'CheckMark': '✓',
-      'Warning': '⚠️',
-      'Lightning': '⚡',
-      'Globe': '🌐',
-      'Lock': '🔒',
-      'Link': '🔗',
-      'Photo': '🖼️',
-      'Video': '🎬',
-      'Music': '🎵',
-      'News': '📰',
-      'Edit': '✏️',
-      'Add': '➕',
-      'Delete': '🗑️',
-      'Refresh': '🔄',
-      'Download': '⬇️',
-      'Upload': '⬆️'
-    };
+    // Always store the icon key for SVG mode lookup
+    this.properties[`tab${tabIndex}IconKey`] = iconKey;
 
-    const icon = iconMap[iconKey] || '';
-    // Prepend icon to existing label, or just set icon if label is empty
-    this.properties[`tab${tabIndex}Label`] = currentLabel ? `${icon} ${currentLabel}` : `${icon} ${iconKey}`;
+    if (this.properties.iconStyle === 'svg') {
+      // SVG mode: don't modify the label text — rendering handles it via IconKey
+    } else {
+      // Emoji mode (default): prepend emoji to label text
+      const currentLabel = (this.properties[`tab${tabIndex}Label`] as string) || '';
+      const iconMap: Record<string, string> = {
+        'Home': '🏠',
+        'Info': 'ℹ️',
+        'Settings': '⚙️',
+        'Mail': '✉️',
+        'Calendar': '📅',
+        'Contact': '👤',
+        'People': '👥',
+        'Document': '📄',
+        'Folder': '📁',
+        'Chart': '📊',
+        'Search': '🔍',
+        'Star': '⭐',
+        'Heart': '❤️',
+        'CheckMark': '✓',
+        'Warning': '⚠️',
+        'Lightning': '⚡',
+        'Globe': '🌐',
+        'Lock': '🔒',
+        'Link': '🔗',
+        'Photo': '🖼️',
+        'Video': '🎬',
+        'Music': '🎵',
+        'News': '📰',
+        'Edit': '✏️',
+        'Add': '➕',
+        'Delete': '🗑️',
+        'Refresh': '🔄',
+        'Download': '⬇️',
+        'Upload': '⬆️'
+      };
+
+      const icon = iconMap[iconKey] || '';
+      this.properties[`tab${tabIndex}Label`] = currentLabel ? `${icon} ${currentLabel}` : `${icon} ${iconKey}`;
+    }
+
     this.context.propertyPane.refresh();
     this.render();
   }
@@ -7264,6 +7599,18 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           })
         );
 
+        // Container height for contained mode
+        if (((this.properties[`tab${i}JavaScriptDisplayMode`] as string) || 'contained') === 'contained') {
+          fields.push(
+            PropertyPaneTextField(`tab${i}JavaScriptHeight`, {
+              label: 'Container Height',
+              description: 'e.g. 300px, 50vh, auto (empty = auto)',
+              placeholder: 'auto',
+              value: (this.properties[`tab${i}JavaScriptHeight`] as string) || ''
+            })
+          );
+        }
+
         // If a template is selected, show configuration options
         if (selectedTemplate) {
           const template = getJavaScriptTemplate(selectedTemplate);
@@ -7623,6 +7970,62 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
             offText: 'No'
           })
         );
+        fields.push(
+          PropertyPaneToggle(`tab${i}ProfileReportShowExecBrief`, {
+            label: 'Show Executive Brief',
+            checked: this.properties[`tab${i}ProfileReportShowExecBrief`] !== false,
+            onText: 'Yes',
+            offText: 'No'
+          })
+        );
+        fields.push(
+          PropertyPaneToggle(`tab${i}ProfileReportShowCompLandscape`, {
+            label: 'Show Competitive Landscape',
+            checked: this.properties[`tab${i}ProfileReportShowCompLandscape`] !== false,
+            onText: 'Yes',
+            offText: 'No'
+          })
+        );
+        fields.push(
+          PropertyPaneToggle(`tab${i}ProfileReportShowInvestorMemo`, {
+            label: 'Show Investor Memo',
+            checked: this.properties[`tab${i}ProfileReportShowInvestorMemo`] !== false,
+            onText: 'Yes',
+            offText: 'No'
+          })
+        );
+        fields.push(
+          PropertyPaneToggle(`tab${i}ProfileReportShowFullDossier`, {
+            label: 'Show Full Dossier Narrative',
+            checked: this.properties[`tab${i}ProfileReportShowFullDossier`] !== false,
+            onText: 'Yes',
+            offText: 'No'
+          })
+        );
+        fields.push(
+          PropertyPaneToggle(`tab${i}ProfileReportShowGrowthProp`, {
+            label: 'Show Growth Propensity',
+            checked: this.properties[`tab${i}ProfileReportShowGrowthProp`] !== false,
+            onText: 'Yes',
+            offText: 'No'
+          })
+        );
+        fields.push(
+          PropertyPaneToggle(`tab${i}ProfileReportShowTeRelevance`, {
+            label: 'Show T&E Relevance',
+            checked: this.properties[`tab${i}ProfileReportShowTeRelevance`] !== false,
+            onText: 'Yes',
+            offText: 'No'
+          })
+        );
+        fields.push(
+          PropertyPaneToggle(`tab${i}ProfileReportShowAiSynthesis`, {
+            label: 'Show AI Synthesis',
+            checked: this.properties[`tab${i}ProfileReportShowAiSynthesis`] !== false,
+            onText: 'Yes',
+            offText: 'No'
+          })
+        );
 
         // Display mode dropdown (same pattern as JavaScript content type)
         fields.push(
@@ -7769,14 +8172,26 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           })
         );
 
-        // Icon picker dropdown
-        fields.push(
-          PropertyPaneDropdown(`tab${i}Icon`, {
-            label: `Add Icon`,
-            options: this.getIconPresets(),
-            selectedKey: ''
-          })
-        );
+        // Icon picker dropdown — mode-dependent behavior
+        if (this.properties.iconStyle === 'svg') {
+          // SVG mode: persistent icon selection bound to IconKey
+          fields.push(
+            PropertyPaneDropdown(`tab${i}IconKey`, {
+              label: `Tab Icon`,
+              options: this.getIconPresets(),
+              selectedKey: (this.properties[`tab${i}IconKey`] as string) || ''
+            })
+          );
+        } else {
+          // Emoji mode: insert-once action bound to Icon (resets after insert)
+          fields.push(
+            PropertyPaneDropdown(`tab${i}Icon`, {
+              label: `Add Icon`,
+              options: this.getIconPresets(),
+              selectedKey: ''
+            })
+          );
+        }
 
         // Per-tab image support - URL text field
         fields.push(
@@ -8099,6 +8514,14 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                     { key: 'dark', text: 'Dark' }
                   ],
                   selectedKey: this.properties.themeMode || 'auto'
+                }),
+                PropertyPaneDropdown('iconStyle', {
+                  label: 'Icon Style',
+                  options: [
+                    { key: 'emoji', text: 'Emoji (native platform)' },
+                    { key: 'svg', text: 'SVG (cross-platform)' }
+                  ],
+                  selectedKey: this.properties.iconStyle || 'emoji'
                 }),
                 // v3.0 Feature toggles
                 PropertyPaneToggle('enableDeepLinking', {
