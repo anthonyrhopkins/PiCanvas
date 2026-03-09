@@ -391,7 +391,64 @@ export class ProfileReportService {
       }
     }
 
-    // 5. Fetch metadata-tagged files (if metadata discovery is enabled)
+    // 5. Fetch company-profile reports (executive-brief, competitive-landscape, investor-memo, full-dossier-narrative)
+    // These are stored as {domain}.md in subfolders of company-profile/
+    const companyProfileTypes: Array<{ folder: string; field: keyof ICompanyProfile }> = [
+      { folder: 'company-profile/executive-brief', field: 'executiveBrief' },
+      { folder: 'company-profile/competitive-landscape', field: 'competitiveLandscape' },
+      { folder: 'company-profile/investor-memo', field: 'investorMemo' },
+      { folder: 'company-profile/full-dossier-narrative', field: 'fullDossierNarrative' }
+    ];
+
+    // Fetch all company-profile types in parallel for speed
+    const cpResults = await Promise.allSettled(
+      companyProfileTypes.map(async ({ folder, field }) => {
+        const url = `${libPath}/${folder}/${companyDomain}.md`;
+        try {
+          const content = await this.fetchFileContent(url);
+          return { field, content };
+        } catch {
+          return { field, content: null };
+        }
+      })
+    );
+    for (const result of cpResults) {
+      if (result.status === 'fulfilled' && result.value.content) {
+        (profile as any)[result.value.field] = result.value.content;
+      }
+    }
+
+    // 6. Fetch growth propensity score (te-growth-propensity/method-A/{domain}.md)
+    {
+      const gpUrl = `${libPath}/te-growth-propensity/method-A/${companyDomain}.md`;
+      try {
+        profile.growthPropensity = await this.fetchFileContent(gpUrl);
+      } catch { /* no growth propensity — fine */ }
+    }
+
+    // 7. Fetch AI Synthesis (final-html/ai-synthesis/{id}-{domain}-method-M-final.md)
+    if (hasPiRadarId) {
+      const asFileName = `${entry.piRadarId}-${companyDomain}-method-M-final.md`;
+      const asUrl = `${libPath}/final-html/ai-synthesis/${asFileName}`;
+      try {
+        profile.aiSynthesis = await this.fetchFileContent(asUrl);
+      } catch {
+        // Try domain-only fallback
+        try {
+          profile.aiSynthesis = await this.fetchFileContent(`${libPath}/final-html/ai-synthesis/${companyDomain}-method-M-final.md`);
+        } catch { /* no AI synthesis — fine */ }
+      }
+    }
+
+    // 8. Fetch T&E Relevance report (te-relevance/method-I/{domain}.md)
+    {
+      const trUrl = `${libPath}/te-relevance/method-I/${companyDomain}.md`;
+      try {
+        profile.teRelevance = await this.fetchFileContent(trUrl);
+      } catch { /* no T&E relevance — fine */ }
+    }
+
+    // 9. Fetch metadata-tagged files (if metadata discovery is enabled)
     if (metadataConfig) {
       try {
         const metaFiles = await this.fetchMetadataFiles(sanitized, companyDomain, metadataConfig);

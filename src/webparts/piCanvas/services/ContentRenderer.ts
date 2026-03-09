@@ -6,6 +6,7 @@
 
 import { marked } from 'marked';
 import mermaid from 'mermaid';
+import * as echarts from 'echarts';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const DOMPurify = require('dompurify');
 import { IProfileReportTheme, BUILTIN_THEMES } from '../models/ProfileReportThemes';
@@ -131,6 +132,13 @@ export interface ICompanyProfile {
   methodL?: string;      // Markdown content
   methodM?: string;      // HTML content (final report)
   profileJson?: any;     // JSON object
+  executiveBrief?: string;         // company-profile/executive-brief/{domain}.md
+  competitiveLandscape?: string;   // company-profile/competitive-landscape/{domain}.md
+  investorMemo?: string;           // company-profile/investor-memo/{domain}.md
+  fullDossierNarrative?: string;   // company-profile/full-dossier-narrative/{domain}.md
+  growthPropensity?: string;       // te-growth-propensity/method-A/{id}-{domain}-method-A.md
+  aiSynthesis?: string;            // final-html/ai-synthesis/{id}-{domain}-method-M-final.md
+  teRelevance?: string;            // te-relevance/method-I/{domain}.md
   generated?: Date;
   metrics?: {
     events: number;
@@ -896,8 +904,9 @@ export class ContentRenderer {
    * Prepare JavaScript content for rendering
    * Creates a container placeholder that will be populated when executeJavaScriptElement is called
    * @param displayMode - 'contained' (default), 'fullSection' (full width, keeps nav), or 'fullScreen' (covers viewport)
+   * @param containerHeight - Optional height for contained mode (e.g. '300px', '50vh'). Empty = auto.
    */
-  public static prepareJavaScript(code: string, elementId: string, displayMode: string = 'contained'): IRenderResult {
+  public static prepareJavaScript(code: string, elementId: string, displayMode: string = 'contained', containerHeight: string = ''): IRenderResult {
     if (!code || typeof code !== 'string') {
       return { html: '<div class="picanvas-js-container"><p class="picanvas-js-empty">No JavaScript code provided</p></div>' };
     }
@@ -926,8 +935,15 @@ export class ContentRenderer {
       displayClass = ' picanvas-js-fullscreen';
       displayStyle = 'position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;z-index:999999!important;margin:0!important;padding:0!important;background:#0f0f23!important;overflow:auto!important;';
       outputStyle = 'min-height:100vh;width:100%;';
+    } else {
+      // Contained mode: overflow hidden to prevent JS content from bleeding outside container
+      displayStyle = 'overflow:hidden;';
+      if (containerHeight) {
+        const sanitizedHeight = this.sanitizeCssValue(containerHeight);
+        displayStyle += `height:${sanitizedHeight};`;
+        outputStyle = `height:100%;`;
+      }
     }
-    // 'contained' mode: no special styling, uses default container styles
 
     // Return placeholder that will be executed after DOM insertion
     const html = `
@@ -952,7 +968,8 @@ export class ContentRenderer {
    * Provides helper utilities: container, render(), create()
    * Call this after the element is in the DOM
    */
-  public static executeJavaScriptElement(element: HTMLElement): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static executeJavaScriptElement(element: HTMLElement, graphFetch?: (...args: any[]) => any): void {
     const code = element.getAttribute('data-js-code');
     const jsId = element.getAttribute('data-js-id');
 
@@ -1098,17 +1115,61 @@ export class ContentRenderer {
         return el;
       };
 
+      // Create a scoped document proxy so user code that calls
+      // document.querySelector('.picanvas-js-output') finds THIS instance's
+      // container instead of always the first one on the page.
+      // This is critical for multi-instance support.
+      const scopedDocument = new Proxy(document, {
+        get(target: Document, prop: string | symbol): unknown {
+          if (prop === 'querySelector') {
+            return (selector: string): Element | null => {
+              // If querying for picanvas-js-output, scope to this element
+              if (typeof selector === 'string' && selector.indexOf('picanvas-js-output') !== -1) {
+                return element.querySelector(selector) || target.querySelector(selector);
+              }
+              return target.querySelector(selector);
+            };
+          }
+          if (prop === 'querySelectorAll') {
+            return (selector: string): NodeListOf<Element> => {
+              if (typeof selector === 'string' && selector.indexOf('picanvas-js-output') !== -1) {
+                const local = element.querySelectorAll(selector);
+                return local.length > 0 ? local : target.querySelectorAll(selector);
+              }
+              return target.querySelectorAll(selector);
+            };
+          }
+          if (prop === 'getElementById') {
+            return (id: string): HTMLElement | null => {
+              // Scope getElementById for this instance's JS output ID
+              if (typeof id === 'string' && jsId && id === jsId) {
+                return element.querySelector('#' + CSS.escape(id)) as HTMLElement || target.getElementById(id);
+              }
+              return target.getElementById(id);
+            };
+          }
+          const value = (target as unknown as Record<string | symbol, unknown>)[prop];
+          if (typeof value === 'function') {
+            return value.bind(target);
+          }
+          return value;
+        }
+      });
+
       // Execute user code in a sandboxed function scope
-      // This prevents direct access to window/document but allows the helpers
+      // Pass scoped 'document' so querySelector finds this instance's container
       // eslint-disable-next-line no-new-func
       const sandboxedFunction = new Function(
         'container',
         'render',
         'create',
+        'echarts',
+        'document',
+        'graphFetch',
         decodedCode
       );
 
-      sandboxedFunction(container, render, create);
+      sandboxedFunction(container, render, create, echarts, scopedDocument, graphFetch);
 
       element.classList.add('picanvas-js-executed');
     } catch (error) {
@@ -2102,6 +2163,13 @@ export class ContentRenderer {
       { key: 'landscape', label: 'Landscape', flag: 'REL', content: intel ? this.renderCompetitiveLandscape(intel.competitors, intel.customers, intel.partners) : undefined, show: !!intel && (intel.competitors.length > 0 || intel.customers.length > 0 || intel.partners.length > 0) },
       { key: 'activity', label: 'Activity', flag: 'EVT', content: intel ? this.renderActivityTimeline(intel.recentActivity) : undefined, show: !!intel && intel.recentActivity.length > 0 },
       { key: 'earnings', label: 'Earnings', flag: 'ERN', content: intel ? this.renderEarningsSection(intel.earnings) : undefined, show: !!intel && intel.earnings.length > 0 },
+      { key: 'executiveBrief', label: 'Executive Brief', flag: 'MD', content: profile.executiveBrief, show: !!profile.executiveBrief },
+      { key: 'competitiveLandscape', label: 'Competitive Landscape', flag: 'MD', content: profile.competitiveLandscape, show: !!profile.competitiveLandscape },
+      { key: 'investorMemo', label: 'Investor Memo', flag: 'MD', content: profile.investorMemo, show: !!profile.investorMemo },
+      { key: 'fullDossierNarrative', label: 'Full Dossier', flag: 'MD', content: profile.fullDossierNarrative, show: !!profile.fullDossierNarrative },
+      { key: 'growthPropensity', label: 'Growth Propensity', flag: 'MD', content: profile.growthPropensity, show: !!profile.growthPropensity },
+      { key: 'teRelevance', label: 'T&E Relevance', flag: 'MD', content: profile.teRelevance, show: !!profile.teRelevance },
+      { key: 'aiSynthesis', label: 'AI Synthesis', flag: 'MD', content: profile.aiSynthesis, show: !!profile.aiSynthesis },
       { key: 'methodK', label: 'Method-K', flag: 'MD', content: profile.methodK, show: config.showMethodK },
       { key: 'methodL', label: 'Method-L', flag: 'MD', content: profile.methodL, show: config.showMethodL },
       { key: 'methodM', label: 'Method-M', flag: 'HTML', content: profile.methodM, show: config.showMethodM },
