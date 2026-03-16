@@ -63,9 +63,9 @@ hackathon-script.md
 samples/
 scripts/
 
-# Test output
+# Test output and scratch test scripts
 jest-output/
-tests/screenshots/
+tests/
 
 # macOS resource forks
 ._*
