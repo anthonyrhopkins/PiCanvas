@@ -311,6 +311,45 @@
     line-height: 1.5;
   }
 
+  .compactJsResize {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 28px;
+    font-size: 11px;
+    color: var(--pi-text-tertiary);
+  }
+
+  .compactJsResizeHandle {
+    width: 20px;
+    height: 6px;
+    background: var(--pi-border);
+    border-radius: 3px;
+    cursor: ns-resize;
+  }
+
+  .compactJsHeightLabel {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .compactJsAutoBtn {
+    padding: 1px 6px;
+    font-size: 10px;
+    border: 1px solid var(--pi-border);
+    border-radius: 3px;
+    background: var(--pi-bg-secondary);
+    cursor: pointer;
+  }
+
+  .compactJsHeightWarning {
+    color: #d97706;
+    font-size: 12px;
+  }
+
+  .compactJsResizeActive {
+    background: var(--pi-accent);
+  }
+
   .compactTabMore {
     text-align: center;
     font-size: 11px;

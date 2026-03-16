@@ -39,6 +39,8 @@ obj
 # Playwright testing artifacts
 .playwright-mcp
 .playwright-cli
+.playwright-user-data/
+Default/
 playwright-cli.json
 test-results/
 
@@ -53,8 +55,20 @@ test-results/
 js_sample.txt
 jsconversation.txt
 test-tabs.html
+check-menudemo.js
+sp-test.js
+templafy-inspect.js
+templafy-watch.js
+hackathon-script.md
 samples/
 scripts/
+
+# Test output
+jest-output/
+tests/screenshots/
+
+# macOS resource forks
+._*
 
 # Environment files
 .env

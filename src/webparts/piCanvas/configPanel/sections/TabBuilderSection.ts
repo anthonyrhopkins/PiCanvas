@@ -21,6 +21,7 @@ export interface ITabBuilderOptions {
   getZones: () => Array<[string, string, number]>;
   getSections: () => Array<[string, string, number]>;
   getTextWebPartOptions: (tabIndex: number) => IDropdownOption[];
+  browseFiles: (tabIndex: number, onSelected: (url: string) => void) => void;
   onChanged: () => void;
 }
 
@@ -50,6 +51,7 @@ export class TabBuilderSection {
   private _expandedTab: number = -1;
   private _dragSourceIndex: number = -1;
   private _controls: Array<{ dispose: () => void }> = [];
+  private _clickHandlerBound: boolean = false;
 
   constructor(options: ITabBuilderOptions) {
     this._options = options;
@@ -135,46 +137,51 @@ export class TabBuilderSection {
     if (!this._el) return;
     const el = this._el;
 
-    // Click delegation
-    el.addEventListener('click', (e: Event) => {
-      const target = (e.target as HTMLElement).closest('[data-action]') as HTMLElement;
-      if (!target) return;
+    // Click delegation — bind only once to avoid duplicate handlers on rebuild
+    if (!this._clickHandlerBound) {
+      this._clickHandlerBound = true;
+      el.addEventListener('click', (e: Event) => {
+        const target = (e.target as HTMLElement).closest('[data-action]') as HTMLElement;
+        if (!target) return;
+        // Ignore clicks on detached elements (from a previous rebuild)
+        if (!el.contains(target)) return;
 
-      const action = target.dataset.action;
-      const tabIndex = parseInt(target.dataset.tab || '0', 10);
+        const action = target.dataset.action;
+        const tabIndex = parseInt(target.dataset.tab || '0', 10);
 
-      switch (action) {
-        case 'toggle':
-          e.stopPropagation();
-          if (this._expandedTab === tabIndex) {
+        switch (action) {
+          case 'toggle':
+            e.stopPropagation();
+            if (this._expandedTab === tabIndex) {
+              this._expandedTab = -1;
+            } else {
+              this._expandedTab = tabIndex;
+            }
+            this.rebuild();
+            break;
+          case 'duplicate':
+            e.stopPropagation();
+            this._options.duplicateTab(tabIndex);
             this._expandedTab = -1;
-          } else {
-            this._expandedTab = tabIndex;
-          }
-          this.rebuild();
-          break;
-        case 'duplicate':
-          e.stopPropagation();
-          this._options.duplicateTab(tabIndex);
-          this._expandedTab = -1;
-          this.rebuild();
-          this._options.onChanged();
-          break;
-        case 'delete':
-          e.stopPropagation();
-          this._options.deleteTab(tabIndex);
-          this._expandedTab = -1;
-          this.rebuild();
-          this._options.onChanged();
-          break;
-        case 'add-tab':
-          this._options.addTab();
-          this._expandedTab = this._options.getTabCount();
-          this.rebuild();
-          this._options.onChanged();
-          break;
-      }
-    });
+            this.rebuild();
+            this._options.onChanged();
+            break;
+          case 'delete':
+            e.stopPropagation();
+            this._options.deleteTab(tabIndex);
+            this._expandedTab = -1;
+            this.rebuild();
+            this._options.onChanged();
+            break;
+          case 'add-tab':
+            this._options.addTab();
+            this._expandedTab = this._options.getTabCount();
+            this.rebuild();
+            this._options.onChanged();
+            break;
+        }
+      });
+    }
 
     // Drag-and-drop
     const cards = el.querySelectorAll('.picanvas-config-tab-card');
@@ -319,7 +326,8 @@ export class TabBuilderSection {
         value: sourceType,
         options: [
           { key: 'manual', text: 'Manual Input' },
-          { key: 'webpart', text: 'Text WebPart on Page' }
+          { key: 'webpart', text: 'Text WebPart on Page' },
+          { key: 'url', text: 'SharePoint File' }
         ],
         onChange: (v) => {
           opts.setProperty(`tab${tabIndex}ContentSourceType`, v);
@@ -340,6 +348,8 @@ export class TabBuilderSection {
         });
         wpDd.render(accordion.body);
         this._controls.push(wpDd);
+      } else if (sourceType === 'url') {
+        this._renderFileUrlField(accordion.body, tabIndex);
       } else {
         this._renderTextArea(accordion.body, tabIndex, 'CustomContent', 'Content',
           contentType === 'markdown' ? '# Heading\n\nYour **markdown** content...' : '<div>\n  <p>Your HTML content...</p>\n</div>');
@@ -1116,6 +1126,34 @@ export class TabBuilderSection {
     container.appendChild(wrapper);
   }
 
+  // Helper: render a file URL field with Browse button
+  private _renderFileUrlField(container: HTMLElement, tabIndex: number): void {
+    const opts = this._options;
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '12px';
+    wrapper.innerHTML = `
+      <label class="picanvas-config-field-label">File URL</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" class="picanvas-config-text-input" style="flex:1" value="${this._escapeAttr((opts.getProperty(`tab${tabIndex}FileUrl`) as string) || '')}" placeholder="/sites/yoursite/SiteAssets/content.html" />
+        <button type="button" style="padding:6px 14px;border:1px solid rgba(0,0,0,0.2);border-radius:4px;background:#f3f2f1;cursor:pointer;white-space:nowrap;font-size:13px">Browse</button>
+      </div>
+    `;
+    const input = wrapper.querySelector('input') as HTMLInputElement;
+    input.addEventListener('change', () => {
+      opts.setProperty(`tab${tabIndex}FileUrl`, input.value);
+      opts.onChanged();
+    });
+    const btn = wrapper.querySelector('button') as HTMLButtonElement;
+    btn.addEventListener('click', () => {
+      opts.browseFiles(tabIndex, (url: string) => {
+        input.value = url;
+        opts.setProperty(`tab${tabIndex}FileUrl`, url);
+        opts.onChanged();
+      });
+    });
+    container.appendChild(wrapper);
+  }
+
   // Helper: render a textarea
   private _renderTextArea(container: HTMLElement, tabIndex: number, suffix: string, label: string, placeholder: string): void {
     const opts = this._options;
@@ -1150,6 +1188,7 @@ export class TabBuilderSection {
 
   public dispose(): void {
     this._disposeControls();
+    this._clickHandlerBound = false;
     this._el = null;
   }
 }

@@ -12,6 +12,7 @@ import { ColorsSection } from './sections/ColorsSection';
 import { TypographySection } from './sections/TypographySection';
 import { TemplatesSection, ITemplateInfo } from './sections/TemplatesSection';
 import { AdvancedSection } from './sections/AdvancedSection';
+import { NavigationSection } from './sections/NavigationSection';
 import { HelpSection } from './sections/HelpSection';
 
 export interface IConfigurationPanelOptions {
@@ -36,6 +37,8 @@ export interface IConfigurationPanelOptions {
   getZones: () => Array<[string, string, number]>;
   getSections: () => Array<[string, string, number]>;
   getTextWebPartOptions: (tabIndex: number) => IDropdownOption[];
+  /** Browse SharePoint files for a tab */
+  browseFiles: (tabIndex: number, onSelected: (url: string) => void) => void;
   /** Template management */
   getTemplates: () => ITemplateInfo[];
   applyTemplate: (templateId: string) => void;
@@ -55,6 +58,8 @@ export interface IConfigurationPanelOptions {
   /** Constants */
   maxTabs: number;
   tabPropertySuffixes: ReadonlyArray<string>;
+  /** Get detected SP chrome CSS conflicts from content */
+  getSpChromeConflicts?: () => string[];
 }
 
 interface ISidebarItem {
@@ -70,6 +75,7 @@ const SIDEBAR_ITEMS: ISidebarItem[] = [
   { id: 'typography', icon: '&#128208;', label: 'Typography' },
   { id: 'templates', icon: '&#128203;', label: 'Templates' },
   { id: 'advanced', icon: '&#9881;', label: 'Advanced' },
+  { id: 'navigation', icon: '&#128279;', label: 'Navigation' },
   { id: 'help', icon: '&#10067;', label: 'Help & Docs' }
 ];
 
@@ -95,6 +101,7 @@ export class ConfigurationPanel {
   private _typography: TypographySection | null = null;
   private _templates: TemplatesSection | null = null;
   private _advanced: AdvancedSection | null = null;
+  private _navigation: NavigationSection | null = null;
   private _help: HelpSection | null = null;
   private _preview: LivePreview | null = null;
 
@@ -439,7 +446,9 @@ export class ConfigurationPanel {
       'lockDefaultTemplateEnabled', 'lockDefaultTemplate',
       'lockDefaultMessagesEnabled', 'lockDefaultMessagePrompt',
       'lockDefaultMessageError', 'lockDefaultMessageMissing',
-      'lockDefaultMessageSuccess', 'lockUnlockTtlMinutes'
+      'lockDefaultMessageSuccess', 'lockUnlockTtlMinutes',
+      'enableSiteNavigation', 'hideSpHorizontalNav', 'hideSpSuiteHeader', 'hideSpAppBar',
+      'chromeConfigOverridesContent'
     ];
 
     styleKeys.forEach(key => {
@@ -491,6 +500,7 @@ export class ConfigurationPanel {
         getZones: opts.getZones,
         getSections: opts.getSections,
         getTextWebPartOptions: opts.getTextWebPartOptions,
+        browseFiles: opts.browseFiles,
         onChanged
       });
       this._tabBuilder.render(tabsContainer);
@@ -556,6 +566,18 @@ export class ConfigurationPanel {
       this._advanced.render(advancedContainer);
     }
 
+    // Navigation
+    const navContainer = this._overlay.querySelector('[data-section-content="navigation"]') as HTMLElement;
+    if (navContainer) {
+      this._navigation = new NavigationSection({
+        getProperty: opts.getProperty,
+        setProperty: trackedSet,
+        onChanged,
+        getSpChromeConflicts: opts.getSpChromeConflicts
+      });
+      this._navigation.render(navContainer);
+    }
+
     // Help & Docs
     const helpContainer = this._overlay.querySelector('[data-section-content="help"]') as HTMLElement;
     if (helpContainer) {
@@ -581,6 +603,7 @@ export class ConfigurationPanel {
     if (this._typography) { this._typography.dispose(); this._typography = null; }
     if (this._templates) { this._templates.dispose(); this._templates = null; }
     if (this._advanced) { this._advanced.dispose(); this._advanced = null; }
+    if (this._navigation) { this._navigation.dispose(); this._navigation = null; }
     if (this._help) { this._help.dispose(); this._help = null; }
     if (this._preview) { this._preview.dispose(); this._preview = null; }
   }

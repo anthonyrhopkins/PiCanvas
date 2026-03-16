@@ -341,11 +341,12 @@ export class ContentRenderer {
       // Sanitize HTML with more permissive settings for custom content
       const sanitizedHtml = DOMPurify.sanitize(content, {
         USE_PROFILES: { html: true },
-        ADD_TAGS: ['iframe'], // Allow iframes (will be validated separately)
+        ADD_TAGS: ['iframe', 'style'], // Allow iframes and inline style blocks
         ADD_ATTR: [
           'target', 'rel', 'allow', 'allowfullscreen', 'frameborder',
-          'scrolling', 'loading', 'referrerpolicy', 'sandbox'
+          'scrolling', 'loading', 'referrerpolicy', 'sandbox', 'style'
         ],
+        ALLOW_DATA_ATTR: true,
         FORBID_TAGS: ['script'],
         FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur']
       });

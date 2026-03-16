@@ -338,6 +338,15 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   // CSS style ID injected by PiCanvasLoader to pre-hide webparts
   private static readonly PREHIDE_STYLE_ID = 'picanvas-pre-hide-styles';
 
+  private static readonly SP_CHROME_SELECTORS = [
+    '#SuiteNavWrapper',
+    '[data-automationid="SiteHeader"]',
+    '#sp-appBar',
+    '#CenterRegion'
+  ];
+
+  private _spChromeConflicts: string[] = [];
+
   private _zonesCache: Array<[string, string]> = [];
   private _currentHighlightedElement: HTMLElement | null = null;
   private _isPropertyPaneOpen: boolean = false;
@@ -400,6 +409,46 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   private _graphClientPromise: Promise<MSGraphClientV3> | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _graphFetch: ((endpoint: string, options?: any) => Promise<any>) | undefined;
+
+  /**
+   * Scan an HTML string for <style> blocks containing SP chrome selectors
+   * and strip those rules, replacing them with a comment.
+   */
+  private stripSpChromeRules(html: string): { html: string; stripped: string[] } {
+    const stripped: string[] = [];
+    const result = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_fullMatch, cssText: string) => {
+      let modified = cssText;
+      for (const sel of PiCanvasWebPart.SP_CHROME_SELECTORS) {
+        const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const ruleRegex = new RegExp(`[^{}]*${escaped}[^{]*\\{[^}]*\\}`, 'gi');
+        const matches = modified.match(ruleRegex);
+        if (matches) {
+          matches.forEach(() => stripped.push(sel));
+          modified = modified.replace(ruleRegex, '/* [PiCanvas] stripped SP chrome rule */');
+        }
+      }
+      return `<style>${modified}</style>`;
+    });
+    return { html: result, stripped: [...new Set(stripped)] };
+  }
+
+  /**
+   * After content is rendered, scan the content host for conflicting SP chrome CSS.
+   * Stores results on the instance for the config panel to read.
+   */
+  private detectSpChromeConflicts(contentHost: HTMLElement): void {
+    this._spChromeConflicts = [];
+    const styles = contentHost.querySelectorAll('style');
+    styles.forEach(style => {
+      const css = style.textContent || '';
+      for (const sel of PiCanvasWebPart.SP_CHROME_SELECTORS) {
+        if (css.includes(sel)) {
+          this._spChromeConflicts.push(sel);
+        }
+      }
+    });
+    this._spChromeConflicts = [...new Set(this._spChromeConflicts)];
+  }
 
   /**
    * Security: Encode HTML entities to prevent XSS attacks
@@ -582,6 +631,131 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   /**
+   * Inject CSS to hide SharePoint chrome elements (suite header, site nav, app bar)
+   * based on the three hideSpXxx config properties.
+   */
+  private injectSpChromeStyles(): void {
+    const styleId = `picanvas-sp-chrome-${this.instanceId}`;
+    const rules: string[] = [];
+
+    // Only hide SP chrome in read/display mode — editors need full navigation.
+    // Check both SPFx displayMode AND URL indicators since displayMode can be
+    // unreliable during page transitions or auto-checkout.
+    const isEditMode = this.displayMode !== DisplayMode.Read
+      || window.location.search.includes('Mode=Edit')
+      || window.location.search.includes('mode=edit')
+      || document.querySelector('.commandBarWrapper') !== null;
+
+    if (!isEditMode) {
+      if (this.properties.hideSpHorizontalNav === true) {
+        rules.push(`[data-automationid="SiteHeader"] { display: none !important; }`);
+      }
+      if (this.properties.hideSpSuiteHeader === true) {
+        rules.push(`#SuiteNavWrapper { display: none !important; }`);
+      }
+      if (this.properties.hideSpAppBar === true) {
+        rules.push(`#sp-appBar { display: none !important; }`);
+      }
+    }
+
+    let el = document.getElementById(styleId) as HTMLStyleElement;
+    if (rules.length === 0) {
+      if (el) el.remove();
+      return;
+    }
+
+    const css = `/* PiCanvas SP Chrome: ${this.instanceId} */\n${rules.join('\n')}`;
+    if (el) {
+      el.textContent = css;
+    } else {
+      el = document.createElement('style');
+      el.id = styleId;
+      el.textContent = css;
+      document.head.appendChild(el);
+    }
+  }
+
+  /**
+   * Inject a floating edit button when SP chrome is hidden.
+   * When hideSpSuiteHeader / hideSpHorizontalNav / hideSpAppBar are enabled,
+   * users can't reach the native SharePoint edit button. This adds a small
+   * pencil icon in the bottom-right corner so they can still enter edit mode.
+   */
+  private injectChromeEditButton(): void {
+    const btnId = `picanvas-chrome-edit-${this.instanceId}`;
+    // Only inject if at least one chrome element is hidden
+    if (
+      this.properties.hideSpSuiteHeader !== true &&
+      this.properties.hideSpHorizontalNav !== true &&
+      this.properties.hideSpAppBar !== true
+    ) {
+      // No chrome hidden — remove any stale button and bail
+      const stale = document.getElementById(btnId);
+      if (stale) stale.remove();
+      return;
+    }
+
+    // Don't duplicate
+    if (document.getElementById(btnId)) return;
+
+    const editButton = document.createElement('a');
+    editButton.id = btnId;
+    editButton.className = 'picanvas-edit-button picanvas-chrome-edit-button';
+    editButton.title = 'Edit Page';
+
+    const currentUrl = window.location.href.split('?')[0].split('#')[0];
+    editButton.href = `${currentUrl}?Mode=Edit`;
+
+    editButton.style.cssText = `
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      width: 44px !important;
+      height: 44px !important;
+      background: rgba(255, 255, 255, 0.92) !important;
+      border: 1px solid rgba(0,0,0,0.08) !important;
+      border-radius: 50% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      z-index: 999999 !important;
+      text-decoration: none !important;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s !important;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15) !important;
+      opacity: 0.7 !important;
+    `;
+
+    editButton.addEventListener('mouseenter', () => {
+      editButton.style.opacity = '1';
+      editButton.style.transform = 'scale(1.1)';
+      editButton.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)';
+    });
+    editButton.addEventListener('mouseleave', () => {
+      editButton.style.opacity = '0.7';
+      editButton.style.transform = 'scale(1)';
+      editButton.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
+    });
+
+    editButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+    `;
+
+    document.body.appendChild(editButton);
+  }
+
+  /**
+   * Remove the floating chrome edit button (called in edit mode).
+   */
+  private removeChromeEditButton(): void {
+    const btn = document.getElementById(`picanvas-chrome-edit-${this.instanceId}`);
+    if (btn) btn.remove();
+  }
+
+  /**
    * Save connected webpart IDs to localStorage for PiCanvasLoader Application Customizer.
    * The customizer reads this on page load to pre-hide webparts before they render.
    * @param webpartIds Array of webpart IDs connected to this PiCanvas instance
@@ -705,6 +879,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     // IMMEDIATELY hide connected webparts before they render visibly
     // This prevents the "flash" of webparts at their original position
     this.injectEarlyHidingStyles();
+
+    // SP chrome hiding is deferred to _renderInternal() where displayMode is reliable
 
     // Suppress unhandled promise rejections from SharePoint workbench internal code
     // These are not PiCanvas errors but trigger webpack-dev-server's error overlay
@@ -2130,8 +2306,25 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         : content;
 
       // Render based on file type
-      const rendered = ContentRenderer.renderFileContent(contentWithTokens, fileType);
-      $contentHost.html(rendered.html);
+      if (fileType === 'html') {
+        let htmlToInject = contentWithTokens;
+
+        // Strip SP chrome rules if config override is enabled
+        if (this.properties.chromeConfigOverridesContent === true) {
+          const { html: cleaned } = this.stripSpChromeRules(htmlToInject);
+          htmlToInject = cleaned;
+        }
+
+        // HTML files from SharePoint: inject directly to preserve <style> blocks
+        // DOMPurify strips <style> even with ADD_TAGS due to document context
+        $contentHost.html(htmlToInject);
+
+        // Detect remaining SP chrome conflicts for config panel warning
+        this.detectSpChromeConflicts($contentHost[0]);
+      } else {
+        const rendered = ContentRenderer.renderFileContent(contentWithTokens, fileType);
+        $contentHost.html(rendered.html);
+      }
 
     } catch (error) {
       console.error(`[PiCanvas] Failed to fetch file:`, error);
@@ -4108,17 +4301,25 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     require('./AddTabs.js');
     require('./AddTabs.css');
 
+    // Update SP chrome hiding styles on every re-render (config changes)
+    this.injectSpChromeStyles();
+
     // Control body classes for Application Customizer CSS
     // In Read mode: add classes so hiding CSS and banner full-width CSS take effect
     // In Edit mode: remove classes so sections/webparts are visible for editing
     if (this.displayMode === DisplayMode.Read) {
       document.body.classList.add('picanvas-hiding-active');
       document.body.classList.add('picanvas-banner-fullwidth');
+
+      // Inject floating edit button when SP chrome is hidden (users can't reach the native edit button)
+      this.injectChromeEditButton();
     } else {
       document.body.classList.remove('picanvas-hiding-active');
       document.body.classList.remove('picanvas-banner-fullwidth');
       // Also remove pre-hide styles injected by onInit() so webparts are visible in Edit mode
       this.removePreHideStyles();
+      // Remove floating edit button in edit mode
+      this.removeChromeEditButton();
     }
 
     if (this.displayMode === DisplayMode.Read) {
@@ -4367,6 +4568,23 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                     }
                   }
                 }
+              } else if (contentSourceType === 'url') {
+                // Source: SharePoint file URL
+                const fileUrl = (this.properties[`tab${tabIndex}FileUrl`] as string) || '';
+                if (!fileUrl) {
+                  const errorResult = ContentRenderer.renderFileError(strings.FileUrlMissingMessage || 'No file URL configured. Please enter a file path in the web part settings.');
+                  $contentHost.html(errorResult.html);
+                } else {
+                  const fileType = ContentRenderer.detectFileType(fileUrl);
+                  if (fileType === 'unknown') {
+                    const errorResult = ContentRenderer.renderFileError(strings.FileTypeUnsupportedMessage || 'Unsupported file type. Only .html and .md files are supported.');
+                    $contentHost.html(errorResult.html);
+                  } else {
+                    const loadingResult = ContentRenderer.renderFileLoading(strings.FileLoadingMessage || 'Loading content...');
+                    $contentHost.html(loadingResult.html);
+                    this.fetchAndRenderFileContent(tabIndex, fileUrl, fileType, $contentHost);
+                  }
+                }
               } else {
                 // Source: Manual input
                 const customContent = (this.properties[`tab${tabIndex}CustomContent`] as string) || '';
@@ -4423,6 +4641,23 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                     if ($sourceWP.length) {
                       $sourceWP.closest('[data-automation-id="CanvasControl"], .ControlZone').hide();
                     }
+                  }
+                }
+              } else if (contentSourceType === 'url') {
+                // Source: SharePoint file URL
+                const fileUrl = (this.properties[`tab${tabIndex}FileUrl`] as string) || '';
+                if (!fileUrl) {
+                  const errorResult = ContentRenderer.renderFileError(strings.FileUrlMissingMessage || 'No file URL configured. Please enter a file path in the web part settings.');
+                  $contentHost.html(errorResult.html);
+                } else {
+                  const fileType = ContentRenderer.detectFileType(fileUrl);
+                  if (fileType === 'unknown') {
+                    const errorResult = ContentRenderer.renderFileError(strings.FileTypeUnsupportedMessage || 'Unsupported file type. Only .html and .md files are supported.');
+                    $contentHost.html(errorResult.html);
+                  } else {
+                    const loadingResult = ContentRenderer.renderFileLoading(strings.FileLoadingMessage || 'Loading content...');
+                    $contentHost.html(loadingResult.html);
+                    this.fetchAndRenderFileContent(tabIndex, fileUrl, fileType, $contentHost);
                   }
                 }
               } else {
@@ -5302,6 +5537,13 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     // Clean up resize listeners
     this._resizeCleanup.forEach(fn => fn());
     this._resizeCleanup = [];
+
+    // Clean up SP chrome hiding styles
+    const chromeStyle = document.getElementById(`picanvas-sp-chrome-${this.instanceId}`);
+    if (chromeStyle) chromeStyle.remove();
+
+    // Clean up floating edit button
+    this.removeChromeEditButton();
 
     // Clean up profile report display mode (portal) if active
     const prEl = document.querySelector('.picanvas-profilereport[data-display-mode="fullSection"], .picanvas-profilereport[data-display-mode="fullScreen"]') as any;
@@ -6543,6 +6785,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         const spOptions = this.getTextWebPartOptions(tabIndex);
         return spOptions.map(o => ({ key: String(o.key), text: o.text }));
       },
+      browseFiles: (tabIndex: number, onSelected: (url: string) => void) => {
+        this.browseContentFilesWithCallback(tabIndex, onSelected);
+      },
       getTemplates: () => {
         return this._availableTemplates.map(t => ({
           id: t.templateId,
@@ -6610,7 +6855,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         this.properties.tabSeparatorColor = '';
       },
       maxTabs: PiCanvasWebPart.MAX_TABS,
-      tabPropertySuffixes: PiCanvasWebPart.TAB_PROPERTY_SUFFIXES
+      tabPropertySuffixes: PiCanvasWebPart.TAB_PROPERTY_SUFFIXES,
+      getSpChromeConflicts: () => this._spChromeConflicts || []
     });
 
     this._configPanel.open();
@@ -6935,6 +7181,151 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     } catch (error) {
       console.error('[PiCanvas] Failed to browse files:', error);
       alert('Failed to load file list. Please check your permissions.');
+    }
+  }
+
+  /**
+   * Browse content files with a visual modal dialog and callback
+   */
+  private async browseContentFilesWithCallback(tabIndex: number, onSelected: (url: string) => void): Promise<void> {
+    try {
+      // Fetch document libraries via REST API
+      const siteUrl = this.context.pageContext.web.absoluteUrl;
+      const { SPHttpClient } = await import('@microsoft/sp-http');
+
+      // Start with SiteAssets/PiCanvas as default, but allow navigation
+      const fetchFolder = async (folderUrl: string): Promise<{
+        files: Array<{ name: string; serverRelativeUrl: string }>;
+        folders: Array<{ name: string; serverRelativeUrl: string }>;
+      }> => {
+        const encodedUrl = encodeURIComponent(folderUrl);
+        const [filesResp, foldersResp] = await Promise.all([
+          this.context.spHttpClient.get(
+            `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('${encodedUrl}')/Files?$select=Name,ServerRelativeUrl&$orderby=Name&$filter=substringof('.html',Name) or substringof('.md',Name) or substringof('.htm',Name)`,
+            SPHttpClient.configurations.v1
+          ),
+          this.context.spHttpClient.get(
+            `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('${encodedUrl}')/Folders?$select=Name,ServerRelativeUrl&$orderby=Name&$filter=Name ne 'Forms' and Name ne '_private'`,
+            SPHttpClient.configurations.v1
+          )
+        ]);
+        const filesData = filesResp.ok ? await filesResp.json() : { value: [] };
+        const foldersData = foldersResp.ok ? await foldersResp.json() : { value: [] };
+        return {
+          files: (filesData.value || []).map((f: { Name: string; ServerRelativeUrl: string }) => ({ name: f.Name, serverRelativeUrl: f.ServerRelativeUrl })),
+          folders: (foldersData.value || []).map((f: { Name: string; ServerRelativeUrl: string }) => ({ name: f.Name, serverRelativeUrl: f.ServerRelativeUrl }))
+        };
+      };
+
+      // Build modal overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100000;display:flex;align-items:center;justify-content:center';
+
+      const dialog = document.createElement('div');
+      dialog.style.cssText = 'background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.2);width:540px;max-height:70vh;display:flex;flex-direction:column;overflow:hidden;font-family:"Segoe UI",sans-serif';
+      dialog.innerHTML = `
+        <div style="padding:16px 20px;border-bottom:1px solid #edebe9;display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0;font-size:16px;font-weight:600">Browse SharePoint Files</h3>
+          <button class="pi-browse-close" style="border:none;background:none;cursor:pointer;font-size:18px;color:#605e5c;padding:4px">&times;</button>
+        </div>
+        <div class="pi-browse-breadcrumb" style="padding:8px 20px;background:#faf9f8;border-bottom:1px solid #edebe9;font-size:13px;color:#605e5c;display:flex;flex-wrap:wrap;gap:4px"></div>
+        <div class="pi-browse-list" style="flex:1;overflow-y:auto;padding:8px 0"></div>
+      `;
+      overlay.appendChild(dialog);
+
+      const breadcrumbEl = dialog.querySelector('.pi-browse-breadcrumb') as HTMLElement;
+      const listEl = dialog.querySelector('.pi-browse-list') as HTMLElement;
+      const closeBtn = dialog.querySelector('.pi-browse-close') as HTMLElement;
+
+      const close = (): void => { overlay.remove(); };
+      closeBtn.addEventListener('click', close);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+      const siteRelUrl = this.context.pageContext.web.serverRelativeUrl;
+      const startFolder = `${siteRelUrl}/SiteAssets`;
+
+      const renderFolder = async (folderPath: string): Promise<void> => {
+        listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#a19f9d">Loading...</div>';
+
+        // Breadcrumb
+        const relPath = folderPath.replace(siteRelUrl, '');
+        const parts = relPath.split('/').filter(Boolean);
+        breadcrumbEl.innerHTML = '';
+        let accumulated = siteRelUrl;
+        parts.forEach((part, i) => {
+          if (i > 0) {
+            const sep = document.createElement('span');
+            sep.textContent = ' / ';
+            sep.style.color = '#a19f9d';
+            breadcrumbEl.appendChild(sep);
+          }
+          accumulated += '/' + part;
+          const link = document.createElement('a');
+          link.textContent = part;
+          link.href = '#';
+          link.style.cssText = 'color:#0078d4;text-decoration:none';
+          const target = accumulated;
+          link.addEventListener('click', (e) => { e.preventDefault(); renderFolder(target); });
+          breadcrumbEl.appendChild(link);
+        });
+
+        try {
+          const data = await fetchFolder(folderPath);
+          listEl.innerHTML = '';
+
+          // Parent folder link
+          if (folderPath !== `${siteRelUrl}/SiteAssets`) {
+            const parent = folderPath.substring(0, folderPath.lastIndexOf('/'));
+            const upEl = document.createElement('div');
+            upEl.style.cssText = 'padding:8px 20px;cursor:pointer;display:flex;align-items:center;gap:8px;color:#605e5c';
+            upEl.innerHTML = '<span style="font-size:16px">&#8593;</span> <span>..</span>';
+            upEl.addEventListener('click', () => renderFolder(parent));
+            upEl.addEventListener('mouseenter', () => { upEl.style.background = '#f3f2f1'; });
+            upEl.addEventListener('mouseleave', () => { upEl.style.background = ''; });
+            listEl.appendChild(upEl);
+          }
+
+          // Folders
+          data.folders.forEach(f => {
+            const el = document.createElement('div');
+            el.style.cssText = 'padding:8px 20px;cursor:pointer;display:flex;align-items:center;gap:8px';
+            el.innerHTML = `<span style="font-size:16px">&#128193;</span> <span>${f.name}</span>`;
+            el.addEventListener('click', () => renderFolder(f.serverRelativeUrl));
+            el.addEventListener('mouseenter', () => { el.style.background = '#f3f2f1'; });
+            el.addEventListener('mouseleave', () => { el.style.background = ''; });
+            listEl.appendChild(el);
+          });
+
+          // Files
+          data.files.forEach(f => {
+            const el = document.createElement('div');
+            el.style.cssText = 'padding:8px 20px;cursor:pointer;display:flex;align-items:center;gap:8px';
+            const icon = f.name.endsWith('.md') ? '&#128196;' : '&#127760;';
+            el.innerHTML = `<span style="font-size:16px">${icon}</span> <span>${f.name}</span>`;
+            el.addEventListener('click', () => {
+              onSelected(f.serverRelativeUrl);
+              close();
+            });
+            el.addEventListener('mouseenter', () => { el.style.background = '#deecf9'; });
+            el.addEventListener('mouseleave', () => { el.style.background = ''; });
+            listEl.appendChild(el);
+          });
+
+          if (data.folders.length === 0 && data.files.length === 0) {
+            listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#a19f9d">No .html or .md files found in this folder</div>';
+          }
+        } catch (err) {
+          listEl.innerHTML = `<div style="padding:20px;text-align:center;color:#a4262c">Failed to load folder contents</div>`;
+          console.error('[PiCanvas] Browse error:', err);
+        }
+      };
+
+      document.body.appendChild(overlay);
+      await renderFolder(startFolder);
+
+    } catch (error) {
+      console.error('[PiCanvas] Failed to open file browser:', error);
+      alert('Failed to open file browser. Please check your permissions.');
     }
   }
 

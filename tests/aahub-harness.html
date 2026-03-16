@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AA HUB — PiCanvas Dropdown Test</title>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet" href="../src/webparts/piCanvas/AddTabs.css" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; }
+  .page-wrapper { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 18px; color: #333; margin-bottom: 16px; }
+  .test-status { padding: 12px 16px; background: #e8f5e9; border-radius: 6px; margin-bottom: 16px; font-size: 13px; }
+  .test-status.fail { background: #ffebee; }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+  <h1>AA HUB — PiCanvas Dropdown Tab Test Harness</h1>
+  <div id="status" class="test-status">Loading...</div>
+
+  <!-- PiCanvas tab container — mirrors the DOM structure _renderInternal() produces -->
+  <div data-addui="tabs" data-transitions="true" data-aria-label="AA HUB Navigation">
+
+    <!-- Tab bar -->
+    <div role="tabs" id="aahub-tabs">
+      <!-- Tab 1: Home (normal content tab) -->
+      <div data-picanvas-tab-index="1">Home</div>
+
+      <!-- Tabs 2-9: Dropdown tabs -->
+      <div data-picanvas-tab-index="2" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"Clean Core Strategy","url":"#clean-core","target":"_self"},{"label":"Cloud Transformation","url":"#cloud-transform","target":"_self"},{"label":"AI &amp; ML Architecture","url":"#ai-ml","target":"_self"},{"label":"Sustainability","url":"#sustainability","target":"_self"},{"label":"Integration Strategy","url":"#integration","target":"_self"},{"label":"Data Architecture","url":"#data-arch","target":"_self"},{"label":"Platform Engineering","url":"#platform","target":"_self"}]'>
+        Strategic Initiatives</div>
+
+      <div data-picanvas-tab-index="3" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"Architecture Decision Records","url":"#adr","target":"_self"},{"label":"Reference Architectures","url":"#ref-arch","target":"_self"},{"label":"BTP Cockpit","url":"https://cockpit.btp.cloud.sap/","target":"_blank"},{"label":"Cloud Foundry CLI","url":"#cf-cli","target":"_self"},{"label":"API Business Hub","url":"https://api.sap.com/","target":"_blank"},{"label":"SAP Graph","url":"#sap-graph","target":"_self"},{"label":"Integration Suite","url":"#is","target":"_self"},{"label":"Build Apps (LCNC)","url":"#lcnc","target":"_self"},{"label":"ABAP Cloud","url":"#abap","target":"_self"},{"label":"SAP CAP","url":"#cap","target":"_self"},{"label":"Fiori Tools","url":"#fiori","target":"_self"},{"label":"EA Templates","url":"#ea","target":"_self"},{"label":"Solution Diagrams","url":"#diagrams","target":"_self"}]'>
+        Resources / Tools</div>
+
+      <div data-picanvas-tab-index="4" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"Architecture Reviews","url":"#reviews","target":"_self"},{"label":"Technical Blueprints","url":"#blueprints","target":"_self"},{"label":"Security Assessments","url":"#security","target":"_self"},{"label":"Performance Benchmarks","url":"#benchmarks","target":"_self"},{"label":"Migration Plans","url":"#migration","target":"_self"}]'>
+        Deliverables</div>
+
+      <div data-picanvas-tab-index="5" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"Architecture Blog Posts","url":"#blog","target":"_self"},{"label":"Whitepapers &amp; Publications","url":"#whitepapers","target":"_self"},{"label":"Conference Presentations","url":"#presentations","target":"_self"}]'>
+        AA Generated Content</div>
+
+      <div data-picanvas-tab-index="6" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"SAP Technology Map","url":"#tech-map","target":"_self"},{"label":"Solution Architecture Patterns","url":"#patterns","target":"_self"},{"label":"Security Reference Architecture","url":"#security-ref","target":"_self"},{"label":"Integration Patterns","url":"#int-patterns","target":"_self"},{"label":"Data Architecture Patterns","url":"#data-patterns","target":"_self"},{"label":"Cloud Native Patterns","url":"#cloud-native","target":"_self"}]'>
+        Reference Content</div>
+
+      <div data-picanvas-tab-index="7" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"Global Architecture Network","url":"#gan","target":"_self"},{"label":"BTP Architecture Guild","url":"#btp-guild","target":"_self"},{"label":"Security Architecture Forum","url":"#sec-forum","target":"_self"},{"label":"Integration Community","url":"#int-community","target":"_self"},{"label":"Cloud Native CoP","url":"#cloud-cop","target":"_self"}]'>
+        Architecture Communities</div>
+
+      <div data-picanvas-tab-index="8" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"BTP Architect Certification","url":"https://learning.sap.com/","target":"_blank"},{"label":"Cloud Foundry Fundamentals","url":"#cf-learn","target":"_self"},{"label":"Integration Suite Training","url":"#is-train","target":"_self"},{"label":"Architecture Kata Workshops","url":"#kata","target":"_self"}]'>
+        Learning Paths</div>
+
+      <div data-picanvas-tab-index="9" data-dropdown="true" data-dropdown-style="dark"
+           data-dropdown-items='[{"label":"Architecture Newsletter","url":"#newsletter","target":"_self"},{"label":"Town Hall Recordings","url":"#townhall","target":"_self"},{"label":"Upcoming Events","url":"#events","target":"_self"}]'>
+        Communications</div>
+    </div>
+
+    <!-- Content panels (1 real + 8 hidden placeholders for dropdown tabs) -->
+    <div role="contents">
+      <!-- Panel 1: Hero HTML content -->
+      <div class="picanvas-tab-content picanvas-custom-content" data-content-fullwidth="true">
+        <style>
+          .aahub-header{background:linear-gradient(135deg,#1a0a2e 0%,#16213e 50%,#0f3460 100%);color:#fff;padding:20px 32px;cursor:pointer;user-select:none;border-radius:8px 8px 0 0}
+          .aahub-header h1{margin:0;font-size:22px;font-weight:600}
+          .aahub-header .subtitle{font-size:13px;opacity:.8;margin-top:4px}
+          .aahub-hero{position:relative;min-height:480px;background:url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600') center/cover no-repeat;border-radius:0 0 8px 8px;overflow:hidden}
+          .aahub-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);display:grid;grid-template-columns:repeat(6,1fr);gap:16px;padding:32px;align-content:start}
+          .aahub-col{color:#fff;font-size:14px;line-height:1.6}
+          .aahub-col h2{font-size:16px;margin:0 0 12px 0;border-bottom:2px solid rgba(255,255,255,.3);padding-bottom:6px}
+          .aahub-col ul{margin:0;padding:0 0 0 16px}
+          .aahub-col li{margin-bottom:4px}
+          .aahub-col a{color:#7dd3fc;text-decoration:none}
+          .aahub-col a:hover{text-decoration:underline}
+          .aahub-callout{font-size:28px;font-weight:700;text-align:center;padding-top:20px;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+          .aahub-gandalf{text-align:center}
+          .aahub-gandalf img{max-width:120px;border-radius:50%;border:3px solid rgba(255,255,255,.4)}
+        </style>
+        <div class="aahub-header" onclick="var h=this.nextElementSibling;h.style.display=h.style.display==='none'?'block':'none'">
+          <h1>Global Architecture Advisory &mdash; Central Tavern &amp; Inn</h1>
+          <div class="subtitle">Welcome, traveler. Your journey through Middle-earth architecture starts here.</div>
+        </div>
+        <div class="aahub-hero">
+          <div class="aahub-overlay">
+            <div class="aahub-col" style="grid-column:span 2">
+              <h2>Welcome</h2>
+              <p>The Architecture Advisory team supports SAP's global architecture landscape. Explore our resources, deliverables, and community hubs.</p>
+              <p>Use the navigation tabs above to browse by category.</p>
+            </div>
+            <div class="aahub-col aahub-gandalf">
+              <img src="https://upload.wikimedia.org/wikipedia/en/e/e9/Gandalf600ppx.jpg" alt="Gandalf" />
+              <p style="margin-top:8px;font-style:italic">&ldquo;All we have to decide is what to do with the time that is given us.&rdquo;</p>
+            </div>
+            <div class="aahub-col aahub-callout">YOU'VE FOUND US!!!</div>
+            <div class="aahub-col">
+              <h2>Top News</h2>
+              <ul>
+                <li><a href="#">Q1 Architecture Review Complete</a></li>
+                <li><a href="#">New Cloud Foundry Patterns Published</a></li>
+                <li><a href="#">Architecture Community Day &mdash; March 2026</a></li>
+                <li><a href="#">Updated Reference Architecture Library</a></li>
+              </ul>
+            </div>
+            <div class="aahub-col" style="grid-column:span 2">
+              <h2>Good to Know</h2>
+              <ul>
+                <li><a href="#">Architecture Decision Records (ADR) Template</a></li>
+                <li><a href="#">Cloud Foundry Migration Playbook</a></li>
+                <li><a href="#">SAP BTP Best Practices Guide</a></li>
+                <li><a href="#">Security Architecture Checklist</a></li>
+                <li><a href="#">Integration Patterns Catalog</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panels 2-9: Hidden placeholders for dropdown tabs -->
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+      <div class="picanvas-dropdown-placeholder" style="display:none !important"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Override tab bar colors to match AA HUB dark theme -->
+<style>
+  .addui-Tabs {
+    --pi-tab-text: #ffffff;
+    --pi-tab-text-active: #ffffff;
+    --pi-tab-bg: #333333;
+    --pi-tab-bg-active: #555555;
+    --pi-tab-bg-hover: #444444;
+    --pi-tab-font-size: 13px;
+    --pi-tab-font-weight: 500;
+    --pi-tab-padding-v: 10px;
+    --pi-tab-padding-h: 16px;
+    --pi-tab-gap: 0px;
+    --pi-tab-radius: 0px;
+    --pi-tab-indicator-display: none;
+    --pi-tab-separator-display: none;
+    --pi-tab-content-gap: 0px;
+  }
+</style>
+
+<!-- Load AddTabs.js and initialize -->
+<script src="../src/webparts/piCanvas/AddTabs.js"></script>
+<script>
+  $(function () {
+    // Initialize tabs (same call PiCanvas makes after DOM is built)
+    RenderTabs();
+
+    // Run tests
+    var results = [];
+    function assert(name, condition) {
+      results.push({ name: name, pass: !!condition });
+    }
+
+    setTimeout(function () {
+      // Test 1: Tabs rendered
+      var tabs = $('.addui-Tabs-tab');
+      assert('9 tabs rendered', tabs.length === 9);
+
+      // Test 2: Dropdown tabs detected
+      var ddTabs = $('[data-dropdown="true"]');
+      assert('8 dropdown tabs', ddTabs.length === 8);
+
+      // Test 3: Caret indicators added
+      var carets = $('.pi-dropdown-caret');
+      assert('8 caret indicators', carets.length === 8);
+
+      // Test 4: Dropdown menus built
+      var menus = $('.picanvas-dropdown-menu');
+      assert('8 dropdown menus', menus.length === 8);
+
+      // Test 5: ARIA attributes
+      var hasPopup = $('[aria-haspopup="true"]');
+      assert('aria-haspopup on dropdowns', hasPopup.length === 8);
+
+      var expanded = $('[aria-expanded="false"]');
+      assert('aria-expanded=false initially', expanded.length >= 8);
+
+      // Test 6: Menu items count
+      var totalItems = $('.picanvas-dropdown-menu a[role="menuitem"]');
+      assert('~46 total menu items', totalItems.length >= 40 && totalItems.length <= 55);
+
+      // Test 7: First tab is active (Home)
+      var activeTab = $('.addui-Tabs-tab.addui-Tabs-active');
+      assert('Home tab is active', activeTab.length === 1 && activeTab.text().trim() === 'Home');
+
+      // Test 8: Hero content visible
+      var hero = $('.aahub-hero');
+      assert('Hero section visible', hero.length === 1 && hero.is(':visible'));
+
+      // Test 9: Home content panel is active
+      var activePanel = $('.addui-Tabs-content.addui-Tabs-active');
+      assert('One active content panel', activePanel.length === 1);
+
+      // Display results
+      var pass = results.filter(function (r) { return r.pass; }).length;
+      var fail = results.filter(function (r) { return !r.pass; }).length;
+      var html = '<strong>' + pass + '/' + results.length + ' tests passed</strong><br>';
+      results.forEach(function (r) {
+        html += (r.pass ? '&#9989;' : '&#10060;') + ' ' + r.name + '<br>';
+      });
+      var el = document.getElementById('status');
+      el.innerHTML = html;
+      el.className = 'test-status' + (fail > 0 ? ' fail' : '');
+
+      console.log('=== Test Results ===');
+      results.forEach(function (r) {
+        console.log((r.pass ? 'PASS' : 'FAIL') + ': ' + r.name);
+      });
+    }, 500);
+  });
+</script>
+
+</body>
+</html>
