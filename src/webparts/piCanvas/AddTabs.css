@@ -190,6 +190,23 @@
   object-fit: contain !important;
 }
 
+/* Original mode: honour the SP Image webpart's own configured width/height.
+   JS applies inline style from the img's width/height attributes; we just remove
+   the forced overrides so those inline styles take effect. */
+.addui-Tabs[data-label-image-original="true"] .addui-Tabs-tabHolder .addui-Tabs-tab.webpart-label-tab img {
+  max-height: none;
+  max-width: 100%;
+  object-fit: contain !important;
+}
+
+/* Let containers shrink-wrap to the image's configured size */
+.addui-Tabs[data-label-image-original="true"] .addui-Tabs-tabHolder .addui-Tabs-tab.webpart-label-tab .as-tab-label,
+.addui-Tabs[data-label-image-original="true"] .addui-Tabs-tabHolder .addui-Tabs-tab.webpart-label-tab .as-tab-label div,
+.addui-Tabs[data-label-image-original="true"] .addui-Tabs-tabHolder .addui-Tabs-tab.webpart-label-tab figure {
+  width: auto !important;
+  max-width: 100%;
+}
+
 /* Handle Image web part specific structure */
 .addui-Tabs .addui-Tabs-tabHolder .addui-Tabs-tab.webpart-label-tab [data-sp-web-part] {
   display: flex;

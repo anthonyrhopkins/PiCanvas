@@ -305,6 +305,18 @@ export class TabBuilderSection {
       });
       dd.render(accordion.body);
       this._controls.push(dd);
+
+      this._renderTextField(accordion.body, tabIndex, 'WebPartLabel', 'Label (for identification)', 'e.g., "Main Hero Banner", "Team Links"');
+
+      const bannerToggle = new ToggleControl({
+        label: 'Banner Layout',
+        checked: opts.getProperty(`tab${tabIndex}FullWidthBanner`) as boolean ?? true,
+        onText: 'Full Width (edge-to-edge)',
+        offText: 'Contained (with margins)',
+        onChange: (v) => { opts.setProperty(`tab${tabIndex}FullWidthBanner`, v); opts.onChanged(); }
+      });
+      bannerToggle.render(accordion.body);
+      this._controls.push(bannerToggle);
     } else if (contentType === 'section') {
       const sections = opts.getSections();
       const sectionOptions: IDropdownOption[] = [
@@ -319,6 +331,16 @@ export class TabBuilderSection {
       });
       dd.render(accordion.body);
       this._controls.push(dd);
+
+      const bannerToggle = new ToggleControl({
+        label: 'Banner Layout',
+        checked: opts.getProperty(`tab${tabIndex}FullWidthBanner`) as boolean ?? true,
+        onText: 'Full Width (edge-to-edge)',
+        offText: 'Contained (with margins)',
+        onChange: (v) => { opts.setProperty(`tab${tabIndex}FullWidthBanner`, v); opts.onChanged(); }
+      });
+      bannerToggle.render(accordion.body);
+      this._controls.push(bannerToggle);
     } else if (contentType === 'markdown' || contentType === 'html') {
       const sourceType = (opts.getProperty(`tab${tabIndex}ContentSourceType`) as string) || 'manual';
       const sourceDd = new DropdownControl({
@@ -963,37 +985,81 @@ export class TabBuilderSection {
     const accordion = this._createAccordion('Label & Appearance', false);
     container.appendChild(accordion.wrapper);
 
-    this._renderTextField(accordion.body, tabIndex, 'Label', 'Tab Label', `Tab ${tabIndex}`);
+    const labelType = (opts.getProperty(`tab${tabIndex}LabelType`) as string) || 'text';
 
     const labelTypeDd = new DropdownControl({
       label: 'Label Type',
-      value: (opts.getProperty(`tab${tabIndex}LabelType`) as string) || 'text',
+      value: labelType,
       options: [
         { key: 'text', text: 'Text' },
-        { key: 'webpart', text: 'WebPart Label' }
+        { key: 'webpart', text: 'WebPart Label' },
+        { key: 'hidden', text: 'Hidden (Content Only)' }
       ],
       onChange: (v) => { opts.setProperty(`tab${tabIndex}LabelType`, v); opts.onChanged(); }
     });
     labelTypeDd.render(accordion.body);
     this._controls.push(labelTypeDd);
 
-    this._renderTextField(accordion.body, tabIndex, 'Icon', 'Icon (emoji or text)', '');
-    this._renderTextField(accordion.body, tabIndex, 'Image', 'Image URL', '');
-
-    if (opts.getProperty(`tab${tabIndex}Image`)) {
-      const posDd = new DropdownControl({
-        label: 'Image Position',
-        value: (opts.getProperty(`tab${tabIndex}ImagePosition`) as string) || 'left',
-        options: [
-          { key: 'left', text: 'Left of text' },
-          { key: 'right', text: 'Right of text' },
-          { key: 'top', text: 'Above text' },
-          { key: 'background', text: 'Background image' }
-        ],
-        onChange: (v) => { opts.setProperty(`tab${tabIndex}ImagePosition`, v); opts.onChanged(); }
+    if (labelType === 'webpart') {
+      // Show web part selector for label
+      const zones = opts.getZones();
+      const zoneOptions: IDropdownOption[] = [
+        { key: '', text: '(Select a web part for label)' },
+        ...zones.map(z => ({ key: z[0], text: z[1] }))
+      ];
+      const labelWpDd = new DropdownControl({
+        label: 'Label Web Part',
+        value: (opts.getProperty(`tab${tabIndex}LabelWebPartID`) as string) || '',
+        options: zoneOptions,
+        onChange: (v) => { opts.setProperty(`tab${tabIndex}LabelWebPartID`, v); opts.onChanged(); }
       });
-      posDd.render(accordion.body);
-      this._controls.push(posDd);
+      labelWpDd.render(accordion.body);
+      this._controls.push(labelWpDd);
+
+      // Label image size — controls --pi-label-image-height (global setting surfaced here for convenience)
+      const imgSizeDd = new DropdownControl({
+        label: 'Label Image Size',
+        value: (opts.getProperty('labelImageHeight') as string) || '60px',
+        options: [
+          { key: 'original', text: 'Original (as configured on page)' },
+          { key: '40px', text: 'Small (40px)' },
+          { key: '60px', text: 'Medium (60px)' },
+          { key: '80px', text: 'Large (80px)' },
+          { key: '100px', text: 'Extra Large (100px)' },
+          { key: '120px', text: 'Huge (120px)' },
+          { key: 'none', text: 'No limit (full size)' }
+        ],
+        onChange: (v) => { opts.setProperty('labelImageHeight', v); opts.onChanged(); }
+      });
+      imgSizeDd.render(accordion.body);
+      this._controls.push(imgSizeDd);
+    } else if (labelType === 'hidden') {
+      // Info text for hidden mode
+      const info = document.createElement('div');
+      info.style.cssText = 'color:#666;font-size:12px;margin:8px 0 12px';
+      info.textContent = 'Tab bar will be hidden when all tabs use "Hidden" label type.';
+      accordion.body.appendChild(info);
+    } else {
+      // Text label mode - show label, icon, image fields
+      this._renderTextField(accordion.body, tabIndex, 'Label', 'Tab Label', `Tab ${tabIndex}`);
+      this._renderTextField(accordion.body, tabIndex, 'Icon', 'Icon (emoji or text)', '');
+      this._renderTextField(accordion.body, tabIndex, 'Image', 'Image URL', '');
+
+      if (opts.getProperty(`tab${tabIndex}Image`)) {
+        const posDd = new DropdownControl({
+          label: 'Image Position',
+          value: (opts.getProperty(`tab${tabIndex}ImagePosition`) as string) || 'left',
+          options: [
+            { key: 'left', text: 'Left of text' },
+            { key: 'right', text: 'Right of text' },
+            { key: 'top', text: 'Above text' },
+            { key: 'background', text: 'Background image' }
+          ],
+          onChange: (v) => { opts.setProperty(`tab${tabIndex}ImagePosition`, v); opts.onChanged(); }
+        });
+        posDd.render(accordion.body);
+        this._controls.push(posDd);
+      }
     }
 
     const dividerToggle = new ToggleControl({

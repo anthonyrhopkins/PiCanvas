@@ -342,7 +342,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     '#SuiteNavWrapper',
     '[data-automationid="SiteHeader"]',
     '#sp-appBar',
-    '#CenterRegion'
+    '#CenterRegion',
+    '#O365_SearchBoxContainer_container',
+    '#O365_SuiteBranding_container',
+    '#O365_DocTitle_container'
   ];
 
   private _spChromeConflicts: string[] = [];
@@ -631,27 +634,52 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   /**
-   * Inject CSS to hide SharePoint chrome elements (suite header, site nav, app bar)
-   * based on the three hideSpXxx config properties.
+   * Inject CSS to hide SharePoint chrome elements (search, branding, suite header, site nav, app bar)
+   * based on the hideSpXxx config properties. Search and branding can be hidden independently
+   * or default to hidden when Waffle-Clean Mode (hideSpSuiteHeader) is on.
    */
   private injectSpChromeStyles(): void {
     const styleId = `picanvas-sp-chrome-${this.instanceId}`;
     const rules: string[] = [];
 
     // Only hide SP chrome in read/display mode — editors need full navigation.
-    // Check both SPFx displayMode AND URL indicators since displayMode can be
+    // Check SPFx displayMode AND URL indicators since displayMode can be
     // unreliable during page transitions or auto-checkout.
+    // NOTE: Do NOT check for .commandBarWrapper — SharePoint renders it in read mode too.
     const isEditMode = this.displayMode !== DisplayMode.Read
       || window.location.search.includes('Mode=Edit')
-      || window.location.search.includes('mode=edit')
-      || document.querySelector('.commandBarWrapper') !== null;
+      || window.location.search.includes('mode=edit');
 
     if (!isEditMode) {
       if (this.properties.hideSpHorizontalNav === true) {
         rules.push(`[data-automationid="SiteHeader"] { display: none !important; }`);
       }
+
+      // Search and branding can be hidden independently OR via Waffle-Clean Mode.
+      // Effective hide: explicitly true, OR waffle-clean on and not explicitly false.
+      const hideSearch = this.properties.hideSpSearch === true ||
+        (this.properties.hideSpSuiteHeader === true && this.properties.hideSpSearch !== false);
+      const hideBranding = this.properties.hideSpBranding === true ||
+        (this.properties.hideSpSuiteHeader === true && this.properties.hideSpBranding !== false);
+
+      if (hideSearch) {
+        rules.push(`#O365_SearchBoxContainer_container { display: none !important; }`);
+      }
+      if (hideBranding) {
+        rules.push(`#O365_SuiteBranding_container { display: none !important; }`);
+        rules.push(`#O365_DocTitle_container { display: none !important; }`);
+      }
+      if (hideSearch || hideBranding) {
+        this.forceHideChromeElements();
+      }
+
       if (this.properties.hideSpSuiteHeader === true) {
-        rules.push(`#SuiteNavWrapper { display: none !important; }`);
+        // "Waffle-clean" mode: fixed compact header with waffle, profile, gear.
+        rules.push(`#SuiteNavWrapper { z-index: 100001 !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100vw !important; }`);
+        rules.push(`#SuiteNavWrapper, #SuiteNavWrapper * { pointer-events: auto !important; }`);
+        rules.push(`#SuiteNavWrapper button, #SuiteNavWrapper a, #SuiteNavWrapper [role="button"] { visibility: visible !important; pointer-events: auto !important; }`);
+        // Compensate for the fixed header — push content down so it isn't hidden behind it
+        rules.push(`#SuiteNavWrapper + div { padding-top: 48px !important; }`);
       }
       if (this.properties.hideSpAppBar === true) {
         rules.push(`#sp-appBar { display: none !important; }`);
@@ -672,6 +700,61 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       el.id = styleId;
       el.textContent = css;
       document.head.appendChild(el);
+    }
+  }
+
+  /**
+   * Force-hide suite header chrome elements by collapsing them to zero size.
+   * Uses multiple CSS properties (belt-and-suspenders), high-specificity CSS,
+   * and polling to reliably beat SharePoint's async React rendering.
+   */
+  private forceHideChromeElements(): void {
+    // Build list of IDs to hide — matches effective-hide logic in injectSpChromeStyles()
+    const idsToHide: string[] = [];
+    const hideSearch = this.properties.hideSpSearch === true ||
+      (this.properties.hideSpSuiteHeader === true && this.properties.hideSpSearch !== false);
+    const hideBranding = this.properties.hideSpBranding === true ||
+      (this.properties.hideSpSuiteHeader === true && this.properties.hideSpBranding !== false);
+    if (hideSearch) {
+      idsToHide.push('O365_SearchBoxContainer_container');
+    }
+    if (hideBranding) {
+      idsToHide.push('O365_SuiteBranding_container', 'O365_DocTitle_container');
+    }
+    if (idsToHide.length === 0) return;
+
+    const collapseStyle = 'display:none!important;visibility:hidden!important;width:0!important;height:0!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;position:absolute!important;clip:rect(0,0,0,0)!important;';
+
+    const hideAll = (): void => {
+      idsToHide.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.getAttribute('data-picanvas-hidden') !== 'true') {
+          el.setAttribute('style', collapseStyle);
+          el.setAttribute('data-picanvas-hidden', 'true');
+        } else if (el && el.getAttribute('data-picanvas-hidden') === 'true' && !el.style.cssText.includes('display')) {
+          // React re-rendered and overwrote our style — reapply
+          el.setAttribute('style', collapseStyle);
+        }
+      });
+    };
+
+    // Immediate + next frame
+    hideAll();
+    requestAnimationFrame(hideAll);
+
+    // Poll every 500ms for 15 seconds to catch late SP renders
+    const intervalKey = `_chromeInterval_${this.instanceId}`;
+    if (!(this as Record<string, unknown>)[intervalKey]) {
+      let elapsed = 0;
+      const interval = window.setInterval(() => {
+        hideAll();
+        elapsed += 500;
+        if (elapsed >= 15000) {
+          window.clearInterval(interval);
+          (this as Record<string, unknown>)[intervalKey] = undefined;
+        }
+      }, 500);
+      (this as Record<string, unknown>)[intervalKey] = interval;
     }
   }
 
@@ -4182,8 +4265,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       vars.push(`--pi-tab-content-gap: ${this.properties.tabContentGap}`);
     }
 
-    // Label Image Settings (skip if 'none' - handled by data attribute instead)
-    if (this.properties.labelImageHeight && this.properties.labelImageHeight !== 'none') {
+    // Label Image Settings (skip if 'none' or 'original' - handled by data attribute instead)
+    if (this.properties.labelImageHeight && this.properties.labelImageHeight !== 'none' && this.properties.labelImageHeight !== 'original') {
       vars.push(`--pi-label-image-height: ${this.properties.labelImageHeight}`);
     }
 
@@ -4337,7 +4420,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const verticalTabWidth = this.properties.verticalTabWidth || '200px';
       const customStyles = this.getCustomCSSVariables();
       const transitionsAttr = this.properties.enableTransitions === false ? 'data-transitions="false"' : '';
-      const unlimitedImageAttr = this.properties.labelImageHeight === 'none' ? 'data-label-image-unlimited="true"' : '';
+      const unlimitedImageAttr = this.properties.labelImageHeight === 'none' ? 'data-label-image-unlimited="true"'
+        : this.properties.labelImageHeight === 'original' ? 'data-label-image-original="true"' : '';
 
       // Build orientation-specific attributes
       const orientationAttrs = tabOrientation === 'vertical'
@@ -4434,10 +4518,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                   $clonedLabel.removeAttr('id').addClass('as-tab-label cloned-label');
                   tabDiv.append($clonedLabel);
                   // Original stays in place for tab content
+                  if (this.properties.labelImageHeight === 'original') {
+                    this._applyOriginalImageSize($clonedLabel);
+                  }
                 } else {
                   // Different web parts - move the label web part into the tab header
                   tabDiv.append($labelWebPart);
                   $labelWebPart.addClass('as-tab-label');
+                  if (this.properties.labelImageHeight === 'original') {
+                    this._applyOriginalImageSize($labelWebPart);
+                  }
                 }
               } else {
                 // Fallback if web part not found
@@ -5925,6 +6015,27 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       }
     });
     return sectionNum;
+  }
+
+  /**
+   * For "original" label image mode: read the img's width/height HTML attributes
+   * (set by the SP Image webpart's resize handle) and apply them as inline styles
+   * so they survive our CSS resets.
+   */
+  private _applyOriginalImageSize($container: JQuery<HTMLElement>): void {
+    $container.find('img').each((_i, img) => {
+      const w = img.getAttribute('width');
+      const h = img.getAttribute('height');
+      if (w) {
+        const wVal = w.endsWith('px') ? w : `${w}px`;
+        img.style.setProperty('width', wVal, 'important');
+        img.style.setProperty('max-width', '100%', 'important');
+      }
+      if (h) {
+        const hVal = h.endsWith('px') ? h : `${h}px`;
+        img.style.setProperty('height', hVal, 'important');
+      }
+    });
   }
 
   /**
@@ -8901,6 +9012,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                 PropertyPaneDropdown('labelImageHeight', {
                   label: 'Label Image Size',
                   options: [
+                    { key: 'original', text: 'Original (as configured on page)' },
                     { key: '40px', text: 'Small (40px)' },
                     { key: '60px', text: 'Medium (60px)' },
                     { key: '80px', text: 'Large (80px)' },

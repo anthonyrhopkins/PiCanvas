@@ -159,6 +159,7 @@ export class AppearanceSection {
         label: 'Label Image Size',
         value: (opts.getProperty('labelImageHeight') as string) || '60px',
         options: [
+          { key: 'original', text: 'Original (as configured on page)' },
           { key: '40px', text: 'Small (40px)' },
           { key: '60px', text: 'Medium (60px)' },
           { key: '80px', text: 'Large (80px)' },
