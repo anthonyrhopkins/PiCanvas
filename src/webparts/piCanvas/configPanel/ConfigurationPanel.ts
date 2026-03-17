@@ -13,7 +13,9 @@ import { TypographySection } from './sections/TypographySection';
 import { TemplatesSection, ITemplateInfo } from './sections/TemplatesSection';
 import { AdvancedSection } from './sections/AdvancedSection';
 import { NavigationSection } from './sections/NavigationSection';
+import { ChromeSection } from './sections/ChromeSection';
 import { HelpSection } from './sections/HelpSection';
+import { HistorySection, IHistoryEntry } from './sections/HistorySection';
 
 export interface IConfigurationPanelOptions {
   /** Read a webpart property */
@@ -75,17 +77,11 @@ const SIDEBAR_ITEMS: ISidebarItem[] = [
   { id: 'typography', icon: '&#128208;', label: 'Typography' },
   { id: 'templates', icon: '&#128203;', label: 'Templates' },
   { id: 'advanced', icon: '&#9881;', label: 'Advanced' },
+  { id: 'chrome', icon: '&#128065;', label: 'Page Chrome' },
   { id: 'navigation', icon: '&#128279;', label: 'Navigation' },
+  { id: 'history', icon: '&#128340;', label: 'History' },
   { id: 'help', icon: '&#10067;', label: 'Help & Docs' }
 ];
-
-// ── Undo/Redo History Entry ──
-interface IHistoryEntry {
-  key: string;
-  oldValue: string | number | boolean | undefined;
-  newValue: string | number | boolean | undefined;
-  label: string;
-}
 
 export class ConfigurationPanel {
   private _options: IConfigurationPanelOptions;
@@ -102,6 +98,8 @@ export class ConfigurationPanel {
   private _templates: TemplatesSection | null = null;
   private _advanced: AdvancedSection | null = null;
   private _navigation: NavigationSection | null = null;
+  private _chrome: ChromeSection | null = null;
+  private _history: HistorySection | null = null;
   private _help: HelpSection | null = null;
   private _preview: LivePreview | null = null;
 
@@ -358,6 +356,7 @@ export class ConfigurationPanel {
     // Clear redo stack on new change
     this._redoStack = [];
     this._updateHistoryButtons();
+    this._refreshHistorySection();
   }
 
   private _undo(): void {
@@ -370,6 +369,7 @@ export class ConfigurationPanel {
 
     this._redoStack.push(entry);
     this._updateHistoryButtons();
+    this._refreshHistorySection();
     this._onChanged();
     this._showToast(`Undo: ${this._formatKey(entry.key)}`);
   }
@@ -384,8 +384,43 @@ export class ConfigurationPanel {
 
     this._undoStack.push(entry);
     this._updateHistoryButtons();
+    this._refreshHistorySection();
     this._onChanged();
     this._showToast(`Redo: ${this._formatKey(entry.key)}`);
+  }
+
+  /** Undo all changes back to (and including) the given undo stack index */
+  private _undoToIndex(targetIndex: number): void {
+    this._isUndoRedoing = true;
+    while (this._undoStack.length > targetIndex) {
+      const entry = this._undoStack.pop()!;
+      this._options.setProperty(entry.key, entry.oldValue);
+      this._redoStack.push(entry);
+    }
+    this._isUndoRedoing = false;
+    this._updateHistoryButtons();
+    this._refreshHistorySection();
+    this._onChanged();
+    this._showToast(`Reverted to change #${targetIndex}`);
+  }
+
+  /** Redo changes up to (and including) the given redo stack index */
+  private _redoToIndex(targetIndex: number): void {
+    this._isUndoRedoing = true;
+    for (let i = this._redoStack.length - 1; i >= targetIndex; i--) {
+      const entry = this._redoStack.pop()!;
+      this._options.setProperty(entry.key, entry.newValue);
+      this._undoStack.push(entry);
+    }
+    this._isUndoRedoing = false;
+    this._updateHistoryButtons();
+    this._refreshHistorySection();
+    this._onChanged();
+    this._showToast(`Reapplied changes`);
+  }
+
+  private _refreshHistorySection(): void {
+    if (this._history) this._history.rebuild();
   }
 
   private _updateHistoryButtons(): void {
@@ -448,7 +483,7 @@ export class ConfigurationPanel {
       'lockDefaultMessageError', 'lockDefaultMessageMissing',
       'lockDefaultMessageSuccess', 'lockUnlockTtlMinutes',
       'enableSiteNavigation', 'hideSpHorizontalNav', 'hideSpSuiteHeader', 'hideSpAppBar',
-      'chromeConfigOverridesContent'
+      'hideSpSearch', 'hideSpBranding', 'chromeConfigOverridesContent'
     ];
 
     styleKeys.forEach(key => {
@@ -566,6 +601,18 @@ export class ConfigurationPanel {
       this._advanced.render(advancedContainer);
     }
 
+    // Page Chrome
+    const chromeContainer = this._overlay.querySelector('[data-section-content="chrome"]') as HTMLElement;
+    if (chromeContainer) {
+      this._chrome = new ChromeSection({
+        getProperty: opts.getProperty,
+        setProperty: trackedSet,
+        onChanged,
+        getSpChromeConflicts: opts.getSpChromeConflicts
+      });
+      this._chrome.render(chromeContainer);
+    }
+
     // Navigation
     const navContainer = this._overlay.querySelector('[data-section-content="navigation"]') as HTMLElement;
     if (navContainer) {
@@ -576,6 +623,19 @@ export class ConfigurationPanel {
         getSpChromeConflicts: opts.getSpChromeConflicts
       });
       this._navigation.render(navContainer);
+    }
+
+    // History
+    const historyContainer = this._overlay.querySelector('[data-section-content="history"]') as HTMLElement;
+    if (historyContainer) {
+      this._history = new HistorySection({
+        getUndoStack: () => this._undoStack,
+        getRedoStack: () => this._redoStack,
+        undoToIndex: (idx: number) => this._undoToIndex(idx),
+        redoToIndex: (idx: number) => this._redoToIndex(idx),
+        onChanged
+      });
+      this._history.render(historyContainer);
     }
 
     // Help & Docs
@@ -604,6 +664,8 @@ export class ConfigurationPanel {
     if (this._templates) { this._templates.dispose(); this._templates = null; }
     if (this._advanced) { this._advanced.dispose(); this._advanced = null; }
     if (this._navigation) { this._navigation.dispose(); this._navigation = null; }
+    if (this._chrome) { this._chrome.dispose(); this._chrome = null; }
+    if (this._history) { this._history.dispose(); this._history = null; }
     if (this._help) { this._help.dispose(); this._help = null; }
     if (this._preview) { this._preview.dispose(); this._preview = null; }
   }

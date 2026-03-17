@@ -388,7 +388,11 @@ export class ContentRenderer {
    * Prepare Mermaid diagram content for rendering
    * Note: Actual rendering happens post-DOM insertion via renderMermaidElement()
    */
-  public static prepareMermaid(content: string, elementId: string): IRenderResult {
+  public static prepareMermaid(content: string, elementId: string, sizing?: {
+    maxWidth?: string;
+    height?: string;
+    fullWidth?: boolean;
+  }): IRenderResult {
     if (!content || typeof content !== 'string') {
       return { html: '' };
     }
@@ -399,12 +403,29 @@ export class ContentRenderer {
     // Generate a CSS-safe ID for mermaid (no special characters that break selectors)
     const safeId = this.makeCssSafeId(elementId);
 
+    // Build inline styles from sizing options
+    const containerStyles: string[] = [];
+    const innerStyles: string[] = [];
+    if (sizing?.maxWidth && this.isSafeCssValue(sizing.maxWidth)) {
+      containerStyles.push(`max-width:${sizing.maxWidth}`);
+    }
+    if (sizing?.height && this.isSafeCssValue(sizing.height)) {
+      containerStyles.push(`height:${sizing.height}`);
+      innerStyles.push(`height:100%`);
+    }
+    if (sizing?.fullWidth) {
+      containerStyles.push('max-width:100%');
+      containerStyles.push('width:100%');
+    }
+    const containerStyle = containerStyles.length > 0 ? ` style="${containerStyles.join(';')}"` : '';
+    const innerStyle = innerStyles.length > 0 ? ` style="${innerStyles.join(';')}"` : '';
+
     // Return placeholder that will be rendered after DOM insertion
     const html = `
       <div class="picanvas-mermaid-container"
            data-mermaid-id="${safeId}"
-           data-mermaid-content="${encodedContent}">
-        <div class="mermaid" id="${safeId}">
+           data-mermaid-content="${encodedContent}"${containerStyle}>
+        <div class="mermaid" id="${safeId}"${innerStyle}>
           ${this.encodeHtml(content)}
         </div>
       </div>
@@ -442,6 +463,27 @@ export class ContentRenderer {
     try {
       const { svg } = await mermaid.render(mermaidId + '-svg', decodedContent);
       mermaidDiv.innerHTML = svg;
+
+      // If the container has explicit sizing, make the SVG scalable
+      // by removing fixed width/height and letting viewBox handle scaling
+      const hasCustomSizing = element.style.height || element.style.maxWidth || element.style.width;
+      if (hasCustomSizing) {
+        const svgEl = mermaidDiv.querySelector('svg');
+        if (svgEl) {
+          // Ensure viewBox exists before removing fixed dimensions
+          if (!svgEl.getAttribute('viewBox')) {
+            const w = svgEl.getAttribute('width') || svgEl.getBoundingClientRect().width.toString();
+            const h = svgEl.getAttribute('height') || svgEl.getBoundingClientRect().height.toString();
+            svgEl.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`);
+          }
+          svgEl.removeAttribute('width');
+          svgEl.removeAttribute('height');
+          svgEl.style.width = '100%';
+          svgEl.style.height = '100%';
+          svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        }
+      }
+
       element.classList.add('picanvas-mermaid-rendered');
     } catch (error) {
       console.error('[PiCanvas] Mermaid render error:', error);
@@ -617,6 +659,15 @@ export class ContentRenderer {
     } catch {
       return str;
     }
+  }
+
+  /**
+   * Check if a CSS value is safe (no injection risk)
+   */
+  private static isSafeCssValue(value: string): boolean {
+    if (!value) return false;
+    const trimmed = value.trim();
+    return /^(auto|none|inherit|[\d.]+(px|em|rem|%|vh|vw|svh|dvh)?)$/i.test(trimmed);
   }
 
   /**
@@ -1002,7 +1053,7 @@ export class ContentRenderer {
    * Call this after the element is in the DOM
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public static executeJavaScriptElement(element: HTMLElement, graphFetch?: (...args: any[]) => any): void {
+  public static executeJavaScriptElement(element: HTMLElement, graphFetch?: (...args: any[]) => any, graphScopes?: () => Promise<string[]>): void {
     const code = element.getAttribute('data-js-code');
     const jsId = element.getAttribute('data-js-id');
 
@@ -1199,10 +1250,11 @@ export class ContentRenderer {
         'echarts',
         'document',
         'graphFetch',
+        'graphScopes',
         decodedCode
       );
 
-      sandboxedFunction(container, render, create, echarts, scopedDocument, graphFetch);
+      sandboxedFunction(container, render, create, echarts, scopedDocument, graphFetch, graphScopes);
 
       element.classList.add('picanvas-js-executed');
     } catch (error) {

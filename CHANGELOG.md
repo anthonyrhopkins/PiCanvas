@@ -5,6 +5,18 @@ All notable changes to PiCanvas will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- JavaScript Sandbox API documentation in README (graphFetch, httpFetch, render, container, etc.)
+- Copilot Search Demo sample (`samples/copilot_search_demo.js`) — Microsoft 365 search app using Graph Search, Copilot Retrieval, and Copilot Search APIs
+  - Dynamic content-type tabs (Pages, Loop, PowerPoint, Word, Excel, PDF, OneNote, Sites, Images, Files)
+  - Paginated search fetching up to 100 results
+  - User-configurable source scoping with localStorage-persisted site/library chips
+  - Smart title extraction from SharePoint URLs for untitled results
+  - External script loading pattern for SiteAssets-hosted JavaScript
+  - Copilot Search API integration (`POST /beta/copilot/search`) — semantic + lexical hybrid search (requires M365 Copilot license)
+
 ## [3.0.0] - 2026-02-25
 
 ### Added

@@ -138,15 +138,6 @@ export class NavigationSection {
 
       <div class="picanvas-config-field-group" data-nav-enable></div>
 
-      <div class="picanvas-config-field-group">
-        <div class="picanvas-config-field-group-title">Hide SharePoint Navigation</div>
-        <div class="picanvas-config-section-desc" style="margin-top:-4px;margin-bottom:8px;">Hide the built-in SharePoint navigation elements.</div>
-        <div data-nav-hide-sp-horizontal></div>
-        <div data-nav-hide-sp-header></div>
-        <div data-nav-hide-sp-appbar></div>
-        <div data-nav-chrome-warning></div>
-      </div>
-
       ${enabled ? `
         <div class="picanvas-config-field-group">
           <div class="picanvas-config-field-group-title">Data Source</div>
@@ -243,74 +234,6 @@ export class NavigationSection {
       });
       toggle.render(enableGroup);
       this._controls.push(toggle);
-    }
-
-    // Hide SP nav toggles — always available regardless of enableSiteNavigation
-    const hideHorizEl = this._el.querySelector('[data-nav-hide-sp-horizontal]') as HTMLElement;
-    if (hideHorizEl) {
-      const toggle = new ToggleControl({
-        label: 'Hide Site Navigation Bar',
-        checked: opts.getProperty('hideSpHorizontalNav') === true,
-        onText: 'Hidden',
-        offText: 'Visible',
-        onChange: (v) => { opts.setProperty('hideSpHorizontalNav', v); opts.onChanged(); }
-      });
-      toggle.render(hideHorizEl);
-      this._controls.push(toggle);
-    }
-
-    const hideHeaderEl = this._el.querySelector('[data-nav-hide-sp-header]') as HTMLElement;
-    if (hideHeaderEl) {
-      const toggle = new ToggleControl({
-        label: 'Hide Suite Header (Office 365 bar)',
-        checked: opts.getProperty('hideSpSuiteHeader') === true,
-        onText: 'Hidden',
-        offText: 'Visible',
-        onChange: (v) => { opts.setProperty('hideSpSuiteHeader', v); opts.onChanged(); }
-      });
-      toggle.render(hideHeaderEl);
-      this._controls.push(toggle);
-    }
-
-    const hideAppBarEl = this._el.querySelector('[data-nav-hide-sp-appbar]') as HTMLElement;
-    if (hideAppBarEl) {
-      const toggle = new ToggleControl({
-        label: 'Hide App Bar (left rail)',
-        checked: opts.getProperty('hideSpAppBar') === true,
-        onText: 'Hidden',
-        offText: 'Visible',
-        onChange: (v) => { opts.setProperty('hideSpAppBar', v); opts.onChanged(); }
-      });
-      toggle.render(hideAppBarEl);
-      this._controls.push(toggle);
-    }
-
-    // SP Chrome CSS conflict warning + override toggle
-    const warningEl = this._el.querySelector('[data-nav-chrome-warning]') as HTMLElement;
-    const conflicts = opts.getSpChromeConflicts?.() || [];
-    if (conflicts.length > 0 && warningEl) {
-      warningEl.innerHTML = `
-        <div style="margin-top:10px;padding:10px 12px;background:rgba(255,185,0,0.1);border:1px solid rgba(255,185,0,0.4);border-radius:6px;">
-          <div style="font-weight:600;font-size:12px;color:#b57600;margin-bottom:4px;">&#9888; Content CSS conflict</div>
-          <p style="margin:0 0 8px;font-size:11.5px;line-height:1.5;color:var(--picanvas-config-text,#333);">
-            Your HTML content has CSS rules targeting: <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;">${conflicts.join('</code>, <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;">')}</code>.
-            These override the config toggles above.
-          </p>
-          <div data-nav-chrome-override-toggle></div>
-        </div>
-      `;
-      const overrideToggleEl = warningEl.querySelector('[data-nav-chrome-override-toggle]') as HTMLElement;
-      if (overrideToggleEl) {
-        const overrideToggle = new ToggleControl({
-          label: 'Config overrides content CSS',
-          checked: opts.getProperty('chromeConfigOverridesContent') === true,
-          onText: 'Config wins',
-          offText: 'Content wins',
-          onChange: (v) => { opts.setProperty('chromeConfigOverridesContent', v); opts.onChanged(); }
-        });
-        overrideToggle.render(overrideToggleEl);
-        this._controls.push(overrideToggle);
-      }
     }
 
     if (!enabled) return;

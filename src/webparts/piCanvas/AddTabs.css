@@ -1854,6 +1854,7 @@
   align-items: center;
   min-height: 200px;
   width: 100%;
+  overflow: auto;
 }
 
 .picanvas-mermaid-container .mermaid {
@@ -1866,8 +1867,26 @@
   height: auto;
 }
 
+/* When explicit height is set, let SVG fill it */
+.picanvas-mermaid-container[style*="height"] .mermaid svg {
+  height: 100%;
+  width: auto;
+  max-width: none;
+}
+
 .picanvas-mermaid-container.picanvas-mermaid-rendered {
   min-height: auto;
+}
+
+/* Full-width mermaid diagrams */
+.mermaid-content[data-mermaid-fullwidth="true"] .picanvas-mermaid-container {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.mermaid-content[data-mermaid-fullwidth="true"] .picanvas-mermaid-container .mermaid svg {
+  max-width: none;
+  width: 100%;
 }
 
 /* Mermaid error styling */

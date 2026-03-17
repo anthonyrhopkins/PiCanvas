@@ -204,6 +204,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ContentSourceType',  // 'manual' or 'webpart' - source type for HTML/Markdown content
     'ContentSourceWebPartID',  // ID of Text WebPart to use as HTML/Markdown source
     'ContentFullWidth',  // Full-width toggle for HTML/Markdown content
+    'MermaidMaxWidth',   // Max width for Mermaid diagrams (e.g. '800px', '100%')
+    'MermaidHeight',     // Height for Mermaid container (e.g. '500px', 'auto')
+    'MermaidFullWidth',  // Full-width toggle for Mermaid diagrams
     'JavaScriptDisplayMode',  // Display mode for JavaScript tabs: contained, fullSection, fullScreen
     'JavaScriptHeight',  // Container height for JavaScript tabs (e.g. '300px', 'auto')
     'JavaScriptTemplate',  // Template ID for JavaScript tabs
@@ -412,6 +415,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   private _graphClientPromise: Promise<MSGraphClientV3> | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _graphFetch: ((endpoint: string, options?: any) => Promise<any>) | undefined;
+  private _graphScopes: (() => Promise<string[]>) | undefined;
 
   /**
    * Scan an HTML string for <style> blocks containing SP chrome selectors
@@ -1127,6 +1131,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     // Initialize Graph fetch function for JS sandbox
     this._graphFetch = this._createGraphFetch();
+    this._graphScopes = this._createGraphScopes();
 
     return super.onInit();
   }
@@ -2581,7 +2586,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       $altJsContent.each((_i, el) => {
         console.log('[PiCanvas] Executing JavaScript (alt):', el);
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
+        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
       });
 
       // Initialize TOC elements (alt path)
@@ -2603,7 +2608,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     $jsContent.each((_i, el) => {
       console.log('[PiCanvas] Executing JavaScript:', el);
-      ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
+      ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
     });
 
     // Initialize TOC elements in the active panel
@@ -2817,7 +2822,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // Initialize JavaScript containers in this panel
       const $jsContainers = $panel.find('.picanvas-js-container');
       $jsContainers.each((_i, el) => {
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
+        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
       });
 
       // Initialize TOC elements in this panel
@@ -2851,7 +2856,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const $jsContainers = $activePanel.find('.picanvas-js-container:not(.picanvas-js-executed)');
       $jsContainers.each((_i, el) => {
         console.log('[PiCanvas] Tab change: Executing JavaScript:', el);
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch);
+        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
       });
 
       // Render any Mermaid diagrams that haven't been rendered yet
@@ -4042,7 +4047,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     }
 
     // Check if custom content was changed - refresh preview
-    if (propertyPath.match(/^tab\d+(CustomContent|EmbedUrl|EmbedHeight)$/)) {
+    if (propertyPath.match(/^tab\d+(CustomContent|EmbedUrl|EmbedHeight|MermaidMaxWidth|MermaidHeight|MermaidFullWidth)$/)) {
       // Force property pane refresh to update the preview
       this.context.propertyPane.refresh();
     }
@@ -4359,6 +4364,31 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           throw new Error(`Graph API 429: Rate limited on ${endpoint}. Try again in a few seconds. (${msg})`);
         }
         throw new Error(`Graph API error on ${endpoint}: ${status} ${code} — ${msg}`);
+      }
+    };
+  }
+
+  /**
+   * Create a graphScopes function for the JS sandbox.
+   * Decodes the SPFx Graph token JWT to return the list of granted scopes.
+   */
+  private _createGraphScopes(): () => Promise<string[]> {
+    let cachedScopes: string[] | null = null;
+    return async (): Promise<string[]> => {
+      if (cachedScopes) return cachedScopes;
+      try {
+        const tokenProvider = await this.context.aadTokenProviderFactory.getTokenProvider();
+        const token = await tokenProvider.getToken('https://graph.microsoft.com');
+        // Decode JWT payload (base64url)
+        const parts = token.split('.');
+        if (parts.length < 2) return [];
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        const scopes: string[] = (payload.scp || '').split(' ').filter((s: string) => s.length > 0);
+        cachedScopes = scopes;
+        return scopes;
+      } catch (err) {
+        console.warn('[PiCanvas] Failed to read Graph token scopes:', err);
+        return [];
       }
     };
   }
@@ -4777,9 +4807,17 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               // Sanitize ID for CSS selector compatibility (remove invalid chars like = from base64)
               const sanitizedTabsDiv = tabsDiv.replace(/[^a-zA-Z0-9_-]/g, '');
               const mermaidId = `mermaid-${sanitizedTabsDiv}-${tabIndex}`;
-              const rendered = ContentRenderer.prepareMermaid(customContent, mermaidId);
+              const mermaidMaxWidth = (this.properties[`tab${tabIndex}MermaidMaxWidth`] as string) || '';
+              const mermaidHeight = (this.properties[`tab${tabIndex}MermaidHeight`] as string) || '';
+              const mermaidFullWidth = this.properties[`tab${tabIndex}MermaidFullWidth`] === true;
+              const rendered = ContentRenderer.prepareMermaid(customContent, mermaidId, {
+                maxWidth: mermaidMaxWidth,
+                height: mermaidHeight,
+                fullWidth: mermaidFullWidth
+              });
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content mermaid-content' ${lazyAttr}></div>`);
+              const mermaidFwAttr = mermaidFullWidth ? 'data-mermaid-fullwidth="true"' : '';
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content mermaid-content' ${lazyAttr} ${mermaidFwAttr}></div>`);
               $contentHost = this.attachLockElements(tabContentContainer, tabIndex, tabLabelForLock, lockState);
               $contentHost.html(rendered.html);
 

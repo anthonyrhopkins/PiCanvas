@@ -389,6 +389,19 @@ export class TabBuilderSection {
     } else if (contentType === 'mermaid') {
       this._renderTextArea(accordion.body, tabIndex, 'CustomContent', 'Mermaid Code',
         'graph TD\n    A[Start] --> B[End]');
+
+      const mermaidFwToggle = new ToggleControl({
+        label: 'Diagram Width',
+        checked: opts.getProperty(`tab${tabIndex}MermaidFullWidth`) === true,
+        onText: 'Full Width',
+        offText: 'Contained',
+        onChange: (v) => { opts.setProperty(`tab${tabIndex}MermaidFullWidth`, v); opts.onChanged(); }
+      });
+      mermaidFwToggle.render(accordion.body);
+      this._controls.push(mermaidFwToggle);
+
+      this._renderTextField(accordion.body, tabIndex, 'MermaidMaxWidth', 'Max Width', 'e.g. 800px, 100%, 60vw');
+      this._renderTextField(accordion.body, tabIndex, 'MermaidHeight', 'Height', 'e.g. 500px, auto, 80vh');
     } else if (contentType === 'embed') {
       this._renderTextField(accordion.body, tabIndex, 'EmbedUrl', 'Embed URL', 'https://www.youtube.com/embed/...');
 

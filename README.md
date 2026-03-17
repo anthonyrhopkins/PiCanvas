@@ -12,6 +12,7 @@
 - [Installation](#installation) — Deploy to SharePoint, guest user access
 - [Development](#development) — Local setup, build commands, project structure
 - [Configuration Reference](#configuration-reference) — Panel sections, CSS variables
+- [JavaScript Sandbox API](#javascript-sandbox-api) — graphFetch, httpFetch, render, samples
 - [Troubleshooting](#troubleshooting) — Common issues and solutions
 
 ---
@@ -540,6 +541,99 @@ All styling uses CSS custom properties for easy theming and overrides:
 | **XSS Prevention** | HTML encoding and URL sanitization for all user inputs |
 | **Embed Domain Allowlist** | Built-in trusted domains + configurable custom domains via Advanced settings |
 | **Security Linting** | 14 ESLint rules blocking eval, script URLs, prototype pollution |
+
+---
+
+## JavaScript Sandbox API
+
+When a tab's content type is set to **JavaScript**, PiCanvas executes the code in a sandboxed context with access to several built-in APIs. These are passed as variables to your script automatically.
+
+### Available APIs
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `container` | `HTMLElement` | The DOM element for your tab's content area |
+| `render(html)` | `Function` | Renders an HTML string into the container |
+| `create(tag)` | `Function` | Shorthand for `document.createElement(tag)` |
+| `document` | `Document` | The page document object |
+| `graphFetch(url, options)` | `Function` | Makes authenticated Microsoft Graph API calls using the SPFx `MSGraphClientV3` |
+| `httpFetch(url, options)` | `Function` | Makes general HTTP requests via `SPHttpClient` |
+| `sapFetch(url, options)` | `Function` | Makes calls to SAP-specific endpoints |
+| `echarts` | `Object` | Apache ECharts library (if loaded) |
+| `autoResize()` | `Function` | Triggers iframe/container height recalculation |
+
+### graphFetch
+
+`graphFetch` provides authenticated access to the Microsoft Graph API through the SPFx service principal. It supports both GET and POST requests to `/v1.0/` and `/beta/` endpoints.
+
+```javascript
+// GET request
+var me = await graphFetch('/v1.0/me');
+render('<p>Hello, ' + me.displayName + '</p>');
+
+// POST request (e.g., Graph Search API)
+var body = {
+  requests: [{
+    entityTypes: ['driveItem', 'listItem', 'site'],
+    query: { queryString: 'budget report' },
+    from: 0, size: 25
+  }]
+};
+var results = await graphFetch('/v1.0/search/query', { method: 'POST', body: body });
+```
+
+**Available scopes** depend on what has been approved for the SPFx service principal (`SharePoint Online Web Client Extensibility`) in your tenant. Common pre-approved scopes include `Files.Read.All`, `Sites.Read.All`, `User.Read`, and `People.Read`. Additional scopes like `Mail.Read`, `Chat.Read`, or `ChannelMessage.Read.All` require SharePoint Admin approval via the [API Access page](https://admin.microsoft.com/_layouts/15/online/AdminHome.aspx#/webApiPermissionManagement).
+
+### Loading External Scripts
+
+For larger applications, store your JavaScript in SharePoint Site Assets and load it dynamically:
+
+```javascript
+// Tab content (inline JavaScript):
+(async function() {
+  var siteUrl = window.location.origin + '/sites/your-site';
+  var url = siteUrl + '/SiteAssets/PiCanvas/my-app.js?v=' + Date.now();
+  var resp = await fetch(url);
+  var code = await resp.text();
+  var fn = new Function('container', 'render', 'graphFetch', 'httpFetch', code);
+  fn(container, render,
+     typeof graphFetch !== 'undefined' ? graphFetch : null,
+     typeof httpFetch !== 'undefined' ? httpFetch : null);
+})();
+```
+
+### Samples
+
+Sample JavaScript applications are provided in the [`samples/`](samples/) directory:
+
+| Sample | Description |
+|--------|-------------|
+| [`copilot_search_demo.js`](samples/copilot_search_demo.js) | Microsoft 365 search app using Graph Search, Copilot Retrieval, and Copilot Search APIs |
+
+#### Copilot Search Demo
+
+A full-featured search interface that queries three Microsoft 365 APIs — Graph Search, Copilot Retrieval, and Copilot Search — with:
+
+- **Dynamic content-type tabs** — automatically categorizes results into Pages, Loop, PowerPoint, Word, Excel, PDF, OneNote, Sites, Images, and Files
+- **Paginated search** — fetches up to 100 results across multiple API pages
+- **Copilot Retrieval** — queries SharePoint and OneDrive via the `/beta/copilot/retrieval` endpoint (requires M365 Copilot license)
+- **Copilot Search** — semantic + lexical hybrid search via the `/beta/copilot/search` endpoint (requires M365 Copilot license)
+- **Source scoping** — users can add SharePoint site/library URLs to limit search scope, with toggleable chips persisted to localStorage
+- **Smart title extraction** — derives readable page titles from URLs when the API returns generic names
+- **Relevance scoring** — displays ranked results with score indicators from all three APIs
+- **API details panel** — shows which endpoints were called, scopes used, and any errors
+
+**APIs used:**
+
+| API | Endpoint | Description | License Required |
+|-----|----------|-------------|-----------------|
+| [Graph Search API](https://learn.microsoft.com/en-us/graph/api/resources/search-api-overview) | `POST /v1.0/search/query` | Keyword-based search across driveItems, listItems, and sites | M365 E3/E5 |
+| [Copilot Retrieval API](https://learn.microsoft.com/en-us/graph/api/resources/copilot-api-overview) | `POST /beta/copilot/retrieval` | AI-ranked content extraction with relevance scores from SharePoint and OneDrive | M365 Copilot |
+| [Copilot Search API](https://learn.microsoft.com/en-us/microsoft-365-copilot/extensibility/api/ai-services/search/overview) | `POST /beta/copilot/search` | Hybrid semantic + lexical search across OneDrive content with natural language understanding | M365 Copilot |
+
+The demo uses all three APIs: **Graph Search API** for broad M365 keyword search, the **Copilot Retrieval API** for AI-ranked content extraction, and the **[Copilot Search API (Preview)](https://learn.microsoft.com/en-us/microsoft-365-copilot/extensibility/api/ai-services/search/overview)** for semantic hybrid search. Results from all sources are deduplicated and merged by relevance score.
+
+**Required Graph permissions:** `Files.Read.All`, `Sites.Read.All` (pre-approved in most tenants). `CopilotRetrieval.Read` for Copilot Retrieval results. `CopilotSearch.Read` for Copilot Search results.
 
 ---
 
