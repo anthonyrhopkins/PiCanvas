@@ -10,6 +10,7 @@ import * as echarts from 'echarts';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const DOMPurify = require('dompurify');
 import { IProfileReportTheme, BUILTIN_THEMES } from '../models/ProfileReportThemes';
+import { REPORT_TYPE_REGISTRY } from '../data/ReportTypeRegistry';
 
 // Content type definitions
 export type ContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed' | 'rss' | 'landing' | 'file' | 'toc' | 'profilereport';
@@ -139,6 +140,9 @@ export interface ICompanyProfile {
   growthPropensity?: string;       // te-growth-propensity/method-A/{id}-{domain}-method-A.md
   aiSynthesis?: string;            // final-html/ai-synthesis/{id}-{domain}-method-M-final.md
   teRelevance?: string;            // te-relevance/method-I/{domain}.md
+  companySummary?: string;         // {domain}/company-summary.md
+  financialScorecard?: string;     // {domain}/financial-scorecard.md
+  leadershipDirectory?: string;    // {domain}/leadership-directory.md
   // List-sourced fields for rich Overview
   spListItemId?: number;
   headquarters?: string;
@@ -198,6 +202,11 @@ export interface IProfileReportDisplayConfig {
   layout: 'tabbed' | 'accordion' | 'cards';
   libraryName: string;          // e.g., "Profiles"
   listName?: string;            // e.g., "Pi_Companies" — if set, queries list instead of scanning folders
+  /** Registry-driven: which report types are enabled. Key = registry ID, value = enabled. */
+  enabledReportTypes: Record<string, boolean>;
+  /** Optional per-report-type path overrides (advanced). Key = registry ID, value = path template. */
+  pathOverrides?: Record<string, string>;
+  // Legacy show* booleans kept for backward compat (read into enabledReportTypes by the webpart)
   showMethodK: boolean;
   showMethodL: boolean;
   showMethodM: boolean;
@@ -272,6 +281,8 @@ export class ContentRenderer {
     'miro.com',
     'lucid.app', 'lucidchart.com',
     'whimsical.com',
+    // Developer tools
+    'github.com', 'gist.github.com', 'codepen.io', 'stackblitz.com', 'codesandbox.io',
     // Other common embeds
     'loom.com',
     'calendly.com',
@@ -1148,12 +1159,16 @@ export class ContentRenderer {
       // Create sandboxed helpers
       const container = outputDiv;
 
-      // render() helper - sets innerHTML with basic sanitization
+      // render() helper - sets innerHTML with DOMPurify sanitization
       const render = (html: string): void => {
-        // Basic sanitization - remove script tags and event handlers
-        const sanitized = html
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '');
+        const sanitized = DOMPurify.sanitize(html, {
+          USE_PROFILES: { html: true },
+          ADD_TAGS: ['style'],
+          ADD_ATTR: ['target', 'rel', 'style'],
+          ALLOW_DATA_ATTR: true,
+          FORBID_TAGS: ['script'],
+          FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur']
+        });
         container.innerHTML = sanitized;
       };
 
@@ -2240,7 +2255,7 @@ export class ContentRenderer {
     ` : '';
 
     // Build method tabs based on config and available content
-    // Each tab gets a file-type flag for visual identification
+    // Intel-based tabs (from SP list fields) come first, then registry-driven file tabs
     const intel = profile.companyIntel;
     const methodTabs: Array<{ key: string; label: string; flag: string; content: string | undefined; show: boolean }> = [
       { key: 'overview', label: 'Overview', flag: 'SUM', content: this.generateOverviewContent(profile), show: true },
@@ -2248,18 +2263,28 @@ export class ContentRenderer {
       { key: 'landscape', label: 'Landscape', flag: 'REL', content: intel ? this.renderCompetitiveLandscape(intel.competitors, intel.customers, intel.partners) : undefined, show: !!intel && (intel.competitors.length > 0 || intel.customers.length > 0 || intel.partners.length > 0) },
       { key: 'activity', label: 'Activity', flag: 'EVT', content: intel ? this.renderActivityTimeline(intel.recentActivity) : undefined, show: !!intel && intel.recentActivity.length > 0 },
       { key: 'earnings', label: 'Earnings', flag: 'ERN', content: intel ? this.renderEarningsSection(intel.earnings) : undefined, show: !!intel && intel.earnings.length > 0 },
-      { key: 'executiveBrief', label: 'Executive Brief', flag: 'MD', content: profile.executiveBrief, show: config.showExecutiveBrief && !!profile.executiveBrief },
-      { key: 'competitiveLandscape', label: 'Competitive Landscape', flag: 'MD', content: profile.competitiveLandscape, show: config.showCompetitiveLandscape && !!profile.competitiveLandscape },
-      { key: 'investorMemo', label: 'Investor Memo', flag: 'MD', content: profile.investorMemo, show: config.showInvestorMemo && !!profile.investorMemo },
-      { key: 'fullDossierNarrative', label: 'Full Dossier', flag: 'MD', content: profile.fullDossierNarrative, show: config.showFullDossier && !!profile.fullDossierNarrative },
-      { key: 'growthPropensity', label: 'Growth Propensity', flag: 'MD', content: profile.growthPropensity, show: config.showGrowthPropensity && !!profile.growthPropensity },
-      { key: 'teRelevance', label: 'T&E Relevance', flag: 'MD', content: profile.teRelevance, show: config.showTeRelevance && !!profile.teRelevance },
-      { key: 'aiSynthesis', label: 'AI Synthesis', flag: 'MD', content: profile.aiSynthesis, show: config.showAiSynthesis && !!profile.aiSynthesis },
-      { key: 'methodK', label: 'Method-K', flag: 'MD', content: profile.methodK, show: config.showMethodK },
-      { key: 'methodL', label: 'Method-L', flag: 'MD', content: profile.methodL, show: config.showMethodL },
-      { key: 'methodM', label: 'Method-M', flag: 'HTML', content: profile.methodM, show: config.showMethodM },
-      { key: 'profileJson', label: 'Profile JSON', flag: 'JSON', content: this.safeJsonStringify(profile.profileJson), show: config.showProfileJson && !!profile.profileJson }
-    ].filter(tab => tab.show && (tab.key === 'overview' || tab.content));
+    ];
+
+    // Registry-driven file tabs — only show if enabled AND content exists
+    const enabledTypes = config.enabledReportTypes || {};
+    for (const rt of REPORT_TYPE_REGISTRY) {
+      const isEnabled = enabledTypes[rt.id] !== false; // default to true
+      const content = rt.id === 'profileJson'
+        ? this.safeJsonStringify((profile as any).profileJson)
+        : (profile as any)[rt.id] as string | undefined;
+      if (isEnabled && content) {
+        methodTabs.push({
+          key: rt.id,
+          label: rt.label,
+          flag: rt.flag,
+          content,
+          show: true,
+        });
+      }
+    }
+
+    // Filter: overview always shows, others need content
+    const filteredTabs = methodTabs.filter(tab => tab.show && (tab.key === 'overview' || tab.content));
 
     // Add metadata file tabs grouped by category — each gets a flag based on file types in the category
     const metadataFiles = profile.metadataFiles || [];
@@ -2270,7 +2295,7 @@ export class ContentRenderer {
       // Determine flag from most common file extension in category
       const exts = catFiles.map(f => f.name.split('.').pop()?.toUpperCase() || 'FILE');
       const flag = exts[0] || 'FILE';
-      methodTabs.push({
+      filteredTabs.push({
         key: catKey,
         label: cat,
         flag: `${flag} x${catFiles.length}`,
@@ -2279,7 +2304,7 @@ export class ContentRenderer {
       });
     }
 
-    const methodTabsHtml = methodTabs.map((tab, index) => {
+    const methodTabsHtml = filteredTabs.map((tab, index) => {
       const isActive = index === 0 ? 'active' : '';
       const encodedMethodKey = this.encodeHtml(tab.key);
       const isMetadata = tab.key.startsWith('metadata-');
@@ -2291,7 +2316,7 @@ export class ContentRenderer {
     // Intel tab keys that return pre-rendered HTML (like overview)
     const intelTabKeys = new Set(['overview', 'financials', 'landscape', 'activity', 'earnings']);
 
-    const methodPanelsHtml = methodTabs.map((tab, index) => {
+    const methodPanelsHtml = filteredTabs.map((tab, index) => {
       const isActive = index === 0 ? 'active' : '';
       const encodedMethodKey = this.encodeHtml(tab.key);
       let contentHtml: string;

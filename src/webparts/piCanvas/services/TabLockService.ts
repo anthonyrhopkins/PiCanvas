@@ -43,7 +43,13 @@ export class TabLockService {
       return false;
     }
     const hash = await this.hashPassword(plain);
-    return hash === passwordHash;
+    // Constant-time comparison to prevent timing attacks
+    if (hash.length !== passwordHash.length) return false;
+    let result = 0;
+    for (let i = 0; i < hash.length; i++) {
+      result |= hash.charCodeAt(i) ^ passwordHash.charCodeAt(i);
+    }
+    return result === 0;
   }
 
   public isUnlocked(tabIndex: number, passwordHash: string): boolean {

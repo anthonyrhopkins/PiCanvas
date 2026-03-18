@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { SPHttpClient } from '@microsoft/sp-http';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const DOMPurify = require('dompurify');
 import styles from './PiRadarCommand.module.scss';
 import { IReportFile } from './IPiRadarCommandProps';
 
@@ -89,7 +91,16 @@ export const ReportsBrowser: React.FC<IReportsBrowserProps> = ({ reports, spHttp
   // Convert markdown to simple HTML for display
   const renderContent = React.useMemo((): string => {
     if (!reportContent) return '';
-    if (selectedReport?.fileType === 'html') return reportContent;
+    if (selectedReport?.fileType === 'html') {
+      return DOMPurify.sanitize(reportContent, {
+        USE_PROFILES: { html: true },
+        ADD_TAGS: ['style'],
+        ADD_ATTR: ['target', 'rel', 'style', 'class'],
+        ALLOW_DATA_ATTR: true,
+        FORBID_TAGS: ['script'],
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur']
+      }) as string;
+    }
 
     // Basic markdown → HTML conversion
     return reportContent

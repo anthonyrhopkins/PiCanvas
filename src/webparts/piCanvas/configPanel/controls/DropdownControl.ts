@@ -21,6 +21,16 @@ export class DropdownControl {
     this._options = options;
   }
 
+  private static _escapeHtml(str: string): string {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  private static _buildOptions(options: IDropdownOption[], selectedKey: string): string {
+    return options.map(o =>
+      `<option value="${DropdownControl._escapeHtml(o.key)}"${o.key === selectedKey ? ' selected' : ''}>${DropdownControl._escapeHtml(o.text)}</option>`
+    ).join('');
+  }
+
   public render(container: HTMLElement): void {
     const opts = this._options;
 
@@ -28,9 +38,9 @@ export class DropdownControl {
     wrapper.className = 'picanvas-config-dropdown-control';
 
     wrapper.innerHTML = `
-      <label class="picanvas-config-field-label">${opts.label}</label>
+      <label class="picanvas-config-field-label">${DropdownControl._escapeHtml(opts.label)}</label>
       <select class="picanvas-config-dropdown">
-        ${opts.options.map(o => `<option value="${o.key}"${o.key === opts.value ? ' selected' : ''}>${o.text}</option>`).join('')}
+        ${DropdownControl._buildOptions(opts.options, opts.value)}
       </select>
     `;
 
@@ -53,7 +63,7 @@ export class DropdownControl {
     if (!this._el) return;
     const select = this._el.querySelector('.picanvas-config-dropdown') as HTMLSelectElement;
     if (!select) return;
-    select.innerHTML = options.map(o => `<option value="${o.key}"${o.key === (selectedValue || this._options.value) ? ' selected' : ''}>${o.text}</option>`).join('');
+    select.innerHTML = DropdownControl._buildOptions(options, selectedValue || this._options.value);
   }
 
   public dispose(): void {
