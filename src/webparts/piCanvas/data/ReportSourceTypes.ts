@@ -25,3 +25,26 @@ export interface ICustomReportSource {
   categoryFilter?: string;                        // Only files where category = this value
   resultMode?: 'single' | 'list';                 // 'single': inline content. 'list': file browser (default: 'single')
 }
+
+/**
+ * Adapter: convert an ICustomReportSource into an IReportTypeDefinition
+ * so custom admin-added sources feed into the same rendering pipeline
+ * as built-in registry entries.
+ */
+import type { IReportTypeDefinition } from './ReportTypeRegistry';
+
+export function toReportTypeDefinition(source: ICustomReportSource, order: number = 100): IReportTypeDefinition {
+  return {
+    id: source.id,
+    label: source.label,
+    flag: source.contentType.toUpperCase(),
+    format: source.contentType,
+    category: 'analysis',
+    defaultEnabled: source.enabled,
+    pathTemplate: source.filePattern === 'domain'
+      ? `${source.folderPath}/{domain}.${source.contentType}`
+      : `${source.folderPath}/{piRadarId}-{domain}${source.fileSuffix || ''}.${source.contentType}`,
+    fallbackPaths: [],
+    order,
+  };
+}

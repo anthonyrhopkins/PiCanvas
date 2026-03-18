@@ -55,6 +55,9 @@ import { ContentRenderer, IRssDisplayConfig, IProfileReportDisplayConfig } from 
 // Profile Report service
 import { ProfileReportService, ICompanyEntry } from './services/ProfileReportService';
 
+// Report Type Registry
+import { REPORT_TYPE_REGISTRY, LEGACY_SHOW_PROPERTY_MAP, REGISTRY_ID_TO_LEGACY_PROP } from './data/ReportTypeRegistry';
+
 // Theme service + theme model
 import { ThemeService } from './services/ThemeService';
 import { IProfileReportTheme, BUILTIN_THEMES } from './models/ProfileReportThemes';
@@ -317,7 +320,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ProfileReportMetadataCompanyCol',  // string (column internal name)
     'ProfileReportMetadataFileCategory', // string (column internal name)
     'ProfileReportMetadataVisibilityCol', // string (Yes/No column name)
-    'ProfileReportMetadataListSource'    // string (SP list name for file references)
+    'ProfileReportMetadataListSource',   // string (SP list name for file references)
+    'ProfileReportPathOverrides',        // JSON string: { "methodK": "{domain}/custom-path.md", ... }
+    'ProfileReportEnabledTypes'          // JSON string: { "methodK": true, "methodL": false, ... }
   ];
 
   private static readonly DEFAULT_LOCK_TEMPLATE = `
@@ -1637,14 +1642,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           }
         : undefined;
 
-      // Fetch profile files, company intel, and detail fields in parallel
+      // Fetch profile files and detail fields in parallel
       const listName = config.listName || '';
       const hasPiRadarId = entry.piRadarId !== undefined && entry.piRadarId !== null;
-      const [profile, companyIntel, companyDetail] = await Promise.all([
-        service.loadCompanyProfile(libraryName, entry, metadataConfig),
-        (hasPiRadarId && listName)
-          ? service.fetchCompanyIntel(listName, entry.piRadarId!)
-          : Promise.resolve(null),
+      const [profile, companyDetail] = await Promise.all([
+        service.loadCompanyProfile(libraryName, entry, metadataConfig, config.pathOverrides),
         (hasPiRadarId && listName)
           ? service.fetchCompanyDetail(listName, entry.piRadarId!)
           : Promise.resolve(null)
@@ -1658,11 +1660,6 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         profile.customers = companyDetail.Customers || undefined;
         profile.executives = companyDetail.Executives || undefined;
         profile.executiveSummary = companyDetail.ExecutiveSummary || undefined;
-      }
-
-      // Attach intel to profile before rendering
-      if (companyIntel) {
-        profile.companyIntel = companyIntel;
       }
 
       const panelHtml = ContentRenderer.renderCompanyPanel(profile, config);
@@ -2456,7 +2453,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     const $tabsContainer = $(tabsElement).parent('[data-addui="tabs"]');
     if (!$tabsContainer.length) return;
 
-    $tabsContainer.find('.addui-Tabs-content[data-lock-enabled="true"]').each((_i, el) => {
+    $tabsContainer.find('.picanvas-tab-content[data-lock-enabled="true"]').each((_i, el) => {
       const $panel = $(el);
       if ($panel.attr('data-lock-initialized') === 'true') {
         return;
@@ -4513,7 +4510,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         const tabIndex = thisTabData[x].originalTabIndex || (parseInt(x) + 1);
         const tabLabelForLock = thisTabData[x].TabLabel || `Tab ${tabIndex}`;
         const contentType = (this.properties[`tab${tabIndex}ContentType`] as string) || 'webpart';
-        const isCustomContent = contentType === 'markdown' || contentType === 'html' || contentType === 'mermaid' || contentType === 'embed' || contentType === 'javascript' || contentType === 'rss' || contentType === 'file' || contentType === 'landing' || contentType === 'toc' || contentType === 'profilereport';
+        const isCustomContent = contentType === 'markdown' || contentType === 'html' || contentType === 'mermaid' || contentType === 'embed' || contentType === 'javascript' || contentType === 'rss' || contentType === 'file' || contentType === 'landing' || contentType === 'toc' || contentType === 'profilereport' || contentType === 'github';
         const lockState = this.getTabLockState(tabIndex);
         const lockEnabled = lockState.enabled && !isPlaceholder;
 
@@ -5086,21 +5083,55 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               const validDisplayModes = ['contained', 'fullSection', 'fullScreen'];
               const resolvedDisplayMode = validDisplayModes.indexOf(displayModeValue) !== -1 ? displayModeValue : 'contained';
 
+              // Build enabledReportTypes from legacy show* properties + new JSON property
+              const enabledReportTypes: Record<string, boolean> = {};
+              // 1. Start with registry defaults
+              for (const rt of REPORT_TYPE_REGISTRY) {
+                enabledReportTypes[rt.id] = rt.defaultEnabled;
+              }
+              // 2. Apply legacy show* properties (backward compat)
+              for (const [legacyProp, registryId] of Object.entries(LEGACY_SHOW_PROPERTY_MAP)) {
+                const val = this.properties[`tab${tabIndex}${legacyProp}`];
+                if (val !== undefined) {
+                  enabledReportTypes[registryId] = val !== false;
+                }
+              }
+              // 3. Apply new JSON-based enabledTypes (overrides legacy if present)
+              const enabledTypesJson = this.properties[`tab${tabIndex}ProfileReportEnabledTypes`] as string;
+              if (enabledTypesJson) {
+                try {
+                  const parsed = JSON.parse(enabledTypesJson) as Record<string, boolean>;
+                  Object.assign(enabledReportTypes, parsed);
+                } catch { /* ignore invalid JSON */ }
+              }
+
+              // Parse path overrides
+              let pathOverrides: Record<string, string> | undefined;
+              const pathOverridesJson = this.properties[`tab${tabIndex}ProfileReportPathOverrides`] as string;
+              if (pathOverridesJson) {
+                try {
+                  pathOverrides = JSON.parse(pathOverridesJson) as Record<string, string>;
+                } catch { /* ignore invalid JSON */ }
+              }
+
               const config: IProfileReportDisplayConfig = {
                 layout: (layoutValue === 'tabbed' || layoutValue === 'accordion' || layoutValue === 'cards') ? layoutValue : 'tabbed',
                 libraryName: sanitizedLibraryName,
                 listName: sanitizedListName || undefined,
-                showMethodK: this.properties[`tab${tabIndex}ProfileReportShowMethodK`] !== false,
-                showMethodL: this.properties[`tab${tabIndex}ProfileReportShowMethodL`] !== false,
-                showMethodM: this.properties[`tab${tabIndex}ProfileReportShowMethodM`] !== false,
-                showProfileJson: this.properties[`tab${tabIndex}ProfileReportShowProfileJson`] !== false,
-                showExecutiveBrief: this.properties[`tab${tabIndex}ProfileReportShowExecBrief`] !== false,
-                showCompetitiveLandscape: this.properties[`tab${tabIndex}ProfileReportShowCompLandscape`] !== false,
-                showInvestorMemo: this.properties[`tab${tabIndex}ProfileReportShowInvestorMemo`] !== false,
-                showFullDossier: this.properties[`tab${tabIndex}ProfileReportShowFullDossier`] !== false,
-                showGrowthPropensity: this.properties[`tab${tabIndex}ProfileReportShowGrowthProp`] !== false,
-                showTeRelevance: this.properties[`tab${tabIndex}ProfileReportShowTeRelevance`] !== false,
-                showAiSynthesis: this.properties[`tab${tabIndex}ProfileReportShowAiSynthesis`] !== false,
+                enabledReportTypes,
+                pathOverrides,
+                // Legacy booleans kept for backward compat in ContentRenderer
+                showMethodK: enabledReportTypes['methodK'] !== false,
+                showMethodL: enabledReportTypes['methodL'] !== false,
+                showMethodM: enabledReportTypes['methodM'] !== false,
+                showProfileJson: enabledReportTypes['profileJson'] !== false,
+                showExecutiveBrief: enabledReportTypes['executiveBrief'] !== false,
+                showCompetitiveLandscape: enabledReportTypes['competitiveLandscape'] !== false,
+                showInvestorMemo: enabledReportTypes['investorMemo'] !== false,
+                showFullDossier: enabledReportTypes['fullDossierNarrative'] !== false,
+                showGrowthPropensity: enabledReportTypes['growthPropensity'] !== false,
+                showTeRelevance: enabledReportTypes['teRelevance'] !== false,
+                showAiSynthesis: enabledReportTypes['aiSynthesis'] !== false,
                 companyLimit: (this.properties[`tab${tabIndex}ProfileReportCompanyLimit`] as number) || 0,
                 sortBy: (sortByValue === 'name' || sortByValue === 'date' || sortByValue === 'key') ? sortByValue : 'name',
                 theme: themeValue || 'auto',
@@ -5119,6 +5150,28 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
               // Fetch and render async
               this.fetchAndRenderProfileReports(tabIndex, config, $contentHost);
+
+            } else if (contentType === 'github') {
+              // Render GitHub Repository viewer via JavaScript sandbox
+              const repoUrl = (this.properties[`tab${tabIndex}GitHubRepoUrl`] as string) || '';
+              const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
+              const sanitizedTabsDiv = tabsDiv.replace(/[^a-zA-Z0-9_-]/g, '');
+              const jsId = `picanvas-js-${sanitizedTabsDiv}-${tabIndex}`;
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content github-content' ${lazyAttr}></div>`);
+              $contentHost = this.attachLockElements(tabContentContainer, tabIndex, tabLabelForLock, lockState);
+
+              if (!repoUrl) {
+                $contentHost.html(`<div style="padding:24px;text-align:center;color:#656d76">No GitHub repository URL configured. Please enter a URL in the web part settings.</div>`);
+              } else {
+                // Extract owner/repo from URL
+                const repoMatch = repoUrl.match(/github\.com\/([^/]+\/[^/\s?#]+)/);
+                const repo = repoMatch ? repoMatch[1].replace(/\.git$/, '') : repoUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+
+                // Generate the GitHub viewer JavaScript code and prepare sandbox container
+                const ghViewerCode = this.generateGitHubViewerCode(repo);
+                const prepared = ContentRenderer.prepareJavaScript(ghViewerCode, jsId, 'full', '');
+                $contentHost.html(prepared.html);
+              }
 
             } else {
               // Default: webpart or section content type
@@ -5422,9 +5475,6 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // @ts-expect-error RenderTabs is defined in AddTabs.js
       RenderTabs();
 
-      // Initialize lock behavior for password-protected tabs
-      this.initializeTabLocks(tabsDiv);
-
       // Remove pre-hide styles injected by PiCanvasLoader Application Customizer
       // Now that webparts are in their tabs, they can be visible
       this.removePreHideStyles();
@@ -5433,8 +5483,13 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       this.initializeSharedWebpartHandling(tabsDiv, usedElements);
 
       // Initialize v3.0 features after tabs are rendered
-      // Use setTimeout to ensure DOM is fully ready after RenderTabs
+      // IMPORTANT: RenderTabs() defers $add.auto.Tabs() via jQuery's $(function) ready handler,
+      // which in jQuery 3.x is async even when DOM is ready. All post-tab-setup code must run
+      // in setTimeout to ensure AddTabs has finished adding classes and ARIA attributes.
       setTimeout(() => {
+        // Initialize lock behavior AFTER RenderTabs completes (needs addui-Tabs-content class)
+        this.initializeTabLocks(tabsDiv);
+
         this.initializeMermaidDiagrams(tabsDiv);
         this.initializeDeepLinking(tabsDiv);
         this.initializeLazyLoadEvents(tabsDiv);
@@ -5816,6 +5871,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       } else if (contentType === 'profilereport') {
         // Profile Report type - always valid, fetches from library
         hasValidContent = true;
+      } else if (contentType === 'github') {
+        // GitHub Repo type - always valid, fetches from GitHub API
+        hasValidContent = true;
+      } else if (contentType === 'rss') {
+        // RSS Feed type - always valid, fetches from feed URL
+        hasValidContent = true;
       }
 
       if (hasValidContent) {
@@ -5875,7 +5936,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     const contentTypeLabels: Record<string, string> = {
       'webpart': 'WP', 'section': 'SEC', 'markdown': 'MD', 'html': 'HTML',
       'mermaid': 'DIA', 'embed': 'EMB', 'rss': 'RSS', 'toc': 'TOC',
-      'javascript': 'JS', 'file': 'FILE', 'profilereport': 'RPT', 'textwebpart': 'TXT'
+      'javascript': 'JS', 'file': 'FILE', 'profilereport': 'RPT', 'github': 'GH', 'textwebpart': 'TXT'
     };
     const typeLabel = contentTypeLabels[contentType] || contentType.toUpperCase();
 
@@ -5993,6 +6054,18 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         const layout = (props[`tab${tabIndex}ProfileReportLayout`] as string) || 'tabbed';
         const limit = (props[`tab${tabIndex}ProfileReportCompanyLimit`] as number) || 50;
         sourceDetail = `Library: "${library}" \u00b7 ${layout} \u00b7 ${limit} max`;
+        break;
+      }
+      case 'github': {
+        const ghUrl = (props[`tab${tabIndex}GitHubRepoUrl`] as string) || '';
+        if (ghUrl) {
+          const ghMatch = ghUrl.match(/github\.com\/([^/]+\/[^/\s?#]+)/);
+          sourceDetail = ghMatch ? ghMatch[1] : ghUrl;
+        } else {
+          hasWarning = true;
+          warningText = 'No repo URL set';
+          sourceDetail = 'No repository configured';
+        }
         break;
       }
       case 'textwebpart': {
@@ -6912,6 +6985,15 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       getProperty: (key: string) => this.properties[key] as string | number | boolean | undefined,
       setProperty: (key: string, value: string | number | boolean | undefined) => {
         (this.properties as Record<string, string | number | boolean | undefined>)[key] = value;
+
+        // Handle password hashing for lock feature (config panel bypasses onPropertyPaneFieldChanged)
+        const lockPasswordMatch = key.match(/^tab(\d+)LockPassword$/);
+        if (lockPasswordMatch && typeof value === 'string' && value.trim()) {
+          const lockTabIndex = parseInt(lockPasswordMatch[1], 10);
+          // Clear the plaintext immediately
+          (this.properties as Record<string, string | number | boolean | undefined>)[key] = '';
+          void this.updateTabLockPassword(lockTabIndex, value);
+        }
       },
       setProperties: (updates: Record<string, string | number | boolean | undefined>) => {
         Object.entries(updates).forEach(([k, v]) => {
@@ -7628,6 +7710,14 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   /**
+   * Generate JavaScript code for the GitHub repository viewer.
+   * Takes an owner/repo string and returns self-contained JS that uses the PiCanvas sandbox API.
+   */
+  private generateGitHubViewerCode(repo: string): string {
+    return `var REPO=${JSON.stringify(repo)};var API='https://api.github.com/repos/'+REPO;var C={bg:'#ffffff',surface:'#f6f8fa',text:'#1f2328',textSoft:'#656d76',border:'#d0d7de',borderLight:'#d8dee4',accent:'#0969da',green:'#1a7f37'};var state={loading:true,repo:null,readme:'',tree:[],error:null,activeTab:'readme'};async function loadData(){try{var[rR,rdR,tR]=await Promise.all([fetch(API),fetch(API+'/readme',{headers:{Accept:'application/vnd.github.html+json'}}),fetch(API+'/git/trees/main')]);if(!rR.ok)throw new Error('Repo not found');state.repo=await rR.json();state.readme=rdR.ok?await rdR.text():'';if(tR.ok){var td=await tR.json();state.tree=(td.tree||[]).sort(function(a,b){if(a.type!==b.type)return a.type==='tree'?-1:1;return a.path.localeCompare(b.path)})}}catch(e){state.error=e.message||'Failed to load repository'}state.loading=false;paint()}function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}function fmtDate(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}function fmtSize(b){if(!b)return'';return b>1048576?(b/1048576).toFixed(1)+' MB':b>1024?Math.round(b/1024)+' KB':b+' B'}function fmtNum(n){if(!n)return'0';return n>=1000?(n/1000).toFixed(1)+'k':String(n)}function langColor(l){var c={TypeScript:'#3178c6',JavaScript:'#f1e05a',Python:'#3572A5',CSS:'#563d7c',HTML:'#e34c26',SCSS:'#c6538c',Shell:'#89e051',Java:'#b07219',Go:'#00ADD8',Rust:'#dea584',Ruby:'#701516','C#':'#178600','C++':'#f34b7d',PHP:'#4F5D95',Swift:'#F05138',Kotlin:'#A97BFF'};return c[l]||C.accent}var ICO={repo:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"/></svg>',star:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>',fork:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/></svg>',issue:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"/></svg>',file:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>',folder:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"/></svg>',ext:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"/></svg>'};function paint(){var h='';h+='<style>';h+='.gh{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;color:'+C.text+';line-height:1.5;-webkit-font-smoothing:antialiased}';h+='.gh *{box-sizing:border-box;margin:0;padding:0}';h+='.gh a{color:'+C.accent+';text-decoration:none}.gh a:hover{text-decoration:underline}';h+='.gh-hdr{padding:20px 24px;background:'+C.surface+';border:1px solid '+C.border+';border-radius:12px;margin-bottom:16px}';h+='.gh-hdr-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}';h+='.gh-hdr-icon{color:'+C.textSoft+';display:flex}';h+='.gh-hdr-name{font-size:20px;font-weight:600}';h+='.gh-hdr-vis{font-size:11px;font-weight:500;padding:2px 8px;border:1px solid '+C.border+';border-radius:12px;color:'+C.textSoft+'}';h+='.gh-hdr-desc{font-size:14px;color:'+C.textSoft+';margin-bottom:12px}';h+='.gh-hdr-stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}';h+='.gh-stat{display:flex;align-items:center;gap:5px;font-size:13px;color:'+C.textSoft+'}';h+='.gh-stat svg{flex-shrink:0}';h+='.gh-stat strong{color:'+C.text+';font-weight:600}';h+='.gh-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:'+C.textSoft+'}';h+='.gh-meta-item{display:flex;align-items:center;gap:4px}';h+='.gh-lang-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}';h+='.gh-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid '+C.border+';border-radius:6px;font-size:13px;font-weight:500;background:'+C.surface+';color:'+C.text+';cursor:pointer;text-decoration:none!important;transition:background .15s}';h+='.gh-btn:hover{background:'+C.bg+'}';h+='.gh-btn-primary{background:'+C.green+';color:#fff;border-color:'+C.green+'}.gh-btn-primary:hover{background:#1a883a}';h+='.gh-actions{display:flex;gap:8px;margin-top:12px}';h+='.gh-tabs{display:flex;border-bottom:1px solid '+C.border+';margin-bottom:16px;gap:0}';h+='.gh-tab{padding:10px 16px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:none;color:'+C.textSoft+';border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;gap:6px}';h+='.gh-tab:hover{color:'+C.text+'}';h+='.gh-tab.on{color:'+C.text+';border-bottom-color:'+C.accent+'}';h+='.gh-tab-count{font-size:11px;background:'+C.surface+';padding:1px 7px;border-radius:10px;font-weight:500}';h+='.gh-tree{border:1px solid '+C.border+';border-radius:8px;overflow:hidden}';h+='.gh-tree-hdr{display:flex;align-items:center;gap:8px;padding:10px 16px;background:'+C.surface+';border-bottom:1px solid '+C.border+';font-size:13px}';h+='.gh-tree-row{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid '+C.borderLight+';font-size:14px;transition:background .1s}';h+='.gh-tree-row:last-child{border-bottom:none}';h+='.gh-tree-row:hover{background:'+C.surface+'}';h+='.gh-tree-icon{color:'+C.textSoft+';display:flex;flex-shrink:0}';h+='.gh-tree-icon.dir{color:'+C.accent+'}';h+='.gh-tree-name{flex:1}';h+='.gh-tree-name a{color:'+C.text+'}.gh-tree-name a:hover{color:'+C.accent+'}';h+='.gh-tree-size{font-size:12px;color:'+C.textSoft+'}';h+='.gh-readme{border:1px solid '+C.border+';border-radius:8px;overflow:hidden}';h+='.gh-readme-hdr{display:flex;align-items:center;gap:8px;padding:10px 16px;background:'+C.surface+';border-bottom:1px solid '+C.border+';font-size:13px;font-weight:600}';h+='.gh-readme-body{padding:24px 32px;font-size:15px;line-height:1.7}';h+='.gh-readme-body h1{font-size:2em;border-bottom:1px solid '+C.border+';padding-bottom:.3em;margin:24px 0 16px}';h+='.gh-readme-body h2{font-size:1.5em;border-bottom:1px solid '+C.border+';padding-bottom:.3em;margin:24px 0 16px}';h+='.gh-readme-body h3{font-size:1.25em;margin:24px 0 16px}';h+='.gh-readme-body p{margin:0 0 16px}';h+='.gh-readme-body ul,.gh-readme-body ol{padding-left:2em;margin:0 0 16px}';h+='.gh-readme-body li{margin:4px 0}';h+='.gh-readme-body code{background:rgba(175,184,193,.2);padding:.2em .4em;border-radius:6px;font-size:85%;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}';h+='.gh-readme-body pre{background:'+C.surface+';padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 16px;border:1px solid '+C.border+'}';h+='.gh-readme-body pre code{background:none;padding:0;font-size:85%}';h+='.gh-readme-body table{border-collapse:collapse;width:100%;margin:0 0 16px}';h+='.gh-readme-body th,.gh-readme-body td{border:1px solid '+C.border+';padding:6px 13px}';h+='.gh-readme-body th{background:'+C.surface+';font-weight:600}';h+='.gh-readme-body img{max-width:100%;height:auto;border-radius:6px}';h+='.gh-readme-body a{color:'+C.accent+'}';h+='.gh-readme-body blockquote{border-left:4px solid '+C.border+';padding:0 16px;color:'+C.textSoft+';margin:0 0 16px}';h+='.gh-readme-body hr{border:none;border-top:1px solid '+C.border+';margin:24px 0}';h+='.gh-loading{text-align:center;padding:48px;color:'+C.textSoft+'}';h+='.gh-spin{width:32px;height:32px;border:3px solid '+C.border+';border-top-color:'+C.accent+';border-radius:50%;animation:ghspin .7s linear infinite;margin:0 auto 12px}';h+='@keyframes ghspin{to{transform:rotate(360deg)}}';h+='.gh-error{text-align:center;padding:48px;color:#cf222e}';h+='</style>';h+='<div class="gh">';if(state.loading){h+='<div class="gh-loading"><div class="gh-spin"></div><div>Loading repository...</div></div></div>';render(h);return}if(state.error){h+='<div class="gh-error"><p style="font-size:16px;font-weight:600">'+esc(state.error)+'</p><p style="font-size:13px;margin-top:8px">Could not load '+esc(REPO)+'</p></div></div>';render(h);return}var r=state.repo;h+='<div class="gh-hdr"><div class="gh-hdr-top">';h+='<span class="gh-hdr-icon">'+ICO.repo+'</span>';h+='<span class="gh-hdr-name"><a href="'+esc(r.html_url)+'" target="_blank" rel="noopener">'+esc(r.owner.login)+'</a> / <a href="'+esc(r.html_url)+'" target="_blank" rel="noopener"><strong>'+esc(r.name)+'</strong></a></span>';h+='<span class="gh-hdr-vis">'+esc(r.private?'Private':'Public')+'</span></div>';if(r.description)h+='<div class="gh-hdr-desc">'+esc(r.description)+'</div>';h+='<div class="gh-hdr-stats">';h+='<span class="gh-stat">'+ICO.star+' <strong>'+fmtNum(r.stargazers_count)+'</strong> stars</span>';h+='<span class="gh-stat">'+ICO.fork+' <strong>'+fmtNum(r.forks_count)+'</strong> forks</span>';h+='<span class="gh-stat">'+ICO.issue+' <strong>'+fmtNum(r.open_issues_count)+'</strong> issues</span></div>';h+='<div class="gh-meta">';if(r.language)h+='<span class="gh-meta-item"><span class="gh-lang-dot" style="background:'+langColor(r.language)+'"></span>'+esc(r.language)+'</span>';if(r.license&&r.license.spdx_id)h+='<span class="gh-meta-item">'+esc(r.license.spdx_id)+'</span>';h+='<span class="gh-meta-item">Updated '+fmtDate(r.pushed_at)+'</span>';h+='<span class="gh-meta-item">Created '+fmtDate(r.created_at)+'</span></div>';h+='<div class="gh-actions">';h+='<a class="gh-btn" href="'+esc(r.html_url)+'" target="_blank" rel="noopener">'+ICO.ext+' View on GitHub</a>';h+='<a class="gh-btn" href="https://github.dev/'+esc(REPO)+'" target="_blank" rel="noopener">'+ICO.file+' Open in github.dev</a>';h+='<a class="gh-btn gh-btn-primary" href="'+esc(r.html_url)+'/archive/refs/heads/main.zip">Download ZIP</a>';h+='</div></div>';h+='<div class="gh-tabs">';h+='<button class="gh-tab'+(state.activeTab==='readme'?' on':'')+'" data-ghtab="readme">'+ICO.file+' README</button>';h+='<button class="gh-tab'+(state.activeTab==='code'?' on':'')+'" data-ghtab="code">'+ICO.folder+' Code<span class="gh-tab-count">'+state.tree.length+'</span></button></div>';if(state.activeTab==='readme'){h+='<div class="gh-readme"><div class="gh-readme-hdr">'+ICO.file+' README.md</div>';if(state.readme){h+='<div class="gh-readme-body">'+state.readme+'</div>'}else{h+='<div style="padding:24px;text-align:center;color:'+C.textSoft+'">No README found</div>'}h+='</div>'}if(state.activeTab==='code'){h+='<div class="gh-tree"><div class="gh-tree-hdr">'+ICO.repo+' <strong>'+esc(r.name)+'</strong> / <span style="color:'+C.textSoft+'">'+esc(r.default_branch)+'</span></div>';state.tree.forEach(function(item){var isDir=item.type==='tree';var fileUrl=r.html_url+'/'+(isDir?'tree':'blob')+'/'+r.default_branch+'/'+item.path;h+='<div class="gh-tree-row"><span class="gh-tree-icon'+(isDir?' dir':'')+'">'+(isDir?ICO.folder:ICO.file)+'</span>';h+='<span class="gh-tree-name"><a href="'+esc(fileUrl)+'" target="_blank" rel="noopener">'+esc(item.path)+'</a></span>';if(!isDir&&item.size)h+='<span class="gh-tree-size">'+fmtSize(item.size)+'</span>';h+='</div>'});h+='</div>'}h+='</div>';render(h);container.querySelectorAll('[data-ghtab]').forEach(function(tab){tab.onclick=function(){state.activeTab=tab.getAttribute('data-ghtab');paint()}})}paint();loadData();`;
+  }
+
+  /**
    * Icon presets for tab labels - Fluent UI icons that work in SharePoint
    */
   private getIconPresets(): IPropertyPaneDropdownOption[] {
@@ -7807,7 +7897,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
             { key: 'file', text: strings.ContentTypeFile || 'External File' },
             { key: 'javascript', text: strings.ContentTypeJavaScript || 'JavaScript Code' },
             { key: 'toc', text: strings.ContentTypeToc || 'Table of Contents' },
-            { key: 'profilereport', text: strings.ContentTypeProfileReport || 'Profile Report' }
+            { key: 'profilereport', text: strings.ContentTypeProfileReport || 'Profile Report' },
+            { key: 'github', text: strings.ContentTypeGitHub || 'GitHub Repository' }
           ],
           selectedKey: this.properties[`tab${i}ContentType`] as string || 'webpart'
         })
@@ -8491,92 +8582,32 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
             value: (this.properties[`tab${i}ProfileReportCompanyLimit`] as number) || 500
           })
         );
+        // Registry-driven report type toggles (replaces 11 hardcoded toggles)
+        // Uses legacy property names for backward compatibility
+        for (const rt of REPORT_TYPE_REGISTRY) {
+          const legacyProp = REGISTRY_ID_TO_LEGACY_PROP[rt.id];
+          if (legacyProp) {
+            // Existing report type — use legacy property key for backward compat
+            fields.push(
+              PropertyPaneToggle(`tab${i}${legacyProp}`, {
+                label: `Show ${rt.label}`,
+                checked: this.properties[`tab${i}${legacyProp}`] !== false,
+                onText: 'Yes',
+                offText: 'No'
+              })
+            );
+          }
+          // New report types (no legacy prop) will be managed via the JSON enabledTypes property
+        }
+
+        // Path Overrides (Advanced) — JSON text area
         fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowMethodK`, {
-            label: strings.ProfileReportShowMethodKLabel || 'Show Method-K',
-            checked: this.properties[`tab${i}ProfileReportShowMethodK`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowMethodL`, {
-            label: strings.ProfileReportShowMethodLLabel || 'Show Method-L',
-            checked: this.properties[`tab${i}ProfileReportShowMethodL`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowMethodM`, {
-            label: strings.ProfileReportShowMethodMLabel || 'Show Method-M (AI Synthesis)',
-            checked: this.properties[`tab${i}ProfileReportShowMethodM`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowProfileJson`, {
-            label: strings.ProfileReportShowProfileJsonLabel || 'Show Profile JSON',
-            checked: this.properties[`tab${i}ProfileReportShowProfileJson`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowExecBrief`, {
-            label: 'Show Executive Brief',
-            checked: this.properties[`tab${i}ProfileReportShowExecBrief`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowCompLandscape`, {
-            label: 'Show Competitive Landscape',
-            checked: this.properties[`tab${i}ProfileReportShowCompLandscape`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowInvestorMemo`, {
-            label: 'Show Investor Memo',
-            checked: this.properties[`tab${i}ProfileReportShowInvestorMemo`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowFullDossier`, {
-            label: 'Show Full Dossier Narrative',
-            checked: this.properties[`tab${i}ProfileReportShowFullDossier`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowGrowthProp`, {
-            label: 'Show Growth Propensity',
-            checked: this.properties[`tab${i}ProfileReportShowGrowthProp`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowTeRelevance`, {
-            label: 'Show T&E Relevance',
-            checked: this.properties[`tab${i}ProfileReportShowTeRelevance`] !== false,
-            onText: 'Yes',
-            offText: 'No'
-          })
-        );
-        fields.push(
-          PropertyPaneToggle(`tab${i}ProfileReportShowAiSynthesis`, {
-            label: 'Show AI Synthesis',
-            checked: this.properties[`tab${i}ProfileReportShowAiSynthesis`] !== false,
-            onText: 'Yes',
-            offText: 'No'
+          PropertyPaneTextField(`tab${i}ProfileReportPathOverrides`, {
+            label: 'Path Overrides (Advanced)',
+            description: 'JSON object mapping report type IDs to custom path templates. Example: {"methodK": "{domain}/custom-method-K.md"}',
+            placeholder: '{}',
+            multiline: true,
+            rows: 3
           })
         );
 
@@ -8643,6 +8674,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
             })
           );
         }
+      } else if (contentType === 'github') {
+        // GitHub Repository configuration - just a URL field
+        fields.push(
+          PropertyPaneTextField(`tab${i}GitHubRepoUrl`, {
+            label: strings.GitHubRepoUrlLabel || 'GitHub Repository URL',
+            placeholder: 'https://github.com/owner/repo',
+            description: 'Paste the full GitHub repository URL',
+            multiline: false
+          })
+        );
       }
 
       // Within-tab TOC fields for HTML and Markdown content types

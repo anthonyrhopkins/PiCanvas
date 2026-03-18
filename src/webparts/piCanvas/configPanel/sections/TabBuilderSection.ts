@@ -7,6 +7,7 @@ import { ToggleControl } from '../controls/ToggleControl';
 import { SliderControl } from '../controls/SliderControl';
 import { ColorPicker } from '../controls/ColorPicker';
 import { TOC_STYLE_PRESETS, TocPresetKey } from '../../data/TocStylePresets';
+import { REGISTRY_ID_TO_LEGACY_PROP, CATEGORY_LABELS, getRegistryByCategory } from '../../data/ReportTypeRegistry';
 
 export interface ITabBuilderOptions {
   getProperty: (key: string) => string | number | boolean | undefined;
@@ -42,7 +43,8 @@ const CONTENT_TYPES: IContentTypeInfo[] = [
   { key: 'file', icon: '&#128196;', label: 'File' },
   { key: 'javascript', icon: 'JS', label: 'JavaScript' },
   { key: 'toc', icon: '&#9776;', label: 'TOC' },
-  { key: 'profilereport', icon: '&#128200;', label: 'Profile Report' }
+  { key: 'profilereport', icon: '&#128200;', label: 'Profile Report' },
+  { key: 'github', icon: '&#128025;', label: 'GitHub Repo' }
 ];
 
 export class TabBuilderSection {
@@ -580,28 +582,37 @@ export class TabBuilderSection {
       layoutDropdown.render(accordion.body);
       this._controls.push(layoutDropdown);
 
-      // Method visibility toggles
-      const methodToggles = [
-        { prop: 'ProfileReportShowMethodK', label: 'Show Method-K Analysis' },
-        { prop: 'ProfileReportShowMethodL', label: 'Show Method-L Analysis' },
-        { prop: 'ProfileReportShowMethodM', label: 'Show Method-M (AI Synthesis)' },
-        { prop: 'ProfileReportShowProfileJson', label: 'Show Profile JSON Data' }
-      ];
+      // Registry-driven report type toggles, grouped by category
+      const grouped = getRegistryByCategory();
+      for (const [category, reportTypes] of Object.entries(grouped)) {
+        const catLabel = CATEGORY_LABELS[category] || category;
+        const catHeader = document.createElement('div');
+        catHeader.className = 'picanvas-config-field-label';
+        catHeader.style.marginTop = '12px';
+        catHeader.style.fontWeight = '600';
+        catHeader.textContent = catLabel;
+        accordion.body.appendChild(catHeader);
 
-      methodToggles.forEach(({ prop, label }) => {
-        const toggle = new ToggleControl({
-          label,
-          checked: opts.getProperty(`tab${tabIndex}${prop}`) !== false,
-          onText: 'Show',
-          offText: 'Hide',
-          onChange: (v) => {
-            opts.setProperty(`tab${tabIndex}${prop}`, v);
-            opts.onChanged();
-          }
-        });
-        toggle.render(accordion.body);
-        this._controls.push(toggle);
-      });
+        for (const rt of reportTypes) {
+          const legacyProp = REGISTRY_ID_TO_LEGACY_PROP[rt.id];
+          // Use legacy property key if it exists (backward compat), otherwise skip
+          // (new types without legacy props are managed via JSON enabledTypes property)
+          if (!legacyProp) continue;
+
+          const toggle = new ToggleControl({
+            label: `Show ${rt.label}`,
+            checked: opts.getProperty(`tab${tabIndex}${legacyProp}`) !== false,
+            onText: 'Show',
+            offText: 'Hide',
+            onChange: (v) => {
+              opts.setProperty(`tab${tabIndex}${legacyProp}`, v);
+              opts.onChanged();
+            }
+          });
+          toggle.render(accordion.body);
+          this._controls.push(toggle);
+        }
+      }
 
       // Company limit slider
       const limitValue = (opts.getProperty(`tab${tabIndex}ProfileReportCompanyLimit`) as number) || 50;
@@ -654,6 +665,26 @@ export class TabBuilderSection {
       });
       themeDropdown.render(accordion.body);
       this._controls.push(themeDropdown);
+
+    } else if (contentType === 'github') {
+      const info = document.createElement('div');
+      info.className = 'picanvas-config-info';
+      info.textContent = 'Embed a GitHub repository with README, file tree, stats, and action buttons. Just paste the repo URL.';
+      accordion.body.appendChild(info);
+
+      // GitHub repo URL text field
+      const urlWrapper = document.createElement('div');
+      urlWrapper.className = 'picanvas-config-field';
+      urlWrapper.innerHTML = `
+        <label class="picanvas-config-field-label">GitHub Repository URL</label>
+        <input type="text" class="picanvas-config-text-field" placeholder="https://github.com/owner/repo" value="${(opts.getProperty(`tab${tabIndex}GitHubRepoUrl`) as string) || ''}" data-prop="GitHubRepoUrl" />
+      `;
+      accordion.body.appendChild(urlWrapper);
+      const urlInput = urlWrapper.querySelector('input') as HTMLInputElement;
+      urlInput.addEventListener('input', () => {
+        opts.setProperty(`tab${tabIndex}GitHubRepoUrl`, urlInput.value);
+        opts.onChanged();
+      });
     }
   }
 

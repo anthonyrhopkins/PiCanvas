@@ -7,7 +7,9 @@
 
 import { SPHttpClient } from '@microsoft/sp-http';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
-import { ICompanyProfile, ICompanyEntry, IMetadataFileEntry, ICompanyIntel } from './ContentRenderer';
+import { ICompanyProfile, ICompanyEntry, IMetadataFileEntry } from './ContentRenderer';
+// Note: ICompanyIntel is still exported by ContentRenderer for use by the renderer itself
+import { REPORT_TYPE_REGISTRY, resolveReportPath, IReportTypeDefinition } from '../data/ReportTypeRegistry';
 
 // Re-export so callers can import from either location
 export type { ICompanyEntry } from './ContentRenderer';
@@ -239,8 +241,8 @@ export class ProfileReportService {
    * Load a single company's full profile on demand.
    * Called by WebPart when user clicks a company tab.
    */
-  public async fetchCompanyProfile(libraryName: string, entry: ICompanyEntry, metadataConfig?: IMetadataDiscoveryConfig): Promise<ICompanyProfile> {
-    return this.loadCompanyProfile(libraryName, entry, metadataConfig);
+  public async fetchCompanyProfile(libraryName: string, entry: ICompanyEntry, metadataConfig?: IMetadataDiscoveryConfig, pathOverrides?: Record<string, string>): Promise<ICompanyProfile> {
+    return this.loadCompanyProfile(libraryName, entry, metadataConfig, pathOverrides);
   }
 
   /**
@@ -248,7 +250,12 @@ export class ProfileReportService {
    * Uses PiRadarID-based file paths when available (list-based entries),
    * otherwise falls back to domain-based lookup (legacy folder entries).
    */
-  public async loadCompanyProfile(libraryName: string, entry: ICompanyEntry, metadataConfig?: IMetadataDiscoveryConfig): Promise<ICompanyProfile> {
+  public async loadCompanyProfile(
+    libraryName: string,
+    entry: ICompanyEntry,
+    metadataConfig?: IMetadataDiscoveryConfig,
+    pathOverrides?: Record<string, string>
+  ): Promise<ICompanyProfile> {
     if (this.detectWorkbenchEnvironment()) {
       return { companyKey: entry.domain, companyName: entry.companyName, domain: entry.domain };
     }
@@ -267,7 +274,6 @@ export class ProfileReportService {
       sector: entry.sector,
       accountOwner: entry.accountOwner,
       ownerRegion: entry.ownerRegion,
-      // Pass through list fields for rich Overview rendering
       spListItemId: entry.spListItemId,
       headquarters: entry.headquarters,
       founded: entry.founded,
@@ -280,193 +286,58 @@ export class ProfileReportService {
       employees: entry.employees,
     };
 
-    // Determine file prefix: "{piRadarId}-{domain}" for list-based, just "{domain}" for legacy
-    const hasPiRadarId = entry.piRadarId !== undefined && entry.piRadarId !== null;
+    const pathCtx = {
+      domain: companyDomain,
+      piRadarId: entry.piRadarId,
+      shortName,
+    };
 
-    // 1. Fetch condensed JSON (direct path)
-    const jsonUrl = `${libPath}/condensed/${companyDomain}.json`;
-    try {
-      const content = await this.fetchFileContent(jsonUrl);
-      try {
-        profile.profileJson = JSON.parse(content);
-        if (profile.profileJson && typeof profile.profileJson === 'object') {
-          if (profile.profileJson.company_name) {
-            profile.companyName = String(profile.profileJson.company_name);
-          } else if (profile.profileJson.companyName) {
-            profile.companyName = String(profile.profileJson.companyName);
-          }
-          if (profile.profileJson.generated) {
-            profile.generated = new Date(profile.profileJson.generated);
-          }
-          const metrics = profile.profileJson.metrics;
-          if (metrics && typeof metrics === 'object') {
-            profile.metrics = {
-              events: typeof metrics.events === 'number' ? metrics.events : 0,
-              entities: typeof metrics.entities === 'number' ? metrics.entities : 0,
-              relationships: typeof metrics.relationships === 'number' ? metrics.relationships : 0,
-              financials: typeof metrics.financials === 'number' ? metrics.financials : 0,
-              earnings: typeof metrics.earnings === 'number' ? metrics.earnings : 0
-            };
-          }
-        }
-      } catch (jsonError) {
-        console.warn(`ProfileReportService: Invalid JSON for ${companyDomain}`, jsonError);
-        profile.methodK = content; // fallback: show raw content
-      }
-    } catch (error) {
-      console.warn(`ProfileReportService: No condensed JSON for ${companyDomain}`, error);
-    }
-
-    // 2. Find Method-K file
-    if (hasPiRadarId) {
-      // List-based: use PiRadarID-domain pattern in outputs/ folder
-      const mkFileName = `${entry.piRadarId}-${companyDomain}-method-K.md`;
-      const mkUrl = `${libPath}/outputs/${mkFileName}`;
-      try {
-        profile.methodK = await this.fetchFileContent(mkUrl);
-      } catch {
-        // Try outputs-method-l/ as fallback
-        const mkUrlAlt = `${libPath}/outputs-method-l/${mkFileName}`;
-        try {
-          profile.methodK = await this.fetchFileContent(mkUrlAlt);
-        } catch {
-          console.warn(`ProfileReportService: Method-K not found for ${companyDomain} (ID: ${entry.piRadarId})`);
-        }
-      }
-    } else {
-      // Legacy: scan outputs-method-l/ folder
-      try {
-        const methodKFiles = await this.getFolderFiles(sanitized, 'outputs-method-l');
-        const kFile = methodKFiles.find(f =>
-          f.Name.toLowerCase().includes(companyDomain.toLowerCase()) && f.Name.endsWith('.md')
-        );
-        if (kFile) {
-          profile.methodK = await this.fetchFileContent(kFile.ServerRelativeUrl);
-        }
-      } catch (error) {
-        console.warn(`ProfileReportService: Method-K lookup failed for ${companyDomain}`, error);
-      }
-    }
-
-    // 3. Find Method-L file (hydrated research data)
-    if (hasPiRadarId) {
-      // List-based: use PiRadarID-domain pattern in outputs-method-l/ folder
-      const mlFileName = `${entry.piRadarId}-${companyDomain}-method-K.md`;
-      const mlUrl = `${libPath}/outputs-method-l/${mlFileName}`;
-      try {
-        profile.methodL = await this.fetchFileContent(mlUrl);
-      } catch {
-        console.warn(`ProfileReportService: Method-L not found for ${companyDomain} (ID: ${entry.piRadarId})`);
-      }
-    } else {
-      // Legacy: scan hydrated/ folder
-      try {
-        const hydratedFiles = await this.getFolderFiles(sanitized, 'hydrated');
-        const companyHydrated = hydratedFiles.filter(f =>
-          f.Name.toLowerCase().startsWith(shortName + '-method-')
-        );
-        if (companyHydrated.length > 0) {
-          const contents: string[] = [];
-          for (const hf of companyHydrated) {
-            try {
-              const c = await this.fetchFileContent(hf.ServerRelativeUrl);
-              const methodMatch = hf.Name.match(/-method-([A-Z]+)\./i);
-              const label = methodMatch ? `Method ${methodMatch[1].toUpperCase()}` : hf.Name;
-              contents.push(`## ${label}\n\n${c}`);
-            } catch { /* skip individual failures */ }
-          }
-          if (contents.length > 0) {
-            profile.methodL = contents.join('\n\n---\n\n');
-          }
-        }
-      } catch (error) {
-        console.warn(`ProfileReportService: Hydrated lookup failed for ${companyDomain}`, error);
-      }
-    }
-
-    // 4. Find Final Report (Method-M) in final-html/
-    if (hasPiRadarId) {
-      const fhFileName = `${entry.piRadarId}-${companyDomain}-final-report.html`;
-      const fhUrl = `${libPath}/final-html/${fhFileName}`;
-      try {
-        profile.methodM = await this.fetchFileContent(fhUrl);
-      } catch {
-        // Fallback: try domain-only pattern
-        const fhUrlAlt = `${libPath}/final-html/${companyDomain}.html`;
-        try {
-          profile.methodM = await this.fetchFileContent(fhUrlAlt);
-        } catch {
-          // No final-html file — that's fine
-        }
-      }
-    } else {
-      // Legacy: try domain-based path
-      const htmlUrl = `${libPath}/final-html/${companyDomain}.html`;
-      try {
-        profile.methodM = await this.fetchFileContent(htmlUrl);
-      } catch {
-        // No final-html file — that's fine
-      }
-    }
-
-    // 5. Fetch company-profile reports (executive-brief, competitive-landscape, investor-memo, full-dossier-narrative)
-    // These are stored as {domain}.md in subfolders of company-profile/
-    const companyProfileTypes: Array<{ folder: string; field: keyof ICompanyProfile }> = [
-      { folder: 'company-profile/executive-brief', field: 'executiveBrief' },
-      { folder: 'company-profile/competitive-landscape', field: 'competitiveLandscape' },
-      { folder: 'company-profile/investor-memo', field: 'investorMemo' },
-      { folder: 'company-profile/full-dossier-narrative', field: 'fullDossierNarrative' }
-    ];
-
-    // Fetch all company-profile types in parallel for speed
-    const cpResults = await Promise.allSettled(
-      companyProfileTypes.map(async ({ folder, field }) => {
-        const url = `${libPath}/${folder}/${companyDomain}.md`;
-        try {
-          const content = await this.fetchFileContent(url);
-          return { field, content };
-        } catch {
-          return { field, content: null };
-        }
+    // Fetch all report types from the registry in parallel
+    const fetchResults = await Promise.allSettled(
+      REPORT_TYPE_REGISTRY.map(async (rt) => {
+        const content = await this.fetchReportContent(libPath, rt, pathCtx, pathOverrides?.[rt.id]);
+        return { id: rt.id, content };
       })
     );
-    for (const result of cpResults) {
-      if (result.status === 'fulfilled' && result.value.content) {
-        (profile as any)[result.value.field] = result.value.content;
-      }
-    }
 
-    // 6. Fetch growth propensity score (te-growth-propensity/method-A/{domain}.md)
-    {
-      const gpUrl = `${libPath}/te-growth-propensity/method-A/${companyDomain}.md`;
-      try {
-        profile.growthPropensity = await this.fetchFileContent(gpUrl);
-      } catch { /* no growth propensity — fine */ }
-    }
+    for (const result of fetchResults) {
+      if (result.status !== 'fulfilled' || !result.value.content) continue;
+      const { id, content } = result.value;
 
-    // 7. Fetch AI Synthesis (final-html/ai-synthesis/{id}-{domain}-method-M-final.md)
-    if (hasPiRadarId) {
-      const asFileName = `${entry.piRadarId}-${companyDomain}-method-M-final.md`;
-      const asUrl = `${libPath}/final-html/ai-synthesis/${asFileName}`;
-      try {
-        profile.aiSynthesis = await this.fetchFileContent(asUrl);
-      } catch {
-        // Try domain-only fallback
+      if (id === 'profileJson') {
+        // Special handling: parse JSON and extract metadata
         try {
-          profile.aiSynthesis = await this.fetchFileContent(`${libPath}/final-html/ai-synthesis/${companyDomain}-method-M-final.md`);
-        } catch { /* no AI synthesis — fine */ }
+          profile.profileJson = JSON.parse(content);
+          if (profile.profileJson && typeof profile.profileJson === 'object') {
+            if (profile.profileJson.company_name) {
+              profile.companyName = String(profile.profileJson.company_name);
+            } else if (profile.profileJson.companyName) {
+              profile.companyName = String(profile.profileJson.companyName);
+            }
+            if (profile.profileJson.generated) {
+              profile.generated = new Date(profile.profileJson.generated);
+            }
+            const metrics = profile.profileJson.metrics;
+            if (metrics && typeof metrics === 'object') {
+              profile.metrics = {
+                events: typeof metrics.events === 'number' ? metrics.events : 0,
+                entities: typeof metrics.entities === 'number' ? metrics.entities : 0,
+                relationships: typeof metrics.relationships === 'number' ? metrics.relationships : 0,
+                financials: typeof metrics.financials === 'number' ? metrics.financials : 0,
+                earnings: typeof metrics.earnings === 'number' ? metrics.earnings : 0,
+              };
+            }
+          }
+        } catch (jsonError) {
+          console.warn(`ProfileReportService: Invalid JSON for ${companyDomain}`, jsonError);
+        }
+      } else {
+        // Assign string content to the matching profile property
+        (profile as any)[id] = content;
       }
     }
 
-    // 8. Fetch T&E Relevance report (te-relevance/method-I/{domain}.md)
-    {
-      const trUrl = `${libPath}/te-relevance/method-I/${companyDomain}.md`;
-      try {
-        profile.teRelevance = await this.fetchFileContent(trUrl);
-      } catch { /* no T&E relevance — fine */ }
-    }
-
-    // 9. Fetch metadata-tagged files (if metadata discovery is enabled)
+    // Fetch metadata-tagged files (if metadata discovery is enabled)
     if (metadataConfig) {
       try {
         const metaFiles = await this.fetchMetadataFiles(sanitized, companyDomain, metadataConfig);
@@ -479,6 +350,46 @@ export class ProfileReportService {
     }
 
     return profile;
+  }
+
+  /**
+   * Fetch content for a single report type.
+   * Tries: user override path → primary path → fallback paths.
+   * Returns content string or null if all paths fail.
+   */
+  public async fetchReportContent(
+    libPath: string,
+    reportType: IReportTypeDefinition,
+    pathCtx: { domain: string; piRadarId?: number | null; shortName?: string },
+    pathOverride?: string
+  ): Promise<string | null> {
+    // Build ordered path chain
+    const paths: string[] = [];
+
+    if (pathOverride) {
+      const resolved = resolveReportPath(pathOverride, pathCtx);
+      if (resolved) paths.push(resolved);
+    }
+
+    const primary = resolveReportPath(reportType.pathTemplate, pathCtx);
+    if (primary) paths.push(primary);
+
+    for (const fb of reportType.fallbackPaths) {
+      const resolved = resolveReportPath(fb, pathCtx);
+      if (resolved) paths.push(resolved);
+    }
+
+    // Try each path until one succeeds
+    for (const relPath of paths) {
+      const fullUrl = `${libPath}/${relPath}`;
+      try {
+        return await this.fetchFileContent(fullUrl);
+      } catch {
+        // Try next path
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -629,48 +540,8 @@ export class ProfileReportService {
     }
   }
 
-  /**
-   * Fetch company intelligence JSON from the Pi_Companies list.
-   * Uses $filter on indexed PiRadarID column to stay under list view threshold.
-   * Returns null gracefully on any error (intel is optional/enrichment data).
-   */
-  public async fetchCompanyIntel(listName: string, piRadarId: number): Promise<ICompanyIntel | null> {
-    if (this.detectWorkbenchEnvironment()) return null;
-    if (!listName || !piRadarId) return null;
-
-    const sanitized = this.sanitizeLibraryName(listName);
-    if (!sanitized) return null;
-
-    const siteUrl = this.context.pageContext.web.absoluteUrl;
-    const apiUrl = `${siteUrl}/_api/web/lists/getbytitle('${sanitized}')/items` +
-      `?$filter=PiRadarID eq ${piRadarId}` +
-      `&$select=CompanyIntel` +
-      `&$top=1`;
-
-    try {
-      const response = await this.context.spHttpClient.get(
-        apiUrl,
-        SPHttpClient.configurations.v1,
-        { headers: { 'Accept': 'application/json;odata.metadata=none' } }
-      );
-
-      if (!response.ok) {
-        console.warn(`ProfileReportService: CompanyIntel query returned ${response.status} for PiRadarID=${piRadarId}`);
-        return null;
-      }
-
-      const data = await response.json();
-      if (!data.value || data.value.length === 0) return null;
-
-      const intelJson = data.value[0].CompanyIntel;
-      if (!intelJson || typeof intelJson !== 'string') return null;
-
-      return JSON.parse(intelJson) as ICompanyIntel;
-    } catch (error) {
-      console.warn(`ProfileReportService: fetchCompanyIntel error for PiRadarID=${piRadarId}`, error);
-      return null;
-    }
-  }
+  // fetchCompanyIntel removed — CompanyIntel column does not exist on the SP list.
+  // Overview tab now relies solely on SP list detail fields (CompanyDescription, Executives, etc.).
 
   /**
    * Fetch and cache a folder's file listing (metadata only, no content).
