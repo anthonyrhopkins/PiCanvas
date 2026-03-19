@@ -4285,7 +4285,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // Show a visible error UI so the author can fix it in edit mode
       const isDark = this.isDarkMode();
       const themeClass = isDark ? styles.darkMode : '';
-      const errMsg = error instanceof Error ? error.message : String(error);
+      const errMsg = ContentRenderer.encodeHtmlPublic(error instanceof Error ? error.message : String(error));
       this.domElement.innerHTML = `
         <div class="${styles.piCanvas} ${themeClass}" data-theme="${isDark ? 'dark' : 'light'}" style="border:2px solid #d13438;border-radius:8px;padding:16px;margin:8px 0;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
