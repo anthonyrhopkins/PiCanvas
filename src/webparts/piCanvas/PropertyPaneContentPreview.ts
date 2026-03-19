@@ -309,7 +309,7 @@ class PropertyPaneContentPreviewBuilder implements IPropertyPaneField<IPropertyP
               ${(err as Error).message}
             </div>
             <div style="margin-top: 8px; padding: 8px; background: #fff3e0; border-radius: 4px; font-size: 12px;">
-              <strong>Tip:</strong> Check your diagram syntax at <a href="https://mermaid.live" target="_blank" style="color: #0078d4;">mermaid.live</a>
+              <strong>Tip:</strong> Check your diagram syntax at <a href="https://mermaid.live" target="_blank" rel="noopener noreferrer" style="color: #0078d4;">mermaid.live</a>
             </div>
           </div>
         </div>
