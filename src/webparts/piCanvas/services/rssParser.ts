@@ -323,16 +323,18 @@ const getTextContent = (element: Element, tagName: string): string => {
 const cleanText = (text: string): string => {
     if (!text) return '';
 
-    // Decode HTML entities
-    const txt = document.createElement('textarea');
-    txt.innerHTML = text;
-    const decoded = txt.value;
+    // Remove HTML tags first (before entity decoding to prevent XSS)
+    const withoutTags = text.replace(/<[^>]*>/g, ' ');
 
-    // Remove HTML tags
-    const withoutTags = decoded.replace(/<[^>]*>/g, ' ');
-
-    // Normalize whitespace
-    return withoutTags.trim().replace(/\s+/g, ' ');
+    // Decode HTML entities safely using DOMParser (no script execution)
+    try {
+      const doc = new DOMParser().parseFromString(withoutTags, 'text/html');
+      const decoded = doc.body.textContent || '';
+      return decoded.trim().replace(/\s+/g, ' ');
+    } catch {
+      // Fallback: strip entities manually
+      return withoutTags.replace(/&[^;]+;/g, ' ').trim().replace(/\s+/g, ' ');
+    }
 };
 
 /**

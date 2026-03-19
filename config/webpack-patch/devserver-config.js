@@ -26,7 +26,10 @@ module.exports = function(webpackConfig) {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
-    'Access-Control-Allow-Private-Network': 'true'
+    'Access-Control-Allow-Private-Network': 'true',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'X-Content-Type-Options': 'nosniff',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
   };
 
   // Disable error overlay
