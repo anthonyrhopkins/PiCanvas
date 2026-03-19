@@ -98,7 +98,7 @@ export const ReportsBrowser: React.FC<IReportsBrowserProps> = ({ reports, spHttp
         ADD_ATTR: ['target', 'rel', 'style', 'class'],
         ALLOW_DATA_ATTR: true,
         FORBID_TAGS: ['script'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur']
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'ondragstart', 'oncontextmenu']
       }) as string;
     }
 

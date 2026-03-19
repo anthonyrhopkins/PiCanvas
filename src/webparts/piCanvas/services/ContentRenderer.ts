@@ -330,7 +330,7 @@ export class ContentRenderer {
         USE_PROFILES: { html: true },
         ADD_ATTR: ['target', 'rel'], // Allow link attributes
         FORBID_TAGS: ['style', 'script'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'ondragstart', 'oncontextmenu']
       });
 
       return { html: sanitizedHtml };
@@ -359,7 +359,7 @@ export class ContentRenderer {
         ],
         ALLOW_DATA_ATTR: true,
         FORBID_TAGS: ['script'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur']
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'ondragstart', 'oncontextmenu']
       });
 
       return { html: sanitizedHtml };
@@ -385,7 +385,7 @@ export class ContentRenderer {
         ADD_ATTR: ['style'],
         ALLOW_DATA_ATTR: true,
         FORBID_TAGS: ['script'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur']
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'ondragstart', 'oncontextmenu']
       });
 
       return { html: sanitizedHtml };
