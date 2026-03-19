@@ -497,6 +497,16 @@ export class TabBuilderSection {
       });
       modeDd.render(accordion.body);
       this._controls.push(modeDd);
+
+      const graphToggle = new ToggleControl({
+        label: 'Enable Graph API',
+        checked: opts.getProperty(`tab${tabIndex}JavaScriptEnableGraph`) === true,
+        onText: 'Enabled (graphFetch available)',
+        offText: 'Disabled (no Graph access)',
+        onChange: (v) => { opts.setProperty(`tab${tabIndex}JavaScriptEnableGraph`, v); opts.onChanged(); }
+      });
+      graphToggle.render(accordion.body);
+      this._controls.push(graphToggle);
     } else if (contentType === 'toc') {
       const info = document.createElement('div');
       info.className = 'picanvas-config-info';
@@ -547,15 +557,120 @@ export class TabBuilderSection {
     } else if (contentType === 'profilereport') {
       const info = document.createElement('div');
       info.className = 'picanvas-config-info';
-      info.textContent = 'Displays company profile reports from a SharePoint document library with Method-K, Method-L, Method-M, and JSON data.';
+      info.textContent = 'Displays company profile reports. Configure library sources below — files in each {domain}/ folder become tabs automatically.';
       accordion.body.appendChild(info);
 
-      // Library name text field (simple HTML)
+      // === Library Sources list editor ===
+      const sourcesLabel = document.createElement('div');
+      sourcesLabel.className = 'picanvas-config-field-label';
+      sourcesLabel.style.marginTop = '8px';
+      sourcesLabel.style.fontWeight = '600';
+      sourcesLabel.textContent = 'Library Sources';
+      accordion.body.appendChild(sourcesLabel);
+
+      const sourcesHint = document.createElement('div');
+      sourcesHint.className = 'picanvas-config-info';
+      sourcesHint.style.fontSize = '12px';
+      sourcesHint.style.marginBottom = '8px';
+      sourcesHint.textContent = 'Each source scans {library}/{domain}/ for files. Leave Site URL empty for the current site. Adding sources enables discovery mode.';
+      accordion.body.appendChild(sourcesHint);
+
+      const sourcesContainer = document.createElement('div');
+      sourcesContainer.className = 'picanvas-library-sources';
+      accordion.body.appendChild(sourcesContainer);
+
+      // Parse existing sources
+      let currentSources: Array<{ siteUrl: string; libraryName: string; label?: string }> = [];
+      const sourcesJsonRaw = (opts.getProperty(`tab${tabIndex}ProfileReportLibrarySources`) as string) || '';
+      if (sourcesJsonRaw) {
+        try { currentSources = JSON.parse(sourcesJsonRaw); } catch { /* ignore */ }
+      }
+
+      const saveSources = (): void => {
+        opts.setProperty(`tab${tabIndex}ProfileReportLibrarySources`, currentSources.length > 0 ? JSON.stringify(currentSources) : '');
+        opts.onChanged();
+      };
+
+      const renderSourcesList = (): void => {
+        sourcesContainer.innerHTML = '';
+        currentSources.forEach((source, idx) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px;';
+          row.innerHTML = `
+            <input type="text" class="picanvas-config-text-field" placeholder="Site URL (empty = current)" value="${source.siteUrl || ''}" data-field="siteUrl" style="flex:1;min-width:0;" />
+            <input type="text" class="picanvas-config-text-field" placeholder="Library name" value="${source.libraryName || ''}" data-field="libraryName" style="flex:1;min-width:0;" />
+            <button class="picanvas-config-btn-sm picanvas-source-remove" data-idx="${idx}" title="Remove" style="flex-shrink:0;cursor:pointer;">&#10005;</button>
+          `;
+          sourcesContainer.appendChild(row);
+
+          // Wire up inputs
+          row.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => {
+              const field = input.getAttribute('data-field') as 'siteUrl' | 'libraryName';
+              currentSources[idx][field] = input.value;
+              saveSources();
+            });
+          });
+          row.querySelector('.picanvas-source-remove')!.addEventListener('click', () => {
+            currentSources.splice(idx, 1);
+            saveSources();
+            renderSourcesList();
+          });
+        });
+
+        // Add button
+        const addBtn = document.createElement('button');
+        addBtn.className = 'picanvas-config-btn-sm';
+        addBtn.textContent = '+ Add Library Source';
+        addBtn.style.cssText = 'margin-top:4px;cursor:pointer;';
+        addBtn.addEventListener('click', () => {
+          currentSources.push({ siteUrl: '', libraryName: 'Profiles' });
+          saveSources();
+          renderSourcesList();
+        });
+        sourcesContainer.appendChild(addBtn);
+      };
+      renderSourcesList();
+
+      // === Report Type Column (discovery mode) ===
+      const fileTypeWrapper = document.createElement('div');
+      fileTypeWrapper.className = 'picanvas-config-field';
+      fileTypeWrapper.style.marginTop = '12px';
+      fileTypeWrapper.innerHTML = `
+        <label class="picanvas-config-field-label">Report Type Column</label>
+        <input type="text" class="picanvas-config-text-field" placeholder="e.g. ReportType" value="${(opts.getProperty(`tab${tabIndex}ProfileReportFileTypeColumn`) as string) || ''}" />
+        <div style="font-size:11px;color:#888;margin-top:2px;">SP column internal name that identifies the file type (e.g., "Growth Propensity", "Company Profile"). Used as the tab label. Discovery mode only.</div>
+      `;
+      accordion.body.appendChild(fileTypeWrapper);
+      const fileTypeInput = fileTypeWrapper.querySelector('input') as HTMLInputElement;
+      fileTypeInput.addEventListener('input', () => {
+        opts.setProperty(`tab${tabIndex}ProfileReportFileTypeColumn`, fileTypeInput.value);
+        opts.onChanged();
+      });
+
+      // === Display Columns (discovery mode) ===
+      const displayColsWrapper = document.createElement('div');
+      displayColsWrapper.className = 'picanvas-config-field';
+      displayColsWrapper.innerHTML = `
+        <label class="picanvas-config-field-label">Display Columns</label>
+        <input type="text" class="picanvas-config-text-field" placeholder="e.g. Author,Status,ReviewDate" value="${(opts.getProperty(`tab${tabIndex}ProfileReportDisplayColumns`) as string) || ''}" />
+        <div style="font-size:11px;color:#888;margin-top:2px;">Comma-separated SP column internal names to show as metadata in each tab. Discovery mode only.</div>
+      `;
+      accordion.body.appendChild(displayColsWrapper);
+      const displayColsInput = displayColsWrapper.querySelector('input') as HTMLInputElement;
+      displayColsInput.addEventListener('input', () => {
+        opts.setProperty(`tab${tabIndex}ProfileReportDisplayColumns`, displayColsInput.value);
+        opts.onChanged();
+      });
+
+      // Library name text field (legacy / fallback when no sources configured)
       const libraryWrapper = document.createElement('div');
       libraryWrapper.className = 'picanvas-config-field';
+      libraryWrapper.style.marginTop = '12px';
       libraryWrapper.innerHTML = `
-        <label class="picanvas-config-field-label">Document Library Name</label>
+        <label class="picanvas-config-field-label">Fallback Library Name</label>
         <input type="text" class="picanvas-config-text-field" placeholder="Profiles" value="${(opts.getProperty(`tab${tabIndex}ProfileReportLibrary`) as string) || 'Profiles'}" data-prop="ProfileReportLibrary" />
+        <div style="font-size:11px;color:#888;margin-top:2px;">Used when no Library Sources are configured (registry mode).</div>
       `;
       accordion.body.appendChild(libraryWrapper);
       const libraryInput = libraryWrapper.querySelector('input') as HTMLInputElement;
@@ -582,7 +697,21 @@ export class TabBuilderSection {
       layoutDropdown.render(accordion.body);
       this._controls.push(layoutDropdown);
 
-      // Registry-driven report type toggles, grouped by category
+      // === Registry-driven toggles (only shown when discovery mode is not active) ===
+      const togglesHeader = document.createElement('div');
+      togglesHeader.className = 'picanvas-config-field-label';
+      togglesHeader.style.marginTop = '12px';
+      togglesHeader.style.fontWeight = '600';
+      togglesHeader.textContent = 'Report Type Toggles (Registry Mode)';
+      accordion.body.appendChild(togglesHeader);
+
+      const togglesHint = document.createElement('div');
+      togglesHint.className = 'picanvas-config-info';
+      togglesHint.style.fontSize = '12px';
+      togglesHint.style.marginBottom = '4px';
+      togglesHint.textContent = 'These toggles only apply when Library Sources is empty (registry/fallback mode). In discovery mode, all files in the folder become tabs.';
+      accordion.body.appendChild(togglesHint);
+
       const grouped = getRegistryByCategory();
       for (const [category, reportTypes] of Object.entries(grouped)) {
         const catLabel = CATEGORY_LABELS[category] || category;
@@ -595,8 +724,6 @@ export class TabBuilderSection {
 
         for (const rt of reportTypes) {
           const legacyProp = REGISTRY_ID_TO_LEGACY_PROP[rt.id];
-          // Use legacy property key if it exists (backward compat), otherwise skip
-          // (new types without legacy props are managed via JSON enabledTypes property)
           if (!legacyProp) continue;
 
           const toggle = new ToggleControl({
@@ -665,6 +792,27 @@ export class TabBuilderSection {
       });
       themeDropdown.render(accordion.body);
       this._controls.push(themeDropdown);
+
+      // === Label Hints (advanced, collapsed) ===
+      const hintsAcc = this._createAccordion('Label Hints (Advanced)', false);
+      accordion.body.appendChild(hintsAcc.wrapper);
+
+      const hintsInfo = document.createElement('div');
+      hintsInfo.className = 'picanvas-config-info';
+      hintsInfo.style.fontSize = '12px';
+      hintsInfo.textContent = 'Optional JSON mapping filenames to labels and sort order. Discovery mode only.';
+      hintsAcc.body.appendChild(hintsInfo);
+
+      const hintsTextarea = document.createElement('textarea');
+      hintsTextarea.className = 'picanvas-config-text-field';
+      hintsTextarea.style.cssText = 'width:100%;min-height:80px;font-family:monospace;font-size:11px;resize:vertical;';
+      hintsTextarea.placeholder = '{"method-K.md": {"label": "Method-K", "order": 10}}';
+      hintsTextarea.value = (opts.getProperty(`tab${tabIndex}ProfileReportLabelHints`) as string) || '';
+      hintsAcc.body.appendChild(hintsTextarea);
+      hintsTextarea.addEventListener('input', () => {
+        opts.setProperty(`tab${tabIndex}ProfileReportLabelHints`, hintsTextarea.value);
+        opts.onChanged();
+      });
 
     } else if (contentType === 'github') {
       const info = document.createElement('div');

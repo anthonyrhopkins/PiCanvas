@@ -57,6 +57,7 @@ import { ProfileReportService, ICompanyEntry } from './services/ProfileReportSer
 
 // Report Type Registry
 import { REPORT_TYPE_REGISTRY, LEGACY_SHOW_PROPERTY_MAP, REGISTRY_ID_TO_LEGACY_PROP } from './data/ReportTypeRegistry';
+import type { ILibrarySource, ILabelHint, IDiscoveryColumnConfig } from './data/DiscoveryTypes';
 
 // Theme service + theme model
 import { ThemeService } from './services/ThemeService';
@@ -214,6 +215,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'JavaScriptHeight',  // Container height for JavaScript tabs (e.g. '300px', 'auto')
     'JavaScriptTemplate',  // Template ID for JavaScript tabs
     'JavaScriptTemplateConfig',  // JSON-encoded template configuration
+    'JavaScriptEnableGraph',  // Opt-in: expose graphFetch/graphScopes to JS sandbox (default false)
     'LabelType',
     'LabelWebPartID',
     'Icon',
@@ -322,7 +324,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ProfileReportMetadataVisibilityCol', // string (Yes/No column name)
     'ProfileReportMetadataListSource',   // string (SP list name for file references)
     'ProfileReportPathOverrides',        // JSON string: { "methodK": "{domain}/custom-path.md", ... }
-    'ProfileReportEnabledTypes'          // JSON string: { "methodK": true, "methodL": false, ... }
+    'ProfileReportEnabledTypes',         // JSON string: { "methodK": true, "methodL": false, ... }
+    'ProfileReportLibrarySources',       // JSON string: ILibrarySource[] — discovery mode
+    'ProfileReportLabelHints',           // JSON string: Record<string, ILabelHint> — optional discovery label overrides
+    'ProfileReportFileTypeColumn',       // string: SP column that identifies report type (e.g., "ReportType")
+    'ProfileReportDisplayColumns'        // string: comma-separated SP columns to show as metadata (e.g., "Author,Status")
   ];
 
   private static readonly DEFAULT_LOCK_TEMPLATE = `
@@ -1597,6 +1603,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // Step 5: Render shell (explorer + detail views) with available themes
       const rendered = ContentRenderer.renderProfileReportShell(companies, config, availableThemes);
       $contentHost.html(rendered.html);
+      // Hide broken logo images gracefully (replaces inline onerror handler)
+      $contentHost.find('img.overview-logo').on('error', function() { (this as HTMLElement).style.display = 'none'; });
 
       // Step 6: Initialize interactions (explorer navigation, detail loading)
       this.initializeProfileReportInteractions($contentHost, service, companies, searchIndex, config, themeService, availableThemes);
@@ -1646,7 +1654,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const listName = config.listName || '';
       const hasPiRadarId = entry.piRadarId !== undefined && entry.piRadarId !== null;
       const [profile, companyDetail] = await Promise.all([
-        service.loadCompanyProfile(libraryName, entry, metadataConfig, config.pathOverrides),
+        service.loadCompanyProfile(libraryName, entry, metadataConfig, config.pathOverrides, config.librarySources, config.labelHints, config.discoveryColumnConfig),
         (hasPiRadarId && listName)
           ? service.fetchCompanyDetail(listName, entry.piRadarId!)
           : Promise.resolve(null)
@@ -2095,8 +2103,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       applySelectedTheme(themeValue);
     });
 
-    // Method tab switching (within detail view)
-    $report.on('click.profilereport', '.method-tab', (e) => {
+    // Method tab switching (within detail view) + lazy-load discovery content
+    $report.on('click.profilereport', '.method-tab', async (e) => {
       const $btn = $(e.currentTarget);
       const methodKey = $btn.attr('data-method-key');
       const $tabContainer = $btn.closest('.method-tabs-container');
@@ -2105,7 +2113,66 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       $btn.addClass('active');
 
       $tabContainer.find('.method-panel').removeClass('active');
-      $tabContainer.find(`.method-panel[data-method-key="${methodKey}"]`).addClass('active');
+      const $panel = $tabContainer.find(`.method-panel[data-method-key="${methodKey}"]`);
+      $panel.addClass('active');
+
+      // Discovery lazy-load: if tab has data-file-url and panel not yet loaded, fetch content
+      const fileUrl = $btn.attr('data-file-url');
+      const fileSiteUrl = $btn.attr('data-file-site-url') || '';
+      const fileFormat = $btn.attr('data-file-format') || 'txt';
+      const $placeholder = $panel.find('.discovery-lazy-placeholder[data-loaded="false"]');
+
+      if (fileUrl && $placeholder.length) {
+        // Guard: mark as loading to prevent concurrent fetches on rapid clicks
+        $placeholder.attr('data-loaded', 'loading');
+        $placeholder.html('<div class="loading-spinner"></div><span>Loading...</span>');
+        try {
+          const content = await service.fetchFileContentCrossSite(fileSiteUrl, fileUrl);
+
+          // DOM safety: check placeholder still exists in document after await
+          if (!document.body.contains($placeholder[0])) return;
+
+          let renderedHtml: string;
+
+          if (fileFormat === 'json') {
+            try {
+              const parsed = JSON.parse(content);
+              renderedHtml = `<pre class="json-viewer">${ContentRenderer.encodeHtmlPublic(JSON.stringify(parsed, null, 2))}</pre>`;
+            } catch {
+              renderedHtml = `<pre class="json-viewer">${ContentRenderer.encodeHtmlPublic(content)}</pre>`;
+            }
+          } else if (fileFormat === 'html') {
+            const srcdocValue = content.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+            renderedHtml = `<iframe class="method-html-frame" srcdoc="${srcdocValue}" sandbox="allow-scripts allow-same-origin" frameborder="0" scrolling="no" style="width:100%;border:none;min-height:400px;"></iframe>`;
+          } else {
+            // md and txt
+            renderedHtml = `<div class="markdown">${ContentRenderer.renderMarkdown(content).html}</div>`;
+          }
+
+          $placeholder.attr('data-loaded', 'true').html(renderedHtml);
+
+          // Auto-resize HTML iframes
+          $placeholder.find('iframe.method-html-frame').each(function () {
+            const iframe = this as HTMLIFrameElement;
+            const resizeIframe = (): void => {
+              try {
+                const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                if (doc && doc.body) iframe.style.height = doc.body.scrollHeight + 'px';
+              } catch { /* cross-origin guard */ }
+            };
+            iframe.addEventListener('load', () => {
+              resizeIframe();
+              setTimeout(resizeIframe, 500);
+            });
+          });
+        } catch (err) {
+          // DOM safety: check placeholder still exists before writing error
+          if (document.body.contains($placeholder[0])) {
+            $placeholder.attr('data-loaded', 'false').html(`<div class="profile-error">Failed to load file content</div>`);
+          }
+          console.error('[PiCanvas] Discovery lazy-load error:', err);
+        }
+      }
     });
 
     // Metadata file view buttons
@@ -2583,7 +2650,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       $altJsContent.each((_i, el) => {
         console.log('[PiCanvas] Executing JavaScript (alt):', el);
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
+        this.executeJsElement(el as HTMLElement);
       });
 
       // Initialize TOC elements (alt path)
@@ -2605,7 +2672,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     $jsContent.each((_i, el) => {
       console.log('[PiCanvas] Executing JavaScript:', el);
-      ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
+      this.executeJsElement(el as HTMLElement);
     });
 
     // Initialize TOC elements in the active panel
@@ -2819,7 +2886,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // Initialize JavaScript containers in this panel
       const $jsContainers = $panel.find('.picanvas-js-container');
       $jsContainers.each((_i, el) => {
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
+        this.executeJsElement(el as HTMLElement);
       });
 
       // Initialize TOC elements in this panel
@@ -2853,7 +2920,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const $jsContainers = $activePanel.find('.picanvas-js-container:not(.picanvas-js-executed)');
       $jsContainers.each((_i, el) => {
         console.log('[PiCanvas] Tab change: Executing JavaScript:', el);
-        ContentRenderer.executeJavaScriptElement(el as HTMLElement, this._graphFetch, this._graphScopes);
+        this.executeJsElement(el as HTMLElement);
       });
 
       // Render any Mermaid diagrams that haven't been rendered yet
@@ -4390,6 +4457,24 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     };
   }
 
+  /**
+   * Execute a JavaScript element, gating graphFetch behind the per-tab opt-in toggle.
+   * Extracts the tab index from the element's data-js-id attribute.
+   */
+  private executeJsElement(el: HTMLElement): void {
+    const jsId = el.getAttribute('data-js-id') || '';
+    // data-js-id format: picanvas-js-{tabsDiv}tabs-{tabIndex}
+    const tabMatch = jsId.match(/-(\d+)$/);
+    const tabIndex = tabMatch ? parseInt(tabMatch[1], 10) : 0;
+    const graphEnabled = tabIndex > 0 && this.properties[`tab${tabIndex}JavaScriptEnableGraph`] === true;
+    ContentRenderer.executeJavaScriptElement(
+      el,
+      graphEnabled ? this._graphFetch : undefined,
+      graphEnabled ? this._graphScopes : undefined
+    );
+  }
+
+
   private _renderInternal(): void {
 
     // Clear any TOC re-scan intervals and scrollspy observers before re-rendering
@@ -5114,6 +5199,47 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                 } catch { /* ignore invalid JSON */ }
               }
 
+              // Parse discovery mode library sources
+              let librarySources: ILibrarySource[] | undefined;
+              const librarySourcesJson = this.properties[`tab${tabIndex}ProfileReportLibrarySources`] as string;
+              if (librarySourcesJson) {
+                try {
+                  const parsed = JSON.parse(librarySourcesJson);
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    librarySources = parsed as ILibrarySource[];
+                  }
+                } catch { /* ignore invalid JSON */ }
+              }
+              // Auto-convert legacy single library to discovery source if no explicit sources configured
+              if (!librarySources && sanitizedLibraryName) {
+                // Only auto-convert if the library name is set — keeps backward compat
+                // Admins can explicitly configure sources to enable discovery mode
+              }
+
+              // Parse discovery label hints (optional override)
+              let labelHints: Record<string, ILabelHint> | undefined;
+              const labelHintsJson = this.properties[`tab${tabIndex}ProfileReportLabelHints`] as string;
+              if (labelHintsJson) {
+                try {
+                  labelHints = JSON.parse(labelHintsJson) as Record<string, ILabelHint>;
+                } catch { /* ignore invalid JSON */ }
+              }
+
+              // Parse discovery column config (report type column + display columns)
+              let discoveryColumnConfig: IDiscoveryColumnConfig | undefined;
+              const fileTypeColumn = (this.properties[`tab${tabIndex}ProfileReportFileTypeColumn`] as string || '').trim();
+              const displayColumnsRaw = (this.properties[`tab${tabIndex}ProfileReportDisplayColumns`] as string || '').trim();
+              if (fileTypeColumn || displayColumnsRaw) {
+                discoveryColumnConfig = {};
+                if (fileTypeColumn) discoveryColumnConfig.fileTypeColumn = fileTypeColumn;
+                if (displayColumnsRaw) {
+                  discoveryColumnConfig.displayColumns = displayColumnsRaw
+                    .split(',')
+                    .map(c => c.trim())
+                    .filter(Boolean);
+                }
+              }
+
               const config: IProfileReportDisplayConfig = {
                 layout: (layoutValue === 'tabbed' || layoutValue === 'accordion' || layoutValue === 'cards') ? layoutValue : 'tabbed',
                 libraryName: sanitizedLibraryName,
@@ -5141,7 +5267,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                 metadataCompanyColumn: (this.properties[`tab${tabIndex}ProfileReportMetadataCompanyCol`] as string) || 'Pi_CompanyID',
                 metadataFileCategoryColumn: (this.properties[`tab${tabIndex}ProfileReportMetadataFileCategory`] as string) || 'FileCategory',
                 metadataVisibilityColumn: (this.properties[`tab${tabIndex}ProfileReportMetadataVisibilityCol`] as string) || '',
-                metadataListSource: (this.properties[`tab${tabIndex}ProfileReportMetadataListSource`] as string) || ''
+                metadataListSource: (this.properties[`tab${tabIndex}ProfileReportMetadataListSource`] as string) || '',
+                librarySources,
+                labelHints,
+                discoveryColumnConfig,
               };
 
               // Show loading state immediately
@@ -6053,7 +6182,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         const library = (props[`tab${tabIndex}ProfileReportLibrary`] as string) || 'Profiles';
         const layout = (props[`tab${tabIndex}ProfileReportLayout`] as string) || 'tabbed';
         const limit = (props[`tab${tabIndex}ProfileReportCompanyLimit`] as number) || 50;
-        sourceDetail = `Library: "${library}" \u00b7 ${layout} \u00b7 ${limit} max`;
+        const sourcesJson = (props[`tab${tabIndex}ProfileReportLibrarySources`] as string) || '';
+        let sourceCount = 0;
+        try { sourceCount = sourcesJson ? JSON.parse(sourcesJson).length : 0; } catch { /* ignore */ }
+        const modeLabel = sourceCount > 0 ? `Discovery (${sourceCount} source${sourceCount > 1 ? 's' : ''})` : `Registry: "${library}"`;
+        sourceDetail = `${modeLabel} \u00b7 ${layout} \u00b7 ${limit} max`;
         break;
       }
       case 'github': {

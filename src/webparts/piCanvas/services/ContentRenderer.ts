@@ -11,6 +11,7 @@ import * as echarts from 'echarts';
 const DOMPurify = require('dompurify');
 import { IProfileReportTheme, BUILTIN_THEMES } from '../models/ProfileReportThemes';
 import { REPORT_TYPE_REGISTRY } from '../data/ReportTypeRegistry';
+import type { ILibrarySource, IDiscoveredFile, ILabelHint, IDiscoveryColumnConfig } from '../data/DiscoveryTypes';
 
 // ── Security: DOMPurify post-sanitization hooks ──
 // These run on EVERY DOMPurify.sanitize() call across PiCanvas, automatically
@@ -194,6 +195,7 @@ export interface ICompanyProfile {
   };
   metadataFiles?: IMetadataFileEntry[];
   companyIntel?: ICompanyIntel;
+  discoveredFiles?: IDiscoveredFile[];
 }
 
 /** Lightweight company entry — sourced from Pi_Companies list or condensed/ folder */
@@ -251,6 +253,12 @@ export interface IProfileReportDisplayConfig {
   metadataFileCategoryColumn?: string;  // e.g., "FileCategory"
   metadataVisibilityColumn?: string;    // e.g., "ShowInProfile" — Yes/No filter column
   metadataListSource?: string;          // e.g., "ProfileFiles" — query a SP list instead of the library
+  /** Discovery mode: admin-configured library sources for folder-based discovery */
+  librarySources?: ILibrarySource[];
+  /** Discovery mode: optional filename → label + order mapping */
+  labelHints?: Record<string, ILabelHint>;
+  /** Discovery mode: SP column config for report type labeling + metadata display */
+  discoveryColumnConfig?: IDiscoveryColumnConfig;
 }
 
 export interface ILandingConfig {
@@ -352,8 +360,7 @@ export class ContentRenderer {
       const sanitizedHtml = DOMPurify.sanitize(rawHtml as string, {
         USE_PROFILES: { html: true },
         ADD_ATTR: ['target', 'rel'], // Allow link attributes
-        FORBID_TAGS: ['style', 'script'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'ondragstart', 'oncontextmenu']
+        FORBID_TAGS: ['style', 'script']
       });
 
       return { html: sanitizedHtml };
@@ -381,8 +388,7 @@ export class ContentRenderer {
           'scrolling', 'loading', 'referrerpolicy', 'sandbox', 'style'
         ],
         ALLOW_DATA_ATTR: true,
-        FORBID_TAGS: ['script'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'ondragstart', 'oncontextmenu']
+        FORBID_TAGS: ['script']
       });
 
       return { html: sanitizedHtml };
@@ -407,8 +413,7 @@ export class ContentRenderer {
         ADD_TAGS: ['style'],
         ADD_ATTR: ['style'],
         ALLOW_DATA_ATTR: true,
-        FORBID_TAGS: ['script'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'ondragstart', 'oncontextmenu']
+        FORBID_TAGS: ['script']
       });
 
       return { html: sanitizedHtml };
@@ -2261,6 +2266,10 @@ export class ContentRenderer {
    * Returns inner HTML to be injected into the .pr-detail-body element.
    * The company header is rendered separately via renderDetailHeader().
    * Each tab shows a file-type flag badge so users can see what content type is loaded.
+   *
+   * Two modes:
+   * - **Discovery mode** (profile.discoveredFiles present): tabs from folder scan, lazy-loaded
+   * - **Registry mode** (fallback): tabs from REPORT_TYPE_REGISTRY, content pre-fetched
    */
   public static renderCompanyPanel(
     profile: ICompanyProfile,
@@ -2277,10 +2286,9 @@ export class ContentRenderer {
       </div>
     ` : '';
 
-    // Build method tabs based on config and available content
-    // Intel-based tabs (from SP list fields) come first, then registry-driven file tabs
+    // Intel-based tabs (from SP list fields) — always rendered regardless of mode
     const intel = profile.companyIntel;
-    const methodTabs: Array<{ key: string; label: string; flag: string; content: string | undefined; show: boolean }> = [
+    const methodTabs: Array<{ key: string; label: string; flag: string; content: string | undefined; show: boolean; lazy?: boolean; fileUrl?: string; fileSiteUrl?: string; fileFormat?: string; fileMetadata?: Record<string, string> }> = [
       { key: 'overview', label: 'Overview', flag: 'SUM', content: this.generateOverviewContent(profile), show: true },
       { key: 'financials', label: 'Financials', flag: 'FIN', content: intel ? this.renderFinancialsSection(intel.financials) : undefined, show: !!intel && intel.financials.length > 0 },
       { key: 'landscape', label: 'Landscape', flag: 'REL', content: intel ? this.renderCompetitiveLandscape(intel.competitors, intel.customers, intel.partners) : undefined, show: !!intel && (intel.competitors.length > 0 || intel.customers.length > 0 || intel.partners.length > 0) },
@@ -2288,34 +2296,54 @@ export class ContentRenderer {
       { key: 'earnings', label: 'Earnings', flag: 'ERN', content: intel ? this.renderEarningsSection(intel.earnings) : undefined, show: !!intel && intel.earnings.length > 0 },
     ];
 
-    // Registry-driven file tabs — only show if enabled AND content exists
-    const enabledTypes = config.enabledReportTypes || {};
-    for (const rt of REPORT_TYPE_REGISTRY) {
-      const isEnabled = enabledTypes[rt.id] !== false; // default to true
-      const content = rt.id === 'profileJson'
-        ? this.safeJsonStringify((profile as any).profileJson)
-        : (profile as any)[rt.id] as string | undefined;
-      if (isEnabled && content) {
+    // === Discovery mode: tabs from discovered files, content lazy-loaded ===
+    if (profile.discoveredFiles && profile.discoveredFiles.length > 0) {
+      for (const file of profile.discoveredFiles) {
+        const flagText = file.reportType
+          ? file.format.toUpperCase()
+          : file.format.toUpperCase();
         methodTabs.push({
-          key: rt.id,
-          label: rt.label,
-          flag: rt.flag,
-          content,
+          key: `disc-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`,
+          label: file.label,
+          flag: flagText,
+          content: undefined, // lazy-loaded on click
           show: true,
+          lazy: true,
+          fileUrl: file.serverRelativeUrl,
+          fileSiteUrl: file.siteUrl,
+          fileFormat: file.format,
+          fileMetadata: file.metadata,
         });
+      }
+    } else {
+      // === Registry mode (fallback): tabs from pre-fetched content ===
+      const enabledTypes = config.enabledReportTypes || {};
+      for (const rt of REPORT_TYPE_REGISTRY) {
+        const isEnabled = enabledTypes[rt.id] !== false;
+        const content = rt.id === 'profileJson'
+          ? this.safeJsonStringify((profile as any).profileJson)
+          : (profile as any)[rt.id] as string | undefined;
+        if (isEnabled && content) {
+          methodTabs.push({
+            key: rt.id,
+            label: rt.label,
+            flag: rt.flag,
+            content,
+            show: true,
+          });
+        }
       }
     }
 
-    // Filter: overview always shows, others need content
-    const filteredTabs = methodTabs.filter(tab => tab.show && (tab.key === 'overview' || tab.content));
+    // Filter: overview always shows, others need content OR are lazy-loaded
+    const filteredTabs = methodTabs.filter(tab => tab.show && (tab.key === 'overview' || tab.content || tab.lazy));
 
-    // Add metadata file tabs grouped by category — each gets a flag based on file types in the category
+    // Add metadata file tabs grouped by category
     const metadataFiles = profile.metadataFiles || [];
     const categories = [...new Set(metadataFiles.map(f => f.category))].sort();
     for (const cat of categories) {
       const catFiles = metadataFiles.filter(f => f.category === cat);
       const catKey = `metadata-${cat.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
-      // Determine flag from most common file extension in category
       const exts = catFiles.map(f => f.name.split('.').pop()?.toUpperCase() || 'FILE');
       const flag = exts[0] || 'FILE';
       filteredTabs.push({
@@ -2333,24 +2361,38 @@ export class ContentRenderer {
       const isMetadata = tab.key.startsWith('metadata-');
       const badgeClass = isMetadata ? ' method-tab-metadata' : '';
       const flagHtml = `<span class="method-tab-flag">${this.encodeHtml(tab.flag)}</span>`;
-      return `<button class="method-tab ${isActive}${badgeClass}" data-method-key="${encodedMethodKey}">${flagHtml}${this.encodeHtml(tab.label)}</button>`;
+      // Add data attributes for lazy-loaded discovery tabs
+      const lazyAttrs = tab.lazy
+        ? ` data-file-url="${this.encodeHtml(tab.fileUrl || '')}" data-file-site-url="${this.encodeHtml(tab.fileSiteUrl || '')}" data-file-format="${this.encodeHtml(tab.fileFormat || '')}"`
+        : '';
+      return `<button class="method-tab ${isActive}${badgeClass}" data-method-key="${encodedMethodKey}"${lazyAttrs}>${flagHtml}${this.encodeHtml(tab.label)}</button>`;
     }).join('');
 
-    // Intel tab keys that return pre-rendered HTML (like overview)
+    // Intel tab keys that return pre-rendered HTML
     const intelTabKeys = new Set(['overview', 'financials', 'landscape', 'activity', 'earnings']);
 
     const methodPanelsHtml = filteredTabs.map((tab, index) => {
       const isActive = index === 0 ? 'active' : '';
       const encodedMethodKey = this.encodeHtml(tab.key);
       let contentHtml: string;
-      if (tab.key.startsWith('metadata-')) {
+
+      if (tab.lazy) {
+        // Discovery mode: metadata bar + lazy-load placeholder
+        let metaBarHtml = '';
+        if (tab.fileMetadata && Object.keys(tab.fileMetadata).length > 0) {
+          const metaItems = Object.entries(tab.fileMetadata)
+            .map(([col, val]) => `<span class="discovery-meta-item"><span class="discovery-meta-label">${this.encodeHtml(col)}</span> ${this.encodeHtml(val)}</span>`)
+            .join('');
+          metaBarHtml = `<div class="discovery-meta-bar">${metaItems}</div>`;
+        }
+        contentHtml = `${metaBarHtml}<div class="discovery-lazy-placeholder" data-loaded="false"><span class="discovery-pending-text">Content loads when tab is selected</span></div>`;
+      } else if (tab.key.startsWith('metadata-')) {
         contentHtml = tab.content || '';
       } else if (tab.key === 'profileJson') {
         contentHtml = `<pre class="json-viewer">${this.encodeHtml(tab.content || '')}</pre>`;
       } else if (intelTabKeys.has(tab.key)) {
         contentHtml = tab.content || '';
       } else if (tab.flag === 'HTML') {
-        // Render full HTML documents in a sandboxed iframe to preserve scripts, styles, and interactivity
         const srcdocValue = (tab.content || '<p>No content available.</p>')
           .replace(/&/g, '&amp;')
           .replace(/"/g, '&quot;');
@@ -2407,7 +2449,7 @@ export class ContentRenderer {
 
     // Company header with logo
     const logoHtml = profile.logoUrl
-      ? `<img src="${e(profile.logoUrl)}" alt="" class="overview-logo" style="width:48px;height:48px;border-radius:8px;object-fit:contain;background:#f5f5f5;margin-right:16px;" onerror="this.style.display='none'" />`
+      ? `<img src="${e(profile.logoUrl)}" alt="" class="overview-logo" style="width:48px;height:48px;border-radius:8px;object-fit:contain;background:#f5f5f5;margin-right:16px;" />`
       : '';
     const legalHtml = profile.legalName && profile.legalName !== profile.companyName
       ? `<div class="overview-legal" style="font-size:12px;color:#666;margin-top:2px;">${e(profile.legalName)}</div>`
