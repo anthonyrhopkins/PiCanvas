@@ -5,6 +5,19 @@ const DOMPurify = require('dompurify');
 import styles from './PiRadarCommand.module.scss';
 import { IReportFile } from './IPiRadarCommandProps';
 
+// ── Security: DOMPurify post-sanitization hooks ──
+DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
+  if (node.tagName === 'A' && node.getAttribute('target') === '_blank') {
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+  if (node.tagName === 'A') {
+    const href = node.getAttribute('href') || '';
+    if (href.startsWith('http://') && !href.startsWith('http://localhost') && !href.startsWith('http://127.0.0.1')) {
+      node.setAttribute('href', href.replace(/^http:\/\//, 'https://'));
+    }
+  }
+});
+
 interface IReportsBrowserProps {
   reports: IReportFile[];
   spHttpClient: SPHttpClient;

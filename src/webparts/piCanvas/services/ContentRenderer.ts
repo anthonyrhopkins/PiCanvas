@@ -12,6 +12,29 @@ const DOMPurify = require('dompurify');
 import { IProfileReportTheme, BUILTIN_THEMES } from '../models/ProfileReportThemes';
 import { REPORT_TYPE_REGISTRY } from '../data/ReportTypeRegistry';
 
+// ── Security: DOMPurify post-sanitization hooks ──
+// These run on EVERY DOMPurify.sanitize() call across PiCanvas, automatically
+// hardening all user-provided content regardless of where it comes from.
+DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
+  // 1. Auto-add rel="noopener noreferrer" to all target="_blank" links
+  if (node.tagName === 'A' && node.getAttribute('target') === '_blank') {
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+
+  // 2. Upgrade http:// to https:// on link hrefs (skip localhost for dev)
+  if (node.tagName === 'A') {
+    const href = node.getAttribute('href') || '';
+    if (href.startsWith('http://') && !href.startsWith('http://localhost') && !href.startsWith('http://127.0.0.1')) {
+      node.setAttribute('href', href.replace(/^http:\/\//, 'https://'));
+    }
+  }
+
+  // 3. Auto-sandbox iframes that don't already have a sandbox attribute
+  if (node.tagName === 'IFRAME' && !node.hasAttribute('sandbox')) {
+    node.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+  }
+});
+
 // Content type definitions
 export type ContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed' | 'rss' | 'landing' | 'file' | 'toc' | 'profilereport';
 
