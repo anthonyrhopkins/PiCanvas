@@ -2535,7 +2535,7 @@ export class ContentRenderer {
 
     // Content inventory
     const available: string[] = [];
-    if (profile.executiveBrief) available.push('Executive Brief');
+    if (profile.executiveBrief) available.push('Growth Profile');
     if (profile.competitiveLandscape) available.push('Competitive Landscape');
     if (profile.investorMemo) available.push('Investor Memo');
     if (profile.fullDossierNarrative) available.push('Full Dossier');
