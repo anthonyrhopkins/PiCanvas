@@ -123,7 +123,7 @@ export const REPORT_TYPE_REGISTRY: readonly IReportTypeDefinition[] = [
   // === Profile ===
   {
     id: 'executiveBrief',
-    label: 'Executive Brief',
+    label: 'Growth Profile',
     flag: 'MD',
     format: 'md',
     category: 'profile',
@@ -239,6 +239,10 @@ export const LEGACY_SHOW_PROPERTY_MAP: Record<string, string> = {
   'ProfileReportShowGrowthProp': 'growthPropensity',
   'ProfileReportShowTeRelevance': 'teRelevance',
   'ProfileReportShowAiSynthesis': 'aiSynthesis',
+  'ProfileReportShowGrowthProfile': 'executiveBrief',
+  'ProfileReportShowCompanySummary': 'companySummary',
+  'ProfileReportShowFinScorecard': 'financialScorecard',
+  'ProfileReportShowLeadershipDir': 'leadershipDirectory',
 };
 
 /** Reverse map: registry ID → legacy property suffix */
@@ -273,3 +277,20 @@ export const CATEGORY_LABELS: Record<string, string> = {
   intelligence: 'Intelligence',
   data: 'Raw Data',
 };
+
+/**
+ * Export the registry as discovery-compatible label hints.
+ * Maps filename (from pathTemplate) → { label, order }.
+ */
+export function registryToLabelHints(): Record<string, { label: string; order: number }> {
+  const hints: Record<string, { label: string; order: number }> = {};
+  for (const rt of REPORT_TYPE_REGISTRY) {
+    // Extract filename from pathTemplate (e.g., '{domain}/method-K.md' → 'method-K.md')
+    const parts = rt.pathTemplate.split('/');
+    const filename = parts[parts.length - 1];
+    if (filename && !filename.includes('{')) {
+      hints[filename] = { label: rt.label, order: rt.order };
+    }
+  }
+  return hints;
+}
