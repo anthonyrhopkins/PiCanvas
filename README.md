@@ -4,15 +4,23 @@
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2022%2B-green.svg)
 
-A SharePoint Framework web part that transforms any modern page into a fully customizable, tabbed application — with 12 built-in content types, group-based permissions, and a full-screen configuration panel.
+A single SPFx web part that turns SharePoint pages into applications. 12 built-in content types, a JavaScript sandbox with authenticated Graph API access, group-based permissions, and a full-screen configuration panel — no Azure Functions, no external databases, no additional servers.
 
-![PiCanvas — Tabbed layouts on SharePoint](docs/images/picanvas-hero.png)
+![PiCanvas](docs/images/picanvas-hero.png)
+
+### What You Can Build
+
+- **Tabbed pages** — organize web parts, sections, and content into a clean navigation experience
+- **Intranet portals** — HTML/CSS landing pages with live navigation, RSS feeds, and embedded resources
+- **Data applications** — JavaScript tabs that query SharePoint lists and Microsoft Graph to render dashboards, reports, and search interfaces
+- **Documentation hubs** — Markdown, Mermaid diagrams, auto-generated TOC, and GitHub repo content — all in one page
+- **Full-stack apps on SharePoint** — lists as database, document libraries as file system, PiCanvas as frontend. Zero external infrastructure.
 
 ---
 
 ## 12 Content Types
 
-Every tab can render a different content type. No external services required — everything runs inside the SPFx package.
+Each tab renders its own content type independently. Everything runs inside the SPFx package — no external services required.
 
 | Content Type | What It Does |
 |---|---|
@@ -53,32 +61,35 @@ PiCanvas replaces the standard property pane with a full-screen configuration ov
 
 ## Key Features
 
-**Tabs & Layout**
-- 4 tab styles: Default, Pills, Underline, Boxed
-- Horizontal and vertical orientation
-- Up to 20 tabs per instance, multiple instances per page
-- Tab dividers, image labels, web-part-as-label
-- Deep linking via URL hash (#tab-name)
+**Content & Rendering**
+- 12 content types — each tab is its own rendering engine
+- JavaScript sandbox with `graphFetch` (Microsoft Graph), `httpFetch`, ECharts, and DOM APIs
+- Markdown with syntax highlighting, Mermaid diagrams, RSS feeds with card/list/compact layouts
+- GitHub repo rendering via API (built when GitHub blocked iframe embedding via CSP)
+- HTML content sanitized through DOMPurify — no `<script>` tags, no event handlers
 
 **Permissions & Security**
-- Show/hide tabs by SharePoint group (Owners, Members, Visitors, custom)
-- Password-protected tabs with hashed passwords
-- DOMPurify sanitization on all user content
+- Show/hide tabs by SharePoint group (Owners, Members, Visitors, custom groups)
+- Password-protected tabs with hashed passwords and customizable lock screens
+- CSP-compliant — all dependencies bundled in the .sppkg, no external CDN scripts
 - Embed domain allowlist with HTTPS enforcement
-- CSP-compliant — all assets bundled in the .sppkg
 
-**Templates & Theming**
-- Export/import full configurations as JSON
-- Built-in templates (Dashboard, Documentation, Portal Hub, etc.)
-- Save custom templates to Site Assets for team sharing
+**Navigation & Layout**
+- 4 tab styles (Default, Pills, Underline, Boxed) with horizontal and vertical orientation
+- Up to 20 tabs per instance, multiple instances per page
+- Deep linking via URL hash, web-part-as-label, tab dividers, image labels
+- Application customizer extension pre-hides content before render (no flash of unstyled content)
+
+**Configuration & Templates**
+- Full-screen configuration panel with drag-and-drop tab builder, command palette (Cmd+K), undo/redo
+- Export/import full configurations as JSON, save to Site Assets for team sharing
 - Auto light/dark theme detection with 25+ CSS custom properties
-- Full color, typography, spacing, border, and shadow controls
+- Built-in templates: Dashboard, Documentation, Portal Hub, Navigation Dock, Minimal
 
-**Developer**
+**Platform**
 - SPFx 1.22.0, TypeScript 5.6, Heft build system
-- JavaScript sandbox with `graphFetch`, `httpFetch`, `render`, `create`, `echarts`
-- Application customizer extension for pre-hiding content before render
 - Service architecture: content rendering, permissions, theming, templates, tab locking, metadata tokens, RSS, TOC
+- In production at SAP — intranet portals, full-stack applications, data dashboards
 
 ---
 
