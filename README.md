@@ -6,7 +6,7 @@
 
 A single SPFx web part that turns SharePoint pages into applications. 12 built-in content types, a JavaScript sandbox with authenticated Graph API access, group-based permissions, and a full-screen configuration panel — no Azure Functions, no external databases, no additional servers.
 
-> What started as a tabbed layout web part has become a content platform. PiCanvas still does tabs — but each tab is now its own rendering engine.
+> What started as a tabbed layout web part has become a content platform. PiCanvas renders Markdown, HTML, RSS, Mermaid diagrams, and GitHub repos natively — and its JavaScript sandbox runs custom code with the logged-in user's identity, authenticated Graph API access, and full SharePoint context. The tabs are just how you organize it.
 
 ![PiCanvas](docs/images/picanvas-hero.png)
 
