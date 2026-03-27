@@ -4,7 +4,7 @@
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2022%2B-green.svg)
 
-A single SPFx web part that replaces custom development. PiCanvas renders full-page portals, data-driven dashboards, and enterprise search interfaces — all inside SharePoint, using the logged-in user's identity and permissions. No Azure Functions, no external databases, no additional servers.
+A single SPFx web part that replaces custom development. PiCanvas renders full-page portals, data-driven dashboards, and enterprise search interfaces — all inside SharePoint, using the logged-in user's identity and permissions. Its JavaScript sandbox has authenticated access to Microsoft Graph and the full M365 ecosystem — files, sites, mail, calendar, Teams, people, Copilot APIs — scoped to whatever permissions your tenant has granted. No Azure Functions, no external databases, no additional servers.
 
 > What started as a tabbed layout web part has become something else entirely. At SAP, PiCanvas powers a 22,000-company intelligence platform with 14 report types loaded in parallel, a full intranet portal with list-driven navigation and custom theming, and a Copilot-integrated search interface — all from a single `.sppkg` package.
 
@@ -170,23 +170,46 @@ When a tab's content type is **JavaScript**, PiCanvas executes the code with the
 |----------|-------------|
 | `container` | DOM element for the tab's content area |
 | `render(html)` | Renders HTML into the container |
-| `graphFetch(url, options)` | Authenticated Microsoft Graph API calls via SPFx |
+| `graphFetch(url, options)` | Authenticated Microsoft Graph API calls (runs as the logged-in user) |
 | `httpFetch(url, options)` | General HTTP requests via SPHttpClient |
 | `create(tag)` | Shorthand for `document.createElement` |
 | `echarts` | Apache ECharts library |
 | `autoResize()` | Triggers container height recalculation |
 
 ```javascript
-// Example: fetch current user from Microsoft Graph
+// Current user's profile
 var me = await graphFetch('/v1.0/me');
-render('<h2>Hello, ' + me.displayName + '</h2>');
 
-// Example: Graph Search API
+// Search across all of M365
 var results = await graphFetch('/v1.0/search/query', {
   method: 'POST',
-  body: { requests: [{ entityTypes: ['driveItem'], query: { queryString: 'budget' } }] }
+  body: { requests: [{ entityTypes: ['driveItem', 'listItem', 'site'], query: { queryString: 'budget report' } }] }
+});
+
+// Copilot Search (semantic + lexical hybrid)
+var ai = await graphFetch('/beta/copilot/search', {
+  method: 'POST',
+  body: { query: 'quarterly revenue trends', scopes: ['onedrive'] }
 });
 ```
+
+### How Permissions Work
+
+`graphFetch` uses the **[SharePoint Online Client Extensibility](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/use-aadhttpclient)** service principal — a tenant-wide Entra ID application that all SPFx solutions share. API scopes must be approved by a tenant admin via the **[API Access page](https://learn.microsoft.com/en-us/sharepoint/api-access)** in SharePoint Admin Center (`{tenant}-admin.sharepoint.com` > Advanced > API management).
+
+| Scope | What It Unlocks |
+|-------|----------------|
+| `Sites.Read.All` | Read SharePoint sites, lists, document libraries |
+| `Files.Read.All` | Read files across OneDrive and SharePoint |
+| `User.Read` | Current user's profile |
+| `People.Read` | People search and org chart |
+| `Mail.Read` | Email access |
+| `Calendars.Read` | Calendar events |
+| `ExternalItem.Read.All` | Microsoft Search connectors |
+
+For scopes not available through the SPFx service principal (e.g., Copilot APIs, third-party services, or fine-grained consent), you can use your own **[Entra ID app registration](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/use-aadhttpclient-enterpriseapi)** and acquire tokens via `AadHttpClient` in your JavaScript code.
+
+> **See also:** [Building SPFx solutions with Microsoft Graph](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/web-parts/get-started/using-microsoft-graph-apis) — step-by-step guide for requesting and approving Graph API permissions.
 
 ---
 
