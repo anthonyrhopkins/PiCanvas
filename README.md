@@ -4,19 +4,20 @@
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2022%2B-green.svg)
 
-A single SPFx web part that turns SharePoint pages into applications. 12 built-in content types, a JavaScript sandbox with authenticated Graph API access, group-based permissions, and a full-screen configuration panel — no Azure Functions, no external databases, no additional servers.
+A single SPFx web part that replaces custom development. PiCanvas renders full-page portals, data-driven dashboards, and enterprise search interfaces — all inside SharePoint, using the logged-in user's identity and permissions. No Azure Functions, no external databases, no additional servers.
 
-> What started as a tabbed layout web part has become a content platform. PiCanvas renders Markdown, HTML, RSS, Mermaid diagrams, and GitHub repos natively — and its JavaScript sandbox runs custom code with the logged-in user's identity, authenticated Graph API access, and full SharePoint context. The tabs are just how you organize it.
+> What started as a tabbed layout web part has become something else entirely. At SAP, PiCanvas powers a 22,000-company intelligence platform with 14 report types loaded in parallel, a full intranet portal with list-driven navigation and custom theming, and a Copilot-integrated search interface — all from a single `.sppkg` package.
 
 ![PiCanvas](docs/images/picanvas-hero.png)
 
-### What You Can Build
+### What People Build With It
 
-- **Intranet portals** — HTML/CSS landing pages with live navigation, RSS feeds, and embedded resources
-- **Data applications** — JavaScript tabs that query SharePoint lists and Microsoft Graph to render dashboards, reports, and search interfaces
-- **Documentation hubs** — Markdown, Mermaid diagrams, auto-generated TOC, and GitHub repo content — all in one page
-- **Full-stack apps on SharePoint** — lists as database, document libraries as file system, PiCanvas as frontend. Zero external infrastructure.
-- **Tabbed pages** — organize web parts, sections, and content into a clean navigation experience
+- **Full intranet portals** — custom HTML/CSS pages with hierarchical navigation rendered from SharePoint lists, responsive themes, and live RSS feeds. Replaces the entire SharePoint page chrome.
+- **Enterprise data applications** — JavaScript sandbox with authenticated `graphFetch` queries SharePoint lists (22,000+ items with pagination), Microsoft Graph, and Copilot APIs. Renders company profiles, financial dashboards, and search interfaces.
+- **Intelligence platforms** — 14 built-in report types (growth profiles, competitive landscapes, earnings summaries) loaded in parallel from document libraries with automatic fallback paths.
+- **Documentation & knowledge hubs** — Markdown with syntax highlighting, Mermaid architecture diagrams, auto-generated TOC, GitHub repo rendering via API.
+- **Admin interfaces** — built-in content management UI with navigation tree editors, bulk operations, and status tracking.
+- **Tabbed pages** — the original use case. Organize web parts, sections, and content types into a clean tabbed experience with 4 styles, vertical/horizontal orientation, and deep linking.
 
 ---
 
