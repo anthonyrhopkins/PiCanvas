@@ -8,7 +8,11 @@ A single SPFx web part that replaces custom development. PiCanvas renders full-p
 
 > What started as a tabbed layout web part has become something else entirely. At SAP, PiCanvas powers a 22,000-company intelligence platform with 14 report types loaded in parallel, a full intranet portal with list-driven navigation and custom theming, and a Copilot-integrated search interface — all from a single `.sppkg` package.
 
-![PiCanvas](docs/images/picanvas-hero.png)
+| Edit Mode | Configuration Panel |
+|---|---|
+| ![Edit Mode Card](docs/images/edit-mode-card.png) | ![Config Panel](docs/images/config-panel-full.png) |
+
+![Section Assignment](docs/images/config-panel-sections.png)
 
 ### What People Build With It
 
@@ -52,9 +56,9 @@ Each tab renders its own content type independently. Everything runs inside the 
 
 PiCanvas replaces the standard property pane with a full-screen configuration overlay. Tab builder with drag-and-drop, live preview, color engine, typography controls, template system, and a command palette (Cmd+K).
 
-| Tab Builder | Expanded Settings | Templates |
-|-------------|-------------------|-----------|
-| ![Tab Builder](docs/images/config-panel-tabs.png) | ![Expanded](docs/images/config-panel-tabs-expanded.png) | ![Templates](docs/images/settings-templates.png) |
+| Tab Builder | Content Types & Settings | Templates |
+|-------------|--------------------------|-----------|
+| ![Tab Builder](docs/images/config-panel-tabs-collapsed.png) | ![Expanded](docs/images/config-panel-full.png) | ![Templates](docs/images/settings-templates.png) |
 
 | Colors | Typography | Permissions |
 |--------|------------|-------------|
