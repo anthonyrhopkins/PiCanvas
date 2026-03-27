@@ -41,6 +41,7 @@ obj
 .playwright-cli
 .playwright-user-data/
 Default/
+Profile */
 playwright-cli.json
 test-results/
 
@@ -51,17 +52,10 @@ test-results/
 *.swo
 *~
 
-# Development scratch files
-js_sample.txt
-jsconversation.txt
-test-tabs.html
-check-menudemo.js
-sp-test.js
-templafy-inspect.js
-templafy-watch.js
-hackathon-script.md
+# Development scratch files and project-specific content
 samples/
 scripts/
+projects/
 
 # Test output and scratch test scripts
 jest-output/
