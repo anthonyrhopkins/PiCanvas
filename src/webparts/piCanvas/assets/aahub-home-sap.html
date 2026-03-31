@@ -175,6 +175,84 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 .aahub-gear-action:hover { background: rgba(0,112,242,0.06); color: #4DB1FF; }
 
+/* ── Personalization Panel Modal ── */
+.aahub-pp-overlay { position: fixed; inset: 0; z-index: 100001; display: flex; align-items: flex-start; justify-content: center; padding-top: 6vh; }
+.aahub-pp-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+.aahub-pp-dialog {
+  position: relative; width: 580px; max-width: 94vw; max-height: 82vh;
+  background: #1d232a; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow: hidden;
+  font-family: '72Brand', '72', Arial, sans-serif; color: #D5DADF;
+}
+.aahub-pp-header { padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; }
+.aahub-pp-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: #4DB1FF; }
+.aahub-pp-close { border: none; background: none; color: #8496A7; font-size: 18px; cursor: pointer; padding: 4px 8px; }
+.aahub-pp-close:hover { color: #fff; }
+.aahub-pp-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 24px; gap: 0; }
+.aahub-pp-tab {
+  padding: 10px 18px; font-size: 13px; font-weight: 500; color: #8496A7;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s;
+}
+.aahub-pp-tab:hover { color: #D5DADF; }
+.aahub-pp-tab.active { color: #4DB1FF; border-bottom-color: #4DB1FF; }
+.aahub-pp-panel { flex: 1; overflow-y: auto; padding: 16px 24px; min-height: 200px; max-height: 52vh; display: none; }
+.aahub-pp-panel.active { display: block; }
+.aahub-pp-footer { padding: 12px 24px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; }
+.aahub-pp-footer button {
+  padding: 8px 20px; border: none; border-radius: 6px; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.aahub-pp-btn-done { background: #0070f2; color: #fff; }
+.aahub-pp-btn-done:hover { background: #005bb5; }
+.aahub-pp-btn-reset { background: none; color: #8496A7; border: 1px solid rgba(255,255,255,0.12) !important; }
+.aahub-pp-btn-reset:hover { color: #ff6b6b; border-color: rgba(255,107,107,0.3) !important; }
+
+/* ── Nav row in personalization panel ── */
+.aahub-pp-nav-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04); transition: opacity 0.2s;
+}
+.aahub-pp-nav-row.pp-hidden { opacity: 0.4; }
+.aahub-pp-nav-row label { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+.aahub-pp-nav-row input[type="checkbox"] { accent-color: #4DB1FF; width: 16px; height: 16px; cursor: pointer; }
+.aahub-pp-nav-row .pp-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.aahub-pp-nav-row .pp-actions button {
+  border: none; background: none; color: #5a6d7e; cursor: pointer;
+  padding: 4px 6px; font-size: 14px; border-radius: 4px; transition: color 0.15s;
+}
+.aahub-pp-nav-row .pp-actions button:hover { color: #4DB1FF; background: rgba(77,177,255,0.08); }
+
+/* ── Display prefs in personalization panel ── */
+.aahub-pp-display-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.aahub-pp-display-row .pp-label { font-size: 13px; color: #8496A7; width: 80px; flex-shrink: 0; }
+.aahub-pp-display-row .pp-controls { display: flex; gap: 6px; align-items: center; flex: 1; }
+.aahub-pp-display-row button {
+  padding: 5px 14px; font-size: 12px; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px; background: none; color: #8496A7; cursor: pointer; transition: all 0.15s;
+}
+.aahub-pp-display-row button:hover { color: #D5DADF; border-color: rgba(255,255,255,0.2); }
+.aahub-pp-display-row button.pp-active { background: rgba(0,112,242,0.15); color: #4DB1FF; border-color: #4DB1FF; }
+.aahub-pp-display-row input[type="range"] { width: 120px; accent-color: #4DB1FF; }
+.aahub-pp-display-row .pp-fs-val { font-size: 12px; color: #D5DADF; min-width: 24px; text-align: center; }
+
+/* ── Theme variants for personalization panel ── */
+.theme-light .aahub-pp-dialog { background: #ebeff3; color: #2e3e4e; border-color: rgba(0,0,0,0.08); }
+.theme-light .aahub-pp-header h3 { color: #1a6dd2; }
+.theme-light .aahub-pp-tab { color: #6b7a8d; }
+.theme-light .aahub-pp-tab.active { color: #1a6dd2; border-bottom-color: #1a6dd2; }
+.theme-light .aahub-pp-close { color: #6b7a8d; }
+.theme-light .aahub-pp-close:hover { color: #2e3e4e; }
+.theme-light .aahub-pp-nav-row { border-color: rgba(0,0,0,0.06); }
+.theme-light .aahub-pp-nav-row .pp-actions button:hover { color: #1a6dd2; }
+.theme-light .aahub-pp-display-row button.pp-active { background: rgba(0,80,180,0.1); color: #1a6dd2; border-color: #1a6dd2; }
+.theme-light .aahub-pp-btn-reset { color: #6b7a8d; }
+.theme-hc .aahub-pp-dialog { background: #111; color: #fff; border: 2px solid #fff; }
+.theme-hc .aahub-pp-header h3 { color: #ff0; }
+.theme-hc .aahub-pp-tab.active { color: #ff0; border-bottom-color: #ff0; }
+.theme-hc .aahub-pp-display-row button.pp-active { background: rgba(255,255,0,0.1); color: #ff0; border-color: #ff0; }
+
 /* ── Separator + user shortcut nav items ── */
 .aahub-nav-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.12); margin: 0 4px; align-self: center; flex-shrink: 0; }
 .aahub-nav-item.user-shortcut > a { color: #8DC5F7; font-weight: 400; }
@@ -1235,8 +1313,8 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
 
   <!-- ═══ Site Header ═══ -->
   <header class="aahub-header">
-    <img class="aahub-header-logo" src="https://sap.sharepoint.com/teams/AAHUB/SiteAssets/__siteIcon__.png" alt="Global Architecture Advisory logo">
-    <span class="aahub-header-title">Global Architecture Advisory</span>
+    <img class="aahub-header-logo" src="https://sap.sharepoint.com/teams/AAHUB/SiteAssets/__siteIcon__.png" alt="Architecture Advisory Hub logo">
+    <span class="aahub-header-title"><strong>Welcome to the Architecture Advisory Hub</strong> &mdash; Your Central Resource for Architecture Advisory</span>
   </header>
 
   <!-- ═══ Navigation Bar ═══ -->
@@ -1253,6 +1331,7 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
           </div>
           <a href="#" class="aahub-shortcut-edit-link">&#9998; Edit Shortcuts</a>
           <div class="aahub-gear-actions">
+            <a href="#" class="aahub-gear-action aahub-gear-personalize" title="Personalize navigation, shortcuts, and display">&#9881; Personalize</a>
             <a href="#" class="aahub-gear-action aahub-gear-edit-page" title="Edit this page">&#9998; Edit Page</a>
             <a href="#" class="aahub-gear-action aahub-gear-badge-toggle" title="Show or hide NEW badges">&#10070; Toggle NEW Badges</a>
           </div>
@@ -2333,6 +2412,11 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
       e.preventDefault();
       var isShowing = !root.classList.contains('hide-badges');
       applyBadgePref(!isShowing);
+      // Persist via prefs-update
+      root.dispatchEvent(new CustomEvent('picanvas:prefs-update', {
+        detail: { action: 'display-update', payload: { key: 'showBadges', value: !isShowing } },
+        bubbles: false
+      }));
       // Close gear dropdown
       var gearItem = root.querySelector('.aahub-nav-item.home');
       if (gearItem) gearItem.classList.remove('shortcut-open');
@@ -2708,7 +2792,48 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
     titleInput.focus();
   }
 
-  // --- Receive shortcuts from PiCanvas ---
+  // --- Receive full user preferences from PiCanvas ---
+  function handlePrefsReady(prefs) {
+    userPrefs = prefs;
+
+    // Extract shortcuts for dropdown and nav injection
+    userShortcuts = [];
+    if (prefs.shortcuts) {
+      for (var i = 0; i < prefs.shortcuts.length; i++) {
+        var s = prefs.shortcuts[i];
+        userShortcuts.push({
+          Id: s.id,
+          Title: s.title,
+          ShortcutUrl: s.url,
+          ShortcutIcon: s.icon,
+          SortOrder: s.sortOrder,
+          OpenInNewWindow: s.openInNewWindow
+        });
+      }
+    }
+    renderShortcutDropdown();
+    injectShortcutNavItems();
+
+    // Apply display preferences
+    if (prefs.display) {
+      if (typeof setTheme === 'function') setTheme(prefs.display.theme || 'dark');
+      if (typeof applyFs === 'function') applyFs(prefs.display.fontSize || 13);
+      applyBadgePref(prefs.display.showBadges !== false);
+      // Sync to localStorage for instant-apply on next page load
+      try {
+        localStorage.setItem('aahub-theme', prefs.display.theme || 'dark');
+        localStorage.setItem('aahub-fs', String(prefs.display.fontSize || 13));
+        localStorage.setItem('aahub-show-badges', prefs.display.showBadges !== false ? '1' : '0');
+      } catch(e) {}
+    }
+
+    // Re-apply nav ordering/hiding if nav data is already loaded
+    if (rawNavNodes) {
+      buildNavFromData(rawNavNodes);
+    }
+  }
+
+  // Backward compat: still handle shortcuts-ready for non-prefs flow
   function handleShortcutsReady(shortcuts) {
     userShortcuts = shortcuts || [];
     renderShortcutDropdown();
@@ -2716,12 +2841,18 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
   }
 
   // Sync fallback (PiCanvas may have resolved before script ran)
-  if (window.__picanvasShortcutsData) {
+  if (window.__picanvasUserPrefs) {
+    handlePrefsReady(window.__picanvasUserPrefs);
+  } else if (window.__picanvasShortcutsData) {
     handleShortcutsReady(window.__picanvasShortcutsData);
   }
-  // Async delivery
+  // Async delivery — prefer userprefs, fall back to shortcuts
+  root.addEventListener('picanvas:userprefs-ready', function(e) {
+    handlePrefsReady(e.detail && e.detail.prefs);
+  });
   root.addEventListener('picanvas:shortcuts-ready', function(e) {
-    handleShortcutsReady(e.detail && e.detail.shortcuts);
+    // Only handle if userPrefs hasn't been loaded yet
+    if (!userPrefs) handleShortcutsReady(e.detail && e.detail.shortcuts);
   });
 
   // --- A11y toolbar badge toggle click + restore saved preference ---
@@ -2729,6 +2860,11 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
     badgeToggle.addEventListener('click', function() {
       var isShowing = !root.classList.contains('hide-badges');
       applyBadgePref(!isShowing);
+      // Persist via prefs-update
+      root.dispatchEvent(new CustomEvent('picanvas:prefs-update', {
+        detail: { action: 'display-update', payload: { key: 'showBadges', value: !isShowing } },
+        bubbles: false
+      }));
     });
   }
   try {
