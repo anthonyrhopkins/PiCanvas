@@ -1,17 +1,29 @@
 <style>
+@font-face { font-family: '72Brand'; src: url('fonts/72Brand-Light.woff') format('woff'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: '72Brand'; src: url('fonts/72Brand-Regular.woff') format('woff'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: '72Brand'; src: url('fonts/72Brand-Medium.woff') format('woff'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: '72Brand'; src: url('fonts/72Brand-Bold.woff') format('woff'); font-weight: 700; font-style: normal; font-display: swap; }
+
 /* ══════════════════════════════════════════════════════
    AA HUB — Full-Page Hero with CSS-Only Navigation
    Theme: SAP Horizon Dark
    3-Level Menus with Flyout Sub-menus
    ══════════════════════════════════════════════════════ */
 
-/* ── Lock page scroll when hero is active ── */
+/* ── Allow page scroll — hero content extends below fold ── */
 html:has(.aahub-root),
 html:has(.aahub-root) body,
 html:has(.aahub-root) #spPageCanvasContent,
 html:has(.aahub-root) [data-automation-id="contentScrollRegion"] {
   overflow: hidden !important;
   height: 100vh !important;
+}
+
+/* ── Break CSS containment so position:fixed works on .aahub-root ── */
+html:has(.aahub-root) .picanvas-tab-content,
+html:has(.aahub-root) .addui-Tabs-contentHolder {
+  contain: none !important;
+  overflow: visible !important;
 }
 
 /* ── Copilot / Property Pane: ensure panels open above hero ── */
@@ -40,13 +52,38 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
   background: #12171C !important;
-  font-family: '72', '72full', Arial, Helvetica, sans-serif;
+  font-family: '72Brand', '72', '72full', Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: #fff;
   line-height: 1.6;
+  font-size: calc(var(--fs, 13) * 1px);
 }
 .aahub-root * { box-sizing: border-box; }
 .aahub-root a { color: inherit; text-decoration: none; }
+
+/* ── Site Header (Logo + Title) ── */
+.aahub-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: linear-gradient(180deg, rgba(18,23,28,0.98) 0%, rgba(18,23,28,0.95) 100%);
+  border-bottom: 1px solid rgba(0,112,242,0.08);
+}
+.aahub-header-logo {
+  height: 48px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(0,112,242,0.2));
+}
+.aahub-header-title {
+  font-size: 1.35em;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #fff;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
 
 /* ── Navigation Bar ── */
 .aahub-nav {
@@ -54,6 +91,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   top: 0;
   z-index: 100;
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   background: linear-gradient(180deg, rgba(18,23,28,0.97) 0%, rgba(29,35,42,0.95) 100%);
   border-bottom: 1px solid rgba(0,112,242,0.15);
@@ -61,10 +99,12 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   -webkit-backdrop-filter: blur(16px);
   padding: 0;
   min-height: 44px;
+  font-size: 13px; /* Fixed size — immune to --fs accessibility slider */
 }
 
 .aahub-nav-inner {
   display: flex;
+  flex-wrap: nowrap;
   align-items: stretch;
   width: 100%;
   max-width: 1400px;
@@ -82,14 +122,13 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 .aahub-nav-item > a {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 16px;
-  font-size: 13px;
+  gap: 4px;
+  padding: 0 10px;
+  font-size: 1em;
   font-weight: 500;
   color: #D5DADF;
   white-space: nowrap;
   transition: color 0.2s, background 0.2s;
-  letter-spacing: 0.2px;
   height: 44px;
 }
 
@@ -99,15 +138,105 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   background: rgba(0,112,242,0.06);
 }
 
-/* Home tab — gold accent */
+/* Home tab — settings gear */
 .aahub-nav-item.home > a {
   color: #4DB1FF;
-  font-weight: 600;
+  font-size: 1.2em;
+  padding: 0 8px;
 }
+
+/* ── Gear / Shortcuts dropdown (click-toggle, not hover) ── */
+.aahub-nav-item.home .aahub-shortcut-dropdown { min-width: 260px; max-height: 400px; overflow-y: auto; }
+.aahub-nav-item.home:hover .aahub-shortcut-dropdown { opacity: 0; visibility: hidden; }
+.aahub-nav-item.home.shortcut-open .aahub-shortcut-dropdown { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; }
+.aahub-shortcut-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+  font-size: 1em; color: #B8C4D0; text-decoration: none;
+  transition: background 0.15s, color 0.15s, padding-left 0.15s;
+}
+.aahub-shortcut-item:hover { background: rgba(0,112,242,0.06); color: #4DB1FF; padding-left: 26px; }
+.aahub-shortcut-item .sc-icon { font-size: 1.1em; flex-shrink: 0; width: 20px; text-align: center; }
+.aahub-shortcut-empty { padding: 16px 20px; font-size: 0.92em; color: #5a6d7e; text-align: center; font-style: italic; }
+.aahub-shortcut-edit-link {
+  display: block; padding: 10px 20px; font-size: 0.92em; font-weight: 600;
+  color: #4DB1FF; border-top: 1px solid rgba(255,255,255,0.06);
+  text-align: center; text-decoration: none; transition: background 0.15s;
+}
+.aahub-shortcut-edit-link:hover { background: rgba(0,112,242,0.08); }
+
+/* ── Gear dropdown actions (edit page, badge toggle, etc.) ── */
+.aahub-gear-actions {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 4px 0;
+}
+.aahub-gear-action {
+  display: block; padding: 8px 20px; font-size: 0.92em; color: #8496A7;
+  text-decoration: none; transition: background 0.15s, color 0.15s; cursor: pointer;
+}
+.aahub-gear-action:hover { background: rgba(0,112,242,0.06); color: #4DB1FF; }
+
+/* ── Separator + user shortcut nav items ── */
+.aahub-nav-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.12); margin: 0 4px; align-self: center; flex-shrink: 0; }
+.aahub-nav-item.user-shortcut > a { color: #8DC5F7; font-weight: 400; }
+.aahub-nav-item.user-shortcut > a::before { content: attr(data-icon); margin-right: 4px; }
+
+/* ── Shortcuts editor modal ── */
+.aahub-sc-overlay { position: fixed; inset: 0; z-index: 100001; display: flex; align-items: flex-start; justify-content: center; padding-top: 8vh; }
+.aahub-sc-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+.aahub-sc-dialog {
+  position: relative; width: 520px; max-width: 92vw; max-height: 78vh;
+  background: #1d232a; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow: hidden;
+  font-family: '72Brand', '72', Arial, sans-serif; color: #D5DADF;
+}
+.aahub-sc-header { padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; }
+.aahub-sc-header h3 { margin: 0; font-size: 17px; font-weight: 600; color: #4DB1FF; }
+.aahub-sc-close { border: none; background: none; color: #8496A7; font-size: 18px; cursor: pointer; padding: 4px 8px; }
+.aahub-sc-close:hover { color: #fff; }
+.aahub-sc-list { flex: 1; overflow-y: auto; padding: 4px 0; min-height: 60px; max-height: 35vh; }
+.aahub-sc-row { display: flex; align-items: center; gap: 10px; padding: 10px 24px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.aahub-sc-row:hover { background: rgba(0,112,242,0.06); }
+.aahub-sc-row .sc-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+.aahub-sc-row .sc-info { flex: 1; min-width: 0; }
+.aahub-sc-row .sc-title { font-size: 13px; color: #D5DADF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.aahub-sc-row .sc-url { font-size: 11px; color: #5a6d7e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; margin-top: 2px; }
+.aahub-sc-row .sc-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.aahub-sc-row button { border: none; background: none; color: #5a6d7e; cursor: pointer; padding: 4px 6px; font-size: 14px; transition: color 0.15s; border-radius: 4px; }
+.aahub-sc-row button:hover { color: #4DB1FF; background: rgba(77,177,255,0.08); }
+.aahub-sc-row button.sc-del:hover { color: #ff6b6b; background: rgba(255,107,107,0.08); }
+.aahub-sc-empty { padding: 32px 24px; text-align: center; color: #5a6d7e; font-style: italic; font-size: 13px; }
+.aahub-sc-add { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.015); }
+.aahub-sc-add-title { font-size: 12px; font-weight: 600; color: #8496A7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+.aahub-sc-field { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.aahub-sc-field label { font-size: 12px; color: #8496A7; width: 42px; flex-shrink: 0; text-align: right; }
+.aahub-sc-field input {
+  flex: 1; padding: 9px 12px; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px; background: rgba(255,255,255,0.04); color: #D5DADF;
+  font-size: 13px; font-family: inherit;
+}
+.aahub-sc-field input::placeholder { color: #5a6d7e; }
+.aahub-sc-field input:focus { outline: none; border-color: #4DB1FF; box-shadow: 0 0 0 2px rgba(77,177,255,0.15); }
+.aahub-sc-field .sc-icon-input { max-width: 60px; text-align: center; font-size: 16px; }
+.aahub-sc-add-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+.aahub-sc-add-actions button {
+  padding: 9px 20px; border: none; border-radius: 6px; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: background 0.15s, opacity 0.15s;
+}
+.aahub-sc-add-actions .sc-btn-add { background: #0070f2; color: #fff; }
+.aahub-sc-add-actions .sc-btn-add:hover { background: #005bb5; }
+.aahub-sc-add-actions .sc-btn-add:disabled { opacity: 0.4; cursor: not-allowed; }
+.aahub-sc-error { padding: 6px 24px 0; font-size: 12px; color: #ff6b6b; }
+.aahub-sc-footer { padding: 12px 24px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: flex-end; }
+.aahub-sc-footer button {
+  padding: 9px 28px; background: rgba(255,255,255,0.08); color: #D5DADF; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.aahub-sc-footer button:hover { background: rgba(255,255,255,0.14); }
 
 /* Dropdown arrow */
 .aahub-nav-item > a .arrow {
-  font-size: 9px;
+  font-size: 0.7em;
   opacity: 0.4;
   transition: transform 0.2s, opacity 0.2s;
   margin-left: 2px;
@@ -123,7 +252,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   top: 100%;
   left: 0;
   min-width: 300px;
-  background: rgba(29,35,42,0.97);
+  background: #1d232a;
   border: 1px solid rgba(255,255,255,0.08);
   border-top: 2px solid rgba(0,112,242,0.4);
   border-radius: 0 0 10px 10px;
@@ -132,9 +261,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   visibility: hidden;
   transform: translateY(-4px);
   transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .aahub-nav-item:hover .aahub-dropdown {
@@ -156,7 +283,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   align-items: center;
   gap: 10px;
   padding: 10px 20px;
-  font-size: 13px;
+  font-size: 1em;
   color: #B8C4D0;
   transition: background 0.15s, color 0.15s, padding-left 0.15s;
 }
@@ -169,7 +296,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 .aahub-dropdown > a::before,
 .aahub-dropdown > .has-sub > a::before {
   content: '\203A';
-  font-size: 15px;
+  font-size: 1.15em;
   font-weight: 700;
   opacity: 0.3;
   flex-shrink: 0;
@@ -187,7 +314,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 .has-sub > a::after {
   content: '▸';
   margin-left: auto;
-  font-size: 11px;
+  font-size: 0.85em;
   opacity: 0.35;
   transition: opacity 0.2s;
 }
@@ -202,7 +329,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   min-width: 280px;
   max-height: 70vh;
   overflow-y: auto;
-  background: rgba(29,35,42,0.97);
+  background: #1d232a;
   border: 1px solid rgba(255,255,255,0.08);
   border-left: 2px solid rgba(0,112,242,0.3);
   border-radius: 0 10px 10px 0;
@@ -211,9 +338,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   visibility: hidden;
   transform: translateX(-4px);
   transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .has-sub:hover > .aahub-submenu {
@@ -232,7 +357,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   align-items: center;
   gap: 10px;
   padding: 9px 18px;
-  font-size: 12.5px;
+  font-size: 0.96em;
   color: #9AB5D0;
   transition: background 0.15s, color 0.15s, padding-left 0.15s;
 }
@@ -243,7 +368,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 .aahub-submenu a::before {
   content: '\203A';
-  font-size: 13px;
+  font-size: 1em;
   font-weight: 700;
   opacity: 0.25;
   flex-shrink: 0;
@@ -274,7 +399,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 .aahub-submenu .has-sub > a::after {
   content: '\25B8';
   margin-left: auto;
-  font-size: 10px;
+  font-size: 0.77em;
   opacity: 0.35;
   transition: opacity 0.2s;
 }
@@ -283,7 +408,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 .aahub-submenu .has-sub > a::before {
   content: '\203A';
-  font-size: 13px;
+  font-size: 1em;
   font-weight: 700;
   opacity: 0.25;
   flex-shrink: 0;
@@ -300,7 +425,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   min-width: 260px;
   max-height: 70vh;
   overflow-y: auto;
-  background: rgba(29,35,42,0.97);
+  background: #1d232a;
   border: 1px solid rgba(255,255,255,0.08);
   border-left: 2px solid rgba(0,112,242,0.25);
   border-radius: 0 10px 10px 0;
@@ -309,9 +434,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   visibility: hidden;
   transform: translateX(-4px);
   transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .aahub-submenu .has-sub:hover > .aahub-submenu {
@@ -325,7 +448,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  font-size: 12px;
+  font-size: 0.92em;
   color: #8CA3BC;
   transition: background 0.15s, color 0.15s, padding-left 0.15s;
 }
@@ -336,7 +459,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 .aahub-submenu .aahub-submenu a::before {
   content: '\203A';
-  font-size: 12px;
+  font-size: 0.92em;
   font-weight: 700;
   opacity: 0.2;
   flex-shrink: 0;
@@ -362,11 +485,517 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 /* ── Hero Section ── */
 .aahub-hero {
   position: relative;
-  min-height: calc(100vh - 44px);
+  min-height: auto;
   background:
     linear-gradient(180deg, #12171C 0%, #0D2B4A 40%, #12171C 100%);
   overflow: hidden;
 }
+
+/* ── Quick Access Metro Map ── */
+.aahub-quick-access {
+  grid-column: 1 / -1;
+  background: var(--qa-bg, rgba(255,255,255,0.025));
+  border: 1px solid var(--qa-border, rgba(255,255,255,0.06));
+  border-radius: 16px;
+  padding: 28px 32px 24px;
+  margin-top: 4px;
+}
+.aahub-quick-access > h2 {
+  font-size: 1em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--qa-accent-20, rgba(0,112,242,0.2));
+  color: var(--accent, #4DB1FF);
+}
+.aahub-qa-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0 16px;
+  align-items: start;
+}
+.aahub-qa-category {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.aahub-qa-category h3 {
+  font-size: 0.82em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent, #4DB1FF);
+  text-align: center;
+  margin: 0 0 4px 0;
+  padding: 6px 12px;
+  border: 1.5px solid var(--qa-cat-border, rgba(0,112,242,0.35));
+  border-radius: 20px;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.aahub-qa-category ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aahub-qa-category li {
+  width: 100%;
+}
+.aahub-qa-category li a {
+  display: block;
+  text-align: center;
+  width: 100%;
+  padding: 9px 10px;
+  color: var(--qa-link, #B8C4D0);
+  font-size: 0.96em;
+  font-weight: 600;
+  line-height: 1.35;
+  border: 1.5px solid var(--qa-pill-border, rgba(255,255,255,0.12));
+  border-radius: 20px;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+.aahub-qa-category li a:hover,
+.aahub-qa-category li a:focus-visible {
+  background: var(--qa-hover-bg, rgba(0,112,242,0.12));
+  color: var(--qa-hover-color, #fff);
+  border-color: var(--qa-hover-border, rgba(0,112,242,0.5));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  outline: none;
+}
+.aahub-qa-category li a:focus-visible {
+  outline: 2px solid var(--focus-ring, #4DB1FF);
+  outline-offset: 2px;
+}
+
+/* ── Accessibility Toolbar ── */
+.aahub-a11y-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 4px 0 0;
+}
+.aahub-a11y-bar button {
+  background: var(--a11y-btn-bg, rgba(255,255,255,0.06));
+  border: 1px solid var(--a11y-btn-border, rgba(255,255,255,0.1));
+  color: var(--a11y-btn-color, #8496A7);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+}
+.aahub-a11y-bar button:hover,
+.aahub-a11y-bar button:focus-visible {
+  background: var(--a11y-btn-hover, rgba(0,112,242,0.15));
+  color: var(--a11y-btn-hover-color, #fff);
+  border-color: rgba(0,112,242,0.4);
+  outline: none;
+}
+.aahub-a11y-bar button:focus-visible {
+  outline: 2px solid var(--focus-ring, #4DB1FF);
+  outline-offset: 2px;
+}
+.aahub-a11y-bar button[aria-pressed="true"] {
+  background: rgba(0,112,242,0.25);
+  color: #fff;
+  border-color: rgba(0,112,242,0.6);
+}
+.aahub-a11y-bar .a11y-sep {
+  width: 1px; height: 14px;
+  background: var(--a11y-sep, rgba(255,255,255,0.08));
+  margin: 0 3px;
+}
+.aahub-a11y-bar .a11y-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted, #5a6d7e);
+  margin-right: 2px;
+}
+.aahub-a11y-bar .a11y-fs-val {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent, #4DB1FF);
+  min-width: 16px;
+  text-align: center;
+}
+.aahub-a11y-bar .a11y-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  background: var(--a11y-sep, rgba(255,255,255,0.12));
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.aahub-a11y-bar .a11y-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent, #4DB1FF);
+  border: 2px solid var(--a11y-btn-bg, rgba(255,255,255,0.06));
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.aahub-a11y-bar .a11y-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+.aahub-a11y-bar .a11y-slider:focus-visible {
+  outline: 2px solid var(--focus-ring, #4DB1FF);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ── Keyboard Focus ── */
+.aahub-nav-item > a:focus-visible,
+.aahub-dropdown > a:focus-visible,
+.aahub-dropdown > .has-sub > a:focus-visible,
+.aahub-submenu a:focus-visible,
+.aahub-card li > a:focus-visible {
+  outline: 2px solid var(--focus-ring, #4DB1FF);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Priority+ "More" Overflow Button ── */
+.aahub-nav-more {
+  flex-shrink: 0;
+}
+.aahub-nav-more > a {
+  cursor: pointer;
+}
+.aahub-more-dropdown {
+  right: 0;
+  left: auto;
+}
+.aahub-more-dropdown .aahub-nav-item {
+  display: block;
+  position: relative;
+}
+.aahub-more-dropdown .aahub-nav-item > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  font-size: 1em;
+  color: #B8C4D0;
+  white-space: nowrap;
+  height: auto;
+  transition: background 0.15s, color 0.15s, padding-left 0.15s;
+}
+.aahub-more-dropdown .aahub-nav-item > a::before {
+  content: '\203A';
+  font-size: 1.15em;
+  font-weight: 700;
+  opacity: 0.3;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.aahub-more-dropdown .aahub-nav-item > a:hover {
+  background: rgba(0,112,242,0.06);
+  color: #4DB1FF;
+  padding-left: 26px;
+}
+.aahub-more-dropdown .aahub-nav-item > a:hover::before {
+  opacity: 0.7;
+}
+.aahub-more-dropdown .aahub-nav-item > a .arrow { display: none; }
+/* Show dropdown on hover within More menu */
+.aahub-more-dropdown .aahub-nav-item .aahub-dropdown {
+  position: absolute;
+  top: 0;
+  left: auto;
+  right: 100%;
+  border-radius: 10px 0 0 10px;
+  border-top: none;
+  border-right: 2px solid rgba(0,112,242,0.3);
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.aahub-more-dropdown .aahub-nav-item:hover .aahub-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* ── Mobile Hamburger ── */
+.aahub-mobile-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 1.4em;
+  color: #D5DADF;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.aahub-mobile-btn:hover { color: #4DB1FF; }
+
+/* ── Mobile layout ── */
+@media (max-width: 768px) {
+  .aahub-mobile-btn { display: flex; }
+  .aahub-nav-inner {
+    display: none;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .aahub-nav-inner.mobile-open {
+    display: flex;
+  }
+  .aahub-nav-inner .aahub-nav-item,
+  .aahub-nav-inner .aahub-nav-more {
+    width: 100%;
+    display: block !important;
+  }
+  .aahub-nav-inner .aahub-nav-item > a {
+    height: auto;
+    padding: 12px 16px;
+  }
+  .aahub-nav-item .aahub-dropdown {
+    position: static;
+    max-width: none;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    display: none;
+    box-shadow: none;
+    border-radius: 0;
+    border-top: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-left: 12px;
+  }
+  .aahub-nav-item.mobile-dd-open > .aahub-dropdown {
+    display: block;
+  }
+  .aahub-nav-item .aahub-dropdown .aahub-submenu {
+    position: static;
+    max-width: none;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    display: none;
+    box-shadow: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding-left: 12px;
+  }
+  .aahub-nav-item .has-sub.mobile-dd-open > .aahub-submenu {
+    display: block;
+  }
+  /* Hide "More" on mobile — all items visible in stack */
+  .aahub-nav-more { display: none !important; }
+  .aahub-nav-sep { display: none; }
+}
+
+/* ═══════════════════════════════════════
+   THEME: LIGHT
+   ═══════════════════════════════════════ */
+.aahub-root.theme-light {
+  background: #e8ecf0 !important;
+  color: #1e2a36;
+  --accent: #1a6dd2;
+  --muted: #6a7a8a;
+  --focus-ring: #1a6dd2;
+}
+.theme-light .aahub-header {
+  background: linear-gradient(180deg, rgba(232,236,240,0.98) 0%, rgba(220,226,234,0.95) 100%);
+  border-bottom-color: rgba(0,80,180,0.1);
+}
+.theme-light .aahub-header-title { color: #1a3a5c; text-shadow: none; }
+.theme-light .aahub-header-logo { filter: none; }
+.theme-light .aahub-nav {
+  background: linear-gradient(180deg, rgba(215,222,230,0.97) 0%, rgba(205,214,224,0.95) 100%);
+  border-bottom-color: rgba(0,80,180,0.15);
+}
+.theme-light .aahub-nav-item > a { color: #2e3e4e; }
+.theme-light .aahub-nav-item > a:hover,
+.theme-light .aahub-nav-item:hover > a { color: #1a6dd2; background: rgba(0,80,180,0.06); }
+.theme-light .aahub-nav-item.home > a { color: #1a6dd2; }
+.theme-light .aahub-shortcut-item { color: #2e3e4e; }
+.theme-light .aahub-shortcut-item:hover { color: #1a6dd2; background: rgba(0,80,180,0.05); }
+.theme-light .aahub-shortcut-edit-link { color: #1a6dd2; border-top-color: rgba(0,0,0,0.06); }
+.theme-light .aahub-nav-sep { background: rgba(0,0,0,0.12); }
+.theme-light .aahub-nav-item.user-shortcut > a { color: #1a6dd2; }
+.theme-light .aahub-sc-dialog { background: #ebeff3; color: #2e3e4e; }
+.theme-light .aahub-sc-header h3 { color: #1a6dd2; }
+.theme-light .aahub-sc-row .sc-title { color: #2e3e4e; }
+.theme-light .aahub-sc-field input { background: #fff; border-color: rgba(0,0,0,0.1); color: #2e3e4e; }
+.theme-light .aahub-sc-field label { color: #5a6d7e; }
+.theme-light .aahub-sc-add { background: rgba(0,0,0,0.02); }
+.theme-light .aahub-sc-add-title { color: #5a6d7e; }
+.theme-light .aahub-sc-footer button { background: rgba(0,0,0,0.05); color: #2e3e4e; border-color: rgba(0,0,0,0.12); }
+.theme-light .aahub-sc-footer button:hover { background: rgba(0,0,0,0.1); }
+.theme-light .aahub-dropdown,
+.theme-light .aahub-submenu { background: #ebeff3; border-color: rgba(0,0,0,0.08); }
+.theme-light .aahub-dropdown > a,
+.theme-light .aahub-dropdown > .has-sub > a,
+.theme-light .aahub-submenu a { color: #2e3e4e; }
+.theme-light .aahub-dropdown > a:hover,
+.theme-light .aahub-dropdown > .has-sub:hover > a,
+.theme-light .aahub-submenu a:hover { color: #1a6dd2; background: rgba(0,80,180,0.05); }
+.theme-light .aahub-hero {
+  background: linear-gradient(180deg, #e8ecf0 0%, #d0dae6 40%, #e8ecf0 100%);
+}
+.theme-light .aahub-hero::before, .theme-light .aahub-hero::after { opacity: 0.2; }
+.theme-light .aahub-card {
+  background: rgba(255,255,255,0.45);
+  border-color: rgba(0,0,0,0.07);
+}
+.theme-light .aahub-card:hover { border-color: rgba(0,80,180,0.25); box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+.theme-light .aahub-card h2 { color: #1a6dd2; }
+.theme-light .aahub-card li > a { color: #2a4a68; }
+.theme-light .aahub-card li > a::before { opacity: 0.35; }
+.theme-light .aahub-card li > a:hover { color: #1a6dd2; background: rgba(0,80,180,0.04); }
+.theme-light .aahub-news-rich { color: #2a4a68; }
+.theme-light .aahub-news-rich a { color: #1a6dd2 !important; text-decoration-color: rgba(26,109,210,0.3); }
+.theme-light .aahub-news-rich a:hover { color: #0d47a1 !important; text-decoration-color: rgba(13,71,161,0.6); }
+.theme-light .aahub-badge-new { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+.theme-light .aahub-news-label { color: #2a4a68; }
+.theme-light a.aahub-news-label:hover { color: #1a6dd2; }
+.theme-light .aahub-quick-access {
+  --qa-bg: rgba(255,255,255,0.35);
+  --qa-border: rgba(0,0,0,0.06);
+  --qa-cat-border: rgba(26,109,210,0.25);
+  --qa-link: #2a4a68;
+  --qa-pill-border: rgba(0,0,0,0.1);
+  --qa-hover-bg: rgba(0,80,180,0.08);
+  --qa-hover-color: #1a6dd2;
+  --qa-hover-border: rgba(26,109,210,0.35);
+  background: var(--qa-bg);
+  border-color: var(--qa-border);
+}
+.theme-light .aahub-footer { color: #5a6a7a; border-top-color: rgba(0,0,0,0.06); }
+.theme-light .aahub-footer strong { color: #1a6dd2; }
+.theme-light .aahub-a11y-bar button {
+  --a11y-btn-bg: rgba(0,0,0,0.04);
+  --a11y-btn-border: rgba(0,0,0,0.1);
+  --a11y-btn-color: #4a5a6a;
+  --a11y-btn-hover: rgba(0,80,180,0.08);
+  --a11y-btn-hover-color: #1a6dd2;
+}
+.theme-light .aahub-nav-more > a { color: #2e3e4e; }
+.theme-light .aahub-nav-more > a:hover { color: #1a6dd2; background: rgba(0,80,180,0.06); }
+.theme-light .aahub-more-dropdown { background: #ebeff3; border-color: rgba(0,0,0,0.08); }
+.theme-light .aahub-more-dropdown .aahub-nav-item > a { color: #2e3e4e; }
+.theme-light .aahub-more-dropdown .aahub-nav-item > a:hover { color: #1a6dd2; background: rgba(0,80,180,0.05); }
+.theme-light .aahub-mobile-btn { color: #2e3e4e; }
+.theme-light .aahub-mobile-btn:hover { color: #1a6dd2; }
+
+/* ═══════════════════════════════════════
+   THEME: HIGH CONTRAST
+   ═══════════════════════════════════════ */
+.aahub-root.theme-hc {
+  background: #000 !important;
+  color: #fff;
+  --accent: #ff0;
+  --muted: #aaa;
+  --focus-ring: #ff0;
+}
+.theme-hc .aahub-header {
+  background: #000;
+  border-bottom: 2px solid #fff;
+}
+.theme-hc .aahub-header-title { color: #ff0; text-shadow: none; }
+.theme-hc .aahub-header-logo { filter: none; }
+.theme-hc .aahub-nav {
+  background: #000;
+  border-bottom: 2px solid #fff;
+}
+.theme-hc .aahub-nav-item > a { color: #fff; }
+.theme-hc .aahub-nav-item > a:hover,
+.theme-hc .aahub-nav-item:hover > a { color: #ff0; background: rgba(255,255,0,0.1); }
+.theme-hc .aahub-nav-item.home > a { color: #ff0; }
+.theme-hc .aahub-shortcut-item { color: #fff; }
+.theme-hc .aahub-shortcut-item:hover { color: #ff0; background: rgba(255,255,0,0.08); }
+.theme-hc .aahub-shortcut-edit-link { color: #ff0; border-top-color: #fff; }
+.theme-hc .aahub-nav-sep { background: #fff; }
+.theme-hc .aahub-nav-item.user-shortcut > a { color: #ff0; }
+.theme-hc .aahub-sc-dialog { background: #111; border: 2px solid #fff; }
+.theme-hc .aahub-sc-header h3 { color: #ff0; }
+.theme-hc .aahub-sc-row .sc-title { color: #fff; }
+.theme-hc .aahub-sc-field input { background: #000; border-color: #fff; color: #fff; }
+.theme-hc .aahub-sc-field label { color: #ccc; }
+.theme-hc .aahub-sc-add-actions .sc-btn-add { background: #ff0; color: #000; }
+.theme-hc .aahub-sc-footer button { background: #333; color: #fff; border-color: #fff; }
+.theme-hc .aahub-dropdown,
+.theme-hc .aahub-submenu { background: #111; border: 2px solid #fff; }
+.theme-hc .aahub-dropdown > a,
+.theme-hc .aahub-dropdown > .has-sub > a,
+.theme-hc .aahub-submenu a { color: #fff; }
+.theme-hc .aahub-dropdown > a:hover,
+.theme-hc .aahub-dropdown > .has-sub:hover > a,
+.theme-hc .aahub-submenu a:hover { color: #ff0; background: rgba(255,255,0,0.08); }
+.theme-hc .aahub-hero { background: #000; }
+.theme-hc .aahub-hero::before, .theme-hc .aahub-hero::after { display: none; }
+.theme-hc .aahub-card {
+  background: #111;
+  border: 2px solid #fff;
+}
+.theme-hc .aahub-card:hover { border-color: #ff0; box-shadow: none; transform: none; }
+.theme-hc .aahub-card h2 { color: #ff0; border-bottom-color: #ff0; }
+.theme-hc .aahub-card li > a { color: #fff; }
+.theme-hc .aahub-card li > a::before { color: #ff0; opacity: 0.7; }
+.theme-hc .aahub-card li > a:hover { color: #ff0; background: rgba(255,255,0,0.08); }
+.theme-hc .aahub-news-rich { color: #fff; }
+.theme-hc .aahub-news-rich a { color: #ff0 !important; }
+.theme-hc .aahub-news-rich a:hover { color: #fff !important; }
+.theme-hc .aahub-badge-new { background: #ff0; color: #000; }
+.theme-hc .aahub-news-label { color: #fff; }
+.theme-hc a.aahub-news-label:hover { color: #ff0; }
+.theme-hc .aahub-quick-access {
+  --qa-bg: #111;
+  --qa-border: #fff;
+  --qa-accent-20: #ff0;
+  --qa-cat-border: #ff0;
+  --qa-link: #fff;
+  --qa-pill-border: #fff;
+  --qa-hover-bg: rgba(255,255,0,0.15);
+  --qa-hover-color: #ff0;
+  --qa-hover-border: #ff0;
+  background: var(--qa-bg);
+  border: 2px solid var(--qa-border);
+}
+.theme-hc .aahub-footer { color: #ccc; border-top-color: #fff; }
+.theme-hc .aahub-footer strong { color: #ff0; }
+.theme-hc .aahub-a11y-bar button {
+  --a11y-btn-bg: #111;
+  --a11y-btn-border: #fff;
+  --a11y-btn-color: #fff;
+  --a11y-btn-hover: #333;
+  --a11y-btn-hover-color: #ff0;
+}
+.theme-hc .aahub-a11y-bar button[aria-pressed="true"] {
+  background: #333;
+  color: #ff0;
+  border-color: #ff0;
+}
+.theme-hc .aahub-nav-more > a { color: #fff; }
+.theme-hc .aahub-nav-more > a:hover { color: #ff0; background: rgba(255,255,0,0.1); }
+.theme-hc .aahub-more-dropdown { background: #111; border: 2px solid #fff; }
+.theme-hc .aahub-more-dropdown .aahub-nav-item > a { color: #fff; }
+.theme-hc .aahub-more-dropdown .aahub-nav-item > a:hover { color: #ff0; background: rgba(255,255,0,0.08); }
+.theme-hc .aahub-mobile-btn { color: #fff; }
+.theme-hc .aahub-mobile-btn:hover { color: #ff0; }
 
 /* Ambient glow layers */
 .aahub-hero::before {
@@ -418,7 +1047,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 
 .aahub-card h2 {
-  font-size: 13px;
+  font-size: 1em;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -435,37 +1064,110 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 .aahub-card li { margin-bottom: 1px; }
 
-.aahub-card li a {
+.aahub-card li > a {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
   color: #8DC5F7;
-  font-size: 13.5px;
+  font-size: 1.04em;
   border-radius: 8px;
   transition: background 0.15s, color 0.15s, padding-left 0.15s;
 }
-.aahub-card li a:hover {
+.aahub-card li > a:hover {
   background: rgba(147,197,253,0.06);
   color: #bfdbfe;
   padding-left: 20px;
 }
-.aahub-card li a::before {
-  content: '\203A';
-  font-size: 16px;
-  font-weight: 700;
-  opacity: 0.3;
-  flex-shrink: 0;
-  transition: opacity 0.15s;
+.aahub-card li > a::before {
+  content: none;
 }
-.aahub-card li a:hover::before { opacity: 0.7; }
+.aahub-card li > a:hover::before { opacity: 0.7; }
 
-/* ── Footer Banner ── */
+/* Rich content items from PiCanvasNews list */
+.aahub-news-rich {
+  padding: 10px 14px;
+  color: #8DC5F7;
+  font-size: 1.04em;
+  line-height: 1.5;
+}
+.aahub-news-label {
+  display: block;
+  padding: 10px 14px 2px 14px;
+  color: #8DC5F7;
+  font-size: 1.04em;
+  font-weight: 400;
+}
+a.aahub-news-label {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.aahub-news-label:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}
+.aahub-news-label + .aahub-news-rich {
+  padding-top: 2px;
+}
+/* Override SP rich text editor inline styles */
+.aahub-news-rich * {
+  background: none !important;
+  background-color: transparent !important;
+  font-family: inherit !important;
+}
+.aahub-news-rich a {
+  color: #4DB1FF !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(77,177,255,0.3);
+  transition: color 0.15s, text-decoration-color 0.15s;
+  display: inline !important;
+  padding: 0 !important;
+}
+.aahub-news-rich a::before { content: none !important; }
+.aahub-news-rich a:hover {
+  color: #bfdbfe !important;
+  text-decoration-color: rgba(191,219,254,0.6);
+}
+/* NEW badge for recently published items */
+.aahub-badge-new {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-radius: 4px;
+  vertical-align: middle;
+  animation: aahub-badge-pulse 2s ease-in-out infinite;
+}
+@keyframes aahub-badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+/* Badge inside Quick Access pill links */
+.aahub-qa-category .aahub-badge-new {
+  font-size: 0.65em;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+/* ── Nav Icons ── */
+.aahub-nav-icon { display: inline-block; width: 1em; height: 1em; vertical-align: middle; margin-right: 4px; flex-shrink: 0; }
+.aahub-nav-icon.ms-Icon { width: auto; height: auto; font-size: 1em; }
+.aahub-nav-icon-emoji { width: auto; height: auto; line-height: 1; }
+.aahub-nav-icon-svg svg { width: 1em; height: 1em; vertical-align: middle; }
+img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
+.aahub-nav-item.aahub-nav-icon-only > a { padding-left: 10px; padding-right: 10px; }
+.aahub-nav-item.aahub-nav-icon-only > a .aahub-nav-icon { margin-right: 0; }
+.aahub-nav-item.aahub-nav-icon-only > a .aahub-nav-label-text { display: none; }
 .aahub-footer {
   grid-column: 1 / -1;
   text-align: center;
   padding: 20px 32px;
-  font-size: 13.5px;
+  font-size: 1.04em;
   color: #8496A7;
   border-top: 1px solid rgba(255,255,255,0.05);
   margin-top: 8px;
@@ -478,31 +1180,83 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {
-  .aahub-nav-inner { padding: 0 8px; }
-  .aahub-nav-item > a { padding: 0 10px; font-size: 12px; }
+  .aahub-nav-inner { padding: 0 4px; }
+  .aahub-nav-item > a { padding: 0 7px; font-size: 0.92em; }
   .aahub-hero-content { padding: 32px 28px 24px; gap: 20px; }
+  .aahub-qa-grid { grid-template-columns: repeat(3, 1fr); gap: 12px 14px; }
+  .aahub-qa-category h3 { font-size: 0.73em; letter-spacing: 0.6px; }
+  .aahub-qa-category li a { font-size: 0.88em; padding: 8px 10px; }
 }
 
 @media (max-width: 900px) {
-  .aahub-nav { flex-wrap: wrap; }
-  .aahub-nav-inner { flex-wrap: wrap; }
   .aahub-hero-content {
     grid-template-columns: 1fr;
     padding: 24px 20px;
     gap: 16px;
   }
+  .aahub-qa-grid { grid-template-columns: repeat(2, 1fr); gap: 12px 14px; }
+}
+
+@media (max-width: 600px) {
+  .aahub-qa-grid { grid-template-columns: 1fr; gap: 10px; }
+  .aahub-quick-access { padding: 20px 16px; }
+  .aahub-a11y-bar { flex-wrap: wrap; justify-content: center; }
+}
+
+/* ── NEW badge for nav items ── */
+.aahub-new-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #0a6ed1;
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  line-height: 14px;
+}
+.theme-light .aahub-new-badge { background: #0854a0; }
+.theme-hc .aahub-new-badge { background: #fff; color: #000; }
+
+/* ── Hide PiCanvas floating edit (pencil) buttons — gear icon replaces them ── */
+.picanvas-edit-button { display: none !important; }
+
+/* ── Hide NEW badges when user opts out ── */
+.aahub-root.hide-badges .aahub-new-badge,
+.aahub-root.hide-badges .aahub-badge-new {
+  display: none !important;
 }
 </style>
 
 <div class="aahub-root">
 
+  <!-- ═══ Site Header ═══ -->
+  <header class="aahub-header">
+    <img class="aahub-header-logo" src="https://sap.sharepoint.com/teams/AAHUB/SiteAssets/__siteIcon__.png" alt="Global Architecture Advisory logo">
+    <span class="aahub-header-title">Global Architecture Advisory</span>
+  </header>
+
   <!-- ═══ Navigation Bar ═══ -->
   <nav class="aahub-nav">
+    <button class="aahub-mobile-btn" aria-label="Toggle menu" aria-expanded="false">&#9776;</button>
     <div class="aahub-nav-inner">
 
-      <!-- Home -->
+      <!-- Settings / Shortcuts gear -->
       <div class="aahub-nav-item home">
-        <a href="#">Home</a>
+        <a href="#" aria-label="Settings" title="Settings">&#9881;</a>
+        <div class="aahub-dropdown aahub-shortcut-dropdown">
+          <div class="aahub-shortcut-list">
+            <div class="aahub-shortcut-empty">No shortcuts yet</div>
+          </div>
+          <a href="#" class="aahub-shortcut-edit-link">&#9998; Edit Shortcuts</a>
+          <div class="aahub-gear-actions">
+            <a href="#" class="aahub-gear-action aahub-gear-edit-page" title="Edit this page">&#9998; Edit Page</a>
+            <a href="#" class="aahub-gear-action aahub-gear-badge-toggle" title="Show or hide NEW badges">&#10070; Toggle NEW Badges</a>
+          </div>
+        </div>
       </div>
 
       <!-- Strategic Initiatives (m1) -->
@@ -920,6 +1674,12 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
         </div>
       </div>
 
+      <!-- Priority+ "More" overflow container -->
+      <div class="aahub-nav-item aahub-nav-more" style="display:none">
+        <a href="#" role="button" aria-expanded="false" aria-haspopup="true">More <span class="arrow">&#9660;</span></a>
+        <div class="aahub-dropdown aahub-more-dropdown"></div>
+      </div>
+
     </div>
   </nav>
 
@@ -928,7 +1688,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
     <div class="aahub-hero-content">
 
       <!-- Top News -->
-      <div class="aahub-card">
+      <div class="aahub-card" id="aahub-top-news">
         <h2>Top News</h2>
         <ul>
           <li><a href="https://sap.sharepoint.com/teams/AAHUB/SitePages/pb_apm2026.aspx?env=Embedded" target="_blank" rel="noopener noreferrer">APM 2026 Account Planning Recap</a></li>
@@ -939,7 +1699,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
       </div>
 
       <!-- Good to Know -->
-      <div class="aahub-card">
+      <div class="aahub-card" id="aahub-good-to-know">
         <h2>Good to Know</h2>
         <ul>
           <li><a href="https://sap.sharepoint.com/teams/AAHUB/SitePages/aaplaybook.aspx?env=Embedded" target="_blank" rel="noopener noreferrer">AA Playbook &mdash; Updated!</a></li>
@@ -950,12 +1710,1292 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
         </ul>
       </div>
 
+      <!-- ═══ Quick Access Tools ═══ -->
+      <div class="aahub-quick-access">
+        <h2>&#9889; Quick Access Tools</h2>
+        <div class="aahub-qa-grid">
+
+          <!-- Internal Assignment -->
+          <div class="aahub-qa-category" data-category="Internal Assignment">
+            <h3>Internal Assignment</h3>
+            <ul>
+              <li><a href="https://sfp.bss.net.sap/sap(bD1lbiZjPTAwMSZkPW1pbg==)/bc/bsp/sap/crm_ui_start/default.htm?saprole=ZUSCOM_ESS" target="_blank" rel="noopener noreferrer">CRM Assignment</a></li>
+              <li><a href="https://sapit-home-prod-004.launchpad.cfapps.eu10.hana.ondemand.com/site#pc-app" target="_blank" rel="noopener noreferrer">Melody Activity / Time Entry</a></li>
+              <li><a href="https://url.sap/15hx9q" target="_blank" rel="noopener noreferrer">Request LeanIX Internal Delivery Workspace</a></li>
+              <li><a href="https://people.wdf.sap.corp/" target="_blank" rel="noopener noreferrer">Harmony Lookup</a></li>
+            </ul>
+          </div>
+
+          <!-- Background / Research -->
+          <div class="aahub-qa-category" data-category="Background / Research">
+            <h3>Background / Research</h3>
+            <ul>
+              <li><a href="https://intelligent-workplace.analytics.for.sap/experiences/1csw/pages/landing-page?sap-ui-theme=sap_horizon&amp;help-CMP4=0" target="_blank" rel="noopener noreferrer">Customer 360</a></li>
+              <li><a href="https://me.sap.com/home" target="_blank" rel="noopener noreferrer">SAP4ME</a></li>
+              <li><a href="https://mi-tools.wdf.sap.corp/innovation-review-dashboard/" target="_blank" rel="noopener noreferrer">Innovation Dashboard</a></li>
+              <li><a href="https://reporting.ondemand.com/sap/crp/cdo?type=crp" target="_blank" rel="noopener noreferrer">PIT Report Request</a></li>
+              <li><a href="https://me.sap.com/app/ewaworkspace" target="_blank" rel="noopener noreferrer">EarlyWatch (EWA)</a></li>
+              <li><a href="https://sapit-home-prod-004.launchpad.cfapps.eu10.hana.ondemand.com/eff04b35-a335-4eec-8b3d-d779ef05163a.ba-r1718-provisioningtenants.buildapps255102/page.Page1.html" target="_blank" rel="noopener noreferrer">Current AI Usage</a></li>
+              <li><a href="https://lctr-sapitcloud.dispatcher.hana.ondemand.com/index.html#/" target="_blank" rel="noopener noreferrer">Current BTP Usage</a></li>
+              <li><a href="https://reporting.ondemand.com/sap/crp/cdo?type=crp" target="_blank" rel="noopener noreferrer">Current Deployed ACV</a></li>
+              <li><a href="https://sapit-crossfunctions-prod-ragdoll.eu10.sapdas.cloud.sap/joule" target="_blank" rel="noopener noreferrer">Joule 4 Consultants</a></li>
+              <li><a href="https://sapit-home-prod-004.launchpad.cfapps.eu10.hana.ondemand.com/site#GenAIXL-Display?mobilestart.tile.hidden=true&amp;sap-ui-app-id-hint=d77a57f8-167d-4050-b0ab-3ed131ec48fb" target="_blank" rel="noopener noreferrer">GenAI Lab (w/ Grounding)</a></li>
+            </ul>
+          </div>
+
+          <!-- Transformation Tools -->
+          <div class="aahub-qa-category" data-category="Transformation Tools">
+            <h3>Transformation Tools</h3>
+            <ul>
+              <li><a href="https://sap.sharepoint.com/teams/ICAArchitectHub-OSTRTATESTCHANNEL/SitePages/Boilerplate_email_customer.aspx?csf=1&amp;web=1&amp;e=VnZa6z?env=Embedded" target="_blank" rel="noopener noreferrer">Readiness Check Email Boilerplate</a></li>
+              <li><a href="https://app.rfpio.com/v2/content-library/library?currentTab=LIBRARY&amp;companyId=602180f3a151c82976e5a2c5" target="_blank" rel="noopener noreferrer">RFP.IO Database</a></li>
+              <li><a href="https://flpnwc-a664064c8.dispatcher.hana.ondemand.com/sites/s4hc#Shell-home" target="_blank" rel="noopener noreferrer">Digital Discovery Assessment (DDA)</a></li>
+              <li><a href="https://launcher.value-experience-hub.for.sap/experiences/business-ai---adoption-overview/groups/workshops/pages/workshop-table?nf-model-version=latest&amp;selectedTab=Tab-5" target="_blank" rel="noopener noreferrer">AI Workshop Adoption Plans (AIDW / MXP)</a></li>
+              <li><a href="https://roadmap-builder-server.cfapps.eu10-004.hana.ondemand.com/" target="_blank" rel="noopener noreferrer">AI Roadmap Builder</a></li>
+              <li><a href="https://sap.sharepoint.com/sites/200426/SitePages/Business-Data-Cloud-Discovery-Workshop.aspx" target="_blank" rel="noopener noreferrer">BDC Workshops</a></li>
+              <li><a href="https://sap.sharepoint.com/sites/211113/SitePages/E2E_Positioning.aspx" target="_blank" rel="noopener noreferrer">E2E Positioning Content</a></li>
+              <li><a href="https://demo-eu-3.leanix.net/" target="_blank" rel="noopener noreferrer">LeanIX Deliverables</a></li>
+            </ul>
+          </div>
+
+          <!-- Customer Resources -->
+          <div class="aahub-qa-category" data-category="Customer Resources">
+            <h3>Customer Resources</h3>
+            <ul>
+              <li><a href="https://api.sap.com/" target="_blank" rel="noopener noreferrer">SAP Business Hub (API)</a></li>
+              <li><a href="https://discovery-center.cloud.sap/index.html" target="_blank" rel="noopener noreferrer">Discovery Center (BTP)</a></li>
+              <li><a href="https://architecture.learning.sap.com/" target="_blank" rel="noopener noreferrer">Architecture Center</a></li>
+              <li><a href="https://www.sap.com/about/cloud-trust-center.html" target="_blank" rel="noopener noreferrer">SAP Trust Center</a></li>
+            </ul>
+          </div>
+
+          <!-- Sales Support -->
+          <div class="aahub-qa-category" data-category="Sales Support">
+            <h3>Sales Support</h3>
+            <ul>
+              <li><a href="https://sapit-home-prod-004.launchpad.cfapps.eu10.hana.ondemand.com/site#sappricing-Display?sap-ui-app-id-hint=b84351f9-3838-4de5-b50c-59fef5c5e660&amp;/" target="_blank" rel="noopener noreferrer">Pricing App</a></li>
+              <li><a href="https://lctr-sapitcloud.dispatcher.hana.ondemand.com/index.html#/" target="_blank" rel="noopener noreferrer">BomVoyage</a></li>
+              <li><a href="https://sapit-home-prod-004.launchpad.cfapps.eu10.hana.ondemand.com/site#comsapplamaterialrelationship-Display?sap-ui-app-id-hint=0d14e5d5-53b1-4f96-bae4-f582844edbc4" target="_blank" rel="noopener noreferrer">Material Mapping</a></li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
       <!-- Footer -->
       <div class="aahub-footer">
         <strong>Welcome to the Architecture Advisory Hub</strong> &mdash; Your Central Resource for Architecture Advisory
+      </div>
+
+      <!-- ═══ Accessibility Toolbar ═══ -->
+      <div class="aahub-a11y-bar" role="toolbar" aria-label="Display settings">
+        <span class="a11y-label">Theme</span>
+        <button type="button" data-theme="dark" aria-pressed="true" title="Dark theme">Dark</button>
+        <button type="button" data-theme="light" aria-pressed="false" title="Light theme">Light</button>
+        <button type="button" data-theme="hc" aria-pressed="false" title="High contrast theme">Hi-Con</button>
+        <span class="a11y-sep" role="separator"></span>
+        <span class="a11y-label">Size</span>
+        <span class="a11y-fs-val" aria-live="polite">13</span>
+        <input type="range" min="10" max="20" value="13" step="1" class="a11y-slider" aria-label="Font size" title="Adjust font size" />
+        <span class="a11y-sep" role="separator"></span>
+        <button type="button" class="a11y-badge-toggle" aria-pressed="true" title="Show or hide NEW badges">NEW &#x2713;</button>
       </div>
 
     </div>
   </div>
 
 </div>
+
+<script>
+(function() {
+  var root = document.querySelector('.aahub-root');
+  if (!root) return;
+
+  /* ── Theme Toggle ── */
+  var themeButtons = root.querySelectorAll('[data-theme]');
+  function setTheme(t) {
+    root.classList.remove('theme-light', 'theme-hc');
+    if (t === 'light') root.classList.add('theme-light');
+    else if (t === 'hc') root.classList.add('theme-hc');
+    themeButtons.forEach(function(b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-theme') === t ? 'true' : 'false');
+    });
+    try { localStorage.setItem('aahub-theme', t); } catch(e) {}
+  }
+  themeButtons.forEach(function(b) {
+    b.addEventListener('click', function() { setTheme(b.getAttribute('data-theme')); });
+  });
+  try {
+    var saved = localStorage.getItem('aahub-theme');
+    if (saved) setTheme(saved);
+  } catch(e) {}
+
+  /* ── Font Size Slider ── */
+  var slider = root.querySelector('.a11y-slider');
+  var fsVal = root.querySelector('.a11y-fs-val');
+  function applyFs(v) {
+    root.style.setProperty('--fs', v);
+    if (slider) slider.value = v;
+    if (fsVal) fsVal.textContent = v;
+    try { localStorage.setItem('aahub-fs', v); } catch(e) {}
+  }
+  var fs = 13;
+  try {
+    var savedFs = parseInt(localStorage.getItem('aahub-fs'), 10);
+    if (savedFs >= 10 && savedFs <= 20) fs = savedFs;
+  } catch(e) {}
+  applyFs(fs);
+
+  if (slider) {
+    slider.addEventListener('input', function() { applyFs(parseInt(slider.value, 10)); });
+  }
+
+  /* ── Keyboard: Arrow keys within toolbar ── */
+  var toolbar = root.querySelector('[role="toolbar"]');
+  if (toolbar) {
+    var btns = toolbar.querySelectorAll('button');
+    toolbar.addEventListener('keydown', function(e) {
+      var idx = Array.prototype.indexOf.call(btns, document.activeElement);
+      if (idx < 0) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        btns[(idx + 1) % btns.length].focus();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        btns[(idx - 1 + btns.length) % btns.length].focus();
+      }
+    });
+  }
+
+  /* ── Priority+ Responsive Navigation ── */
+  var navInner = root.querySelector('.aahub-nav-inner');
+  var moreBtn = root.querySelector('.aahub-nav-more');
+  var moreDropdown = root.querySelector('.aahub-more-dropdown');
+  if (navInner && moreBtn && moreDropdown) {
+    // Collect original nav items (skip "More" itself)
+    var allItems = [];
+    navInner.querySelectorAll(':scope > .aahub-nav-item:not(.aahub-nav-more)').forEach(function(el) {
+      allItems.push(el);
+    });
+
+    var overflowItems = []; // items currently in "More"
+
+    function priorityNav() {
+      // Skip on mobile — all items shown in hamburger stack
+      if (window.innerWidth <= 768) {
+        // Restore any overflowed items back to main bar
+        while (overflowItems.length) {
+          var item = overflowItems.pop();
+          navInner.insertBefore(item, moreBtn);
+          item.style.display = '';
+        }
+        moreBtn.style.display = 'none';
+        moreDropdown.innerHTML = '';
+        return;
+      }
+
+      // Restore all items to main bar first
+      while (overflowItems.length) {
+        var item = overflowItems.pop();
+        navInner.insertBefore(item, moreBtn);
+        item.style.display = '';
+      }
+      moreBtn.style.display = 'none';
+      moreDropdown.innerHTML = '';
+
+      var availableWidth = navInner.clientWidth;
+      var moreWidth = 80; // estimated width of "More ▾" button
+
+      // Measure cumulative widths
+      var totalWidth = 0;
+      var overflowStart = -1;
+      for (var i = 0; i < allItems.length; i++) {
+        totalWidth += allItems[i].offsetWidth;
+        if (totalWidth + moreWidth > availableWidth && i > 0) { // i>0 keeps Home visible
+          overflowStart = i;
+          break;
+        }
+      }
+
+      if (overflowStart < 0) return; // everything fits
+
+      // Move overflowing items into More dropdown
+      for (var j = allItems.length - 1; j >= overflowStart; j--) {
+        allItems[j].style.display = 'none';
+        overflowItems.push(allItems[j]);
+
+        // Clone into More dropdown
+        var clone = allItems[j].cloneNode(true);
+        clone.style.display = '';
+        clone.classList.remove('align-right');
+        moreDropdown.insertBefore(clone, moreDropdown.firstChild);
+      }
+
+      moreBtn.style.display = '';
+    }
+
+    // Toggle More dropdown on click
+    var moreLink = moreBtn.querySelector(':scope > a');
+    if (moreLink) {
+      moreLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var expanded = moreLink.getAttribute('aria-expanded') === 'true';
+        moreLink.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        if (expanded) {
+          moreBtn.classList.remove('open');
+        } else {
+          moreBtn.classList.add('open');
+        }
+      });
+    }
+
+    // Close More on outside click
+    document.addEventListener('click', function(e) {
+      if (!moreBtn.contains(e.target)) {
+        moreBtn.classList.remove('open');
+        if (moreLink) moreLink.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Debounced resize
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(priorityNav, 100);
+    });
+
+    // Initial run
+    priorityNav();
+  }
+
+  /* ── "More" open state via CSS class ── */
+  // .aahub-nav-more.open > .aahub-dropdown handled via existing hover rules,
+  // but we also need click-toggle:
+  var styleTag = document.createElement('style');
+  styleTag.textContent = '.aahub-nav-more.open > .aahub-dropdown { opacity:1; visibility:visible; transform:translateY(0); }';
+  root.appendChild(styleTag);
+
+  /* ── Mobile Hamburger Toggle ── */
+  var mobileBtn = root.querySelector('.aahub-mobile-btn');
+  if (mobileBtn && navInner) {
+    mobileBtn.addEventListener('click', function() {
+      var isOpen = navInner.classList.toggle('mobile-open');
+      mobileBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      mobileBtn.textContent = isOpen ? '\u2715' : '\u2630'; // ✕ or ☰
+    });
+
+    // Mobile: toggle dropdowns on click instead of hover
+    navInner.addEventListener('click', function(e) {
+      if (window.innerWidth > 768) return;
+      var anchor = e.target.closest('.aahub-nav-item > a, .has-sub > a');
+      if (!anchor) return;
+      var href = anchor.getAttribute('href');
+      var parent = anchor.parentElement;
+
+      // Only intercept if this item has a dropdown/submenu
+      var hasDropdown = parent.querySelector('.aahub-dropdown') || parent.querySelector('.aahub-submenu');
+      if (!hasDropdown) return;
+      // If the link is just "#" or "#something", toggle the dropdown
+      if (!href || href === '#' || href.charAt(0) === '#') {
+        e.preventDefault();
+        parent.classList.toggle('mobile-dd-open');
+      }
+    });
+  }
+
+  /* ── Dynamic Navigation from SharePoint ── */
+  // PiCanvas dispatches 'picanvas:nav-ready' with INavNode[] after fetching
+  // from the SP MenuState API. If the event never fires, the hardcoded nav stays.
+
+  // Icon renderer: detects emoji, URL (png/svg), inline SVG, or Fluent UI icon name
+  function renderNavIcon(iconValue) {
+    if (!iconValue) return null;
+    var val = iconValue.trim();
+    if (!val) return null;
+
+    // Inline SVG
+    if (val.toLowerCase().indexOf('<svg') === 0) {
+      var span = document.createElement('span');
+      span.className = 'aahub-nav-icon aahub-nav-icon-svg';
+      span.innerHTML = val;
+      return span;
+    }
+
+    // URL (image: png, svg, jpg, gif, or any path with /)
+    if (val.indexOf('/') !== -1 || val.indexOf('http') === 0) {
+      var img = document.createElement('img');
+      img.className = 'aahub-nav-icon';
+      img.src = val;
+      img.alt = '';
+      return img;
+    }
+
+    // Emoji detection via codepoint
+    var cp = val.codePointAt(0);
+    if (cp && ((cp >= 0x1F300 && cp <= 0x1FAFF) || (cp >= 0x2600 && cp <= 0x27BF) ||
+        (cp >= 0x2700 && cp <= 0x27BF) || (cp >= 0xFE00 && cp <= 0xFE0F))) {
+      var emojiSpan = document.createElement('span');
+      emojiSpan.className = 'aahub-nav-icon aahub-nav-icon-emoji';
+      emojiSpan.textContent = val;
+      return emojiSpan;
+    }
+
+    // Fluent UI icon name (plain text like "Robot", "Globe")
+    var icon = document.createElement('i');
+    icon.className = 'aahub-nav-icon ms-Icon ms-Icon--' + val;
+    icon.setAttribute('aria-hidden', 'true');
+    return icon;
+  }
+
+  function buildSubmenu(children, depth) {
+    var submenu = document.createElement('div');
+    submenu.className = 'aahub-submenu';
+    for (var i = 0; i < children.length; i++) {
+      var child = children[i];
+      var hasKids = child.Children && child.Children.length > 0 && depth < 4;
+      var childIcon = renderNavIcon(child.Icon);
+      if (hasKids) {
+        var sub = document.createElement('div');
+        sub.className = 'has-sub';
+        var subLink = document.createElement('a');
+        if (childIcon) subLink.appendChild(childIcon);
+        subLink.appendChild(document.createTextNode(child.Title));
+        subLink.href = child.Url || '#';
+        if (child.IsExternal || child.OpenInNewWindow) {
+          subLink.target = '_blank';
+          subLink.rel = 'noopener noreferrer';
+        }
+        if (child.IsNew) {
+          var subBadge = document.createElement('span');
+          subBadge.className = 'aahub-new-badge';
+          subBadge.textContent = 'NEW';
+          subLink.appendChild(subBadge);
+        }
+        sub.appendChild(subLink);
+        sub.appendChild(buildSubmenu(child.Children, depth + 1));
+        submenu.appendChild(sub);
+      } else {
+        var link = document.createElement('a');
+        if (childIcon) link.appendChild(childIcon);
+        link.appendChild(document.createTextNode(child.Title));
+        link.href = child.Url || '#';
+        if (child.IsExternal || child.OpenInNewWindow) {
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+        }
+        if (child.IsNew) {
+          var linkBadge = document.createElement('span');
+          linkBadge.className = 'aahub-new-badge';
+          linkBadge.textContent = 'NEW';
+          link.appendChild(linkBadge);
+        }
+        submenu.appendChild(link);
+      }
+    }
+    return submenu;
+  }
+
+  function buildNavItem(node, alignRight) {
+    var div = document.createElement('div');
+    var iconOnly = node.IconOnly && node.Icon;
+    div.className = 'aahub-nav-item' + (alignRight ? ' align-right' : '') + (iconOnly ? ' aahub-nav-icon-only' : '');
+
+    var a = document.createElement('a');
+    a.href = node.Url || '#';
+    if (node.IsExternal || node.OpenInNewWindow) {
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+    }
+
+    // Icon
+    var iconEl = renderNavIcon(node.Icon);
+    if (iconEl) a.appendChild(iconEl);
+
+    // Text (wrapped in span for icon-only CSS hiding)
+    var textSpan = document.createElement('span');
+    textSpan.className = 'aahub-nav-label-text';
+    textSpan.textContent = node.Title;
+    a.appendChild(textSpan);
+
+    // Icon-only: tooltip + aria
+    if (iconOnly) {
+      a.title = node.Title;
+      a.setAttribute('aria-label', node.Title);
+    }
+
+    // NEW badge
+    if (node.IsNew) {
+      var badge = document.createElement('span');
+      badge.className = 'aahub-new-badge';
+      badge.textContent = 'NEW';
+      a.appendChild(badge);
+    }
+
+    var hasChildren = node.Children && node.Children.length > 0;
+    if (hasChildren) {
+      // Add dropdown arrow
+      var arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.innerHTML = '&#9660;';
+      a.appendChild(document.createTextNode(' '));
+      a.appendChild(arrow);
+    }
+    div.appendChild(a);
+
+    if (hasChildren) {
+      // Build dropdown with children
+      var dropdown = document.createElement('div');
+      dropdown.className = 'aahub-dropdown';
+      for (var i = 0; i < node.Children.length; i++) {
+        var child = node.Children[i];
+        var childIcon = renderNavIcon(child.Icon);
+        var hasGrandchildren = child.Children && child.Children.length > 0;
+        if (hasGrandchildren) {
+          var sub = document.createElement('div');
+          sub.className = 'has-sub';
+          var subLink = document.createElement('a');
+          if (childIcon) subLink.appendChild(childIcon);
+          subLink.appendChild(document.createTextNode(child.Title));
+          subLink.href = child.Url || '#';
+          if (child.IsExternal || child.OpenInNewWindow) {
+            subLink.target = '_blank';
+            subLink.rel = 'noopener noreferrer';
+          }
+          if (child.IsNew) {
+            var subBdg = document.createElement('span');
+            subBdg.className = 'aahub-new-badge';
+            subBdg.textContent = 'NEW';
+            subLink.appendChild(subBdg);
+          }
+          sub.appendChild(subLink);
+          sub.appendChild(buildSubmenu(child.Children, 3));
+          dropdown.appendChild(sub);
+        } else {
+          var link = document.createElement('a');
+          if (childIcon) link.appendChild(childIcon);
+          link.appendChild(document.createTextNode(child.Title));
+          link.href = child.Url || '#';
+          if (child.IsExternal || child.OpenInNewWindow) {
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+          }
+          if (child.IsNew) {
+            var lnkBdg = document.createElement('span');
+            lnkBdg.className = 'aahub-new-badge';
+            lnkBdg.textContent = 'NEW';
+            link.appendChild(lnkBdg);
+          }
+          dropdown.appendChild(link);
+        }
+      }
+      div.appendChild(dropdown);
+    }
+    return div;
+  }
+
+  // ── User preferences and raw nav state ──
+  var userPrefs = null;
+  var rawNavNodes = null;
+
+  // Apply user preferences: filter hidden items and reorder
+  function applyNavPreferences(nodes) {
+    if (!userPrefs || !nodes) return nodes;
+
+    // Filter out hidden items
+    var visible = [];
+    for (var i = 0; i < nodes.length; i++) {
+      if (userPrefs.hiddenNavItems.indexOf(nodes[i].Id) === -1) {
+        visible.push(nodes[i]);
+      }
+    }
+
+    // Apply custom ordering if set
+    if (userPrefs.navOrder && userPrefs.navOrder.length > 0) {
+      var ordered = [];
+      var remaining = visible.slice();
+      for (var j = 0; j < userPrefs.navOrder.length; j++) {
+        for (var k = 0; k < remaining.length; k++) {
+          if (remaining[k].Id === userPrefs.navOrder[j]) {
+            ordered.push(remaining[k]);
+            remaining.splice(k, 1);
+            break;
+          }
+        }
+      }
+      // Append items not in custom order (new admin-added items)
+      for (var m = 0; m < remaining.length; m++) {
+        ordered.push(remaining[m]);
+      }
+      return ordered;
+    }
+
+    return visible;
+  }
+
+  function buildNavFromData(nodes) {
+    if (!nodes || !nodes.length || !navInner) return;
+
+    // Apply user preferences (hide/reorder)
+    var filtered = applyNavPreferences(nodes);
+    if (!filtered || !filtered.length) return;
+
+    // Preserve Home/Settings item (first child with .home class)
+    var homeItem = navInner.querySelector('.aahub-nav-item.home');
+
+    // Clear all nav items from the inner container
+    var children = navInner.querySelectorAll(':scope > .aahub-nav-item:not(.aahub-nav-more)');
+    for (var i = 0; i < children.length; i++) {
+      children[i].parentNode.removeChild(children[i]);
+    }
+
+    // Re-add Home item if it existed
+    if (homeItem) {
+      navInner.insertBefore(homeItem, navInner.firstChild);
+    }
+
+    // Build nav items from SP data — last ~30% get align-right
+    var rightStart = Math.max(filtered.length - 3, Math.floor(filtered.length * 0.7));
+    for (var j = 0; j < filtered.length; j++) {
+      var item = buildNavItem(filtered[j], j >= rightStart);
+      // Insert before the More container
+      if (moreBtn) {
+        navInner.insertBefore(item, moreBtn);
+      } else {
+        navInner.appendChild(item);
+      }
+    }
+
+    // Refresh Priority+ item list and recalculate overflow
+    allItems = [];
+    navInner.querySelectorAll(':scope > .aahub-nav-item:not(.aahub-nav-more)').forEach(function(el) {
+      allItems.push(el);
+    });
+    overflowItems = [];
+    if (typeof priorityNav === 'function') priorityNav();
+
+    console.log('[AAHUB] Dynamic nav built from ' + filtered.length + ' of ' + nodes.length + ' SP navigation nodes');
+  }
+
+  // Check if PiCanvas already set nav data (race: PiCanvas resolved before script ran)
+  if (window.__picanvasNavData) {
+    rawNavNodes = window.__picanvasNavData;
+    buildNavFromData(rawNavNodes);
+  }
+  // Listen for async delivery from PiCanvas NavigationService
+  root.addEventListener('picanvas:nav-ready', function(e) {
+    rawNavNodes = e.detail && e.detail.nodes;
+    buildNavFromData(rawNavNodes);
+  });
+
+  // ═══════════════════════════════════════════════════
+  // USER CUSTOM SHORTCUTS — Gear icon dropdown + modal editor
+  // ═══════════════════════════════════════════════════
+
+  var userShortcuts = [];
+
+  // --- Gear click handler: event delegation for robustness ---
+  root.addEventListener('click', function(e) {
+    var target = e.target;
+    // Walk up to find the gear nav-item or its anchor
+    var gearItem = root.querySelector('.aahub-nav-item.home');
+    if (!gearItem) return;
+
+    // Check if click was inside the gear item
+    if (gearItem.contains(target)) {
+      // Only toggle on the top-level anchor (gear icon), not dropdown content
+      var gearLink = gearItem.querySelector(':scope > a');
+      if (gearLink && (target === gearLink || gearLink.contains(target))) {
+        e.preventDefault();
+        e.stopPropagation();
+        gearItem.classList.toggle('shortcut-open');
+      }
+    } else {
+      // Click outside — close the dropdown
+      gearItem.classList.remove('shortcut-open');
+    }
+  });
+
+  // --- Gear action: Edit Page ---
+  var editPageLink = root.querySelector('.aahub-gear-edit-page');
+  if (editPageLink) {
+    editPageLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      var currentUrl = window.location.href.split('?')[0].split('#')[0];
+      window.location.href = currentUrl + '?Mode=Edit';
+    });
+  }
+
+  // --- Gear action: Badge Toggle ---
+  var gearBadgeToggle = root.querySelector('.aahub-gear-badge-toggle');
+  if (gearBadgeToggle) {
+    gearBadgeToggle.addEventListener('click', function(e) {
+      e.preventDefault();
+      var isShowing = !root.classList.contains('hide-badges');
+      applyBadgePref(!isShowing);
+      // Close gear dropdown
+      var gearItem = root.querySelector('.aahub-nav-item.home');
+      if (gearItem) gearItem.classList.remove('shortcut-open');
+    });
+  }
+
+  // --- Badge pref helper (shared by a11y toolbar and gear dropdown) ---
+  var badgeToggle = root.querySelector('.a11y-badge-toggle');
+  function applyBadgePref(show) {
+    if (show) {
+      root.classList.remove('hide-badges');
+      if (badgeToggle) {
+        badgeToggle.innerHTML = 'NEW &#x2713;';
+        badgeToggle.setAttribute('aria-pressed', 'true');
+      }
+      if (gearBadgeToggle) gearBadgeToggle.textContent = '\u2726 Hide NEW Badges';
+    } else {
+      root.classList.add('hide-badges');
+      if (badgeToggle) {
+        badgeToggle.innerHTML = 'NEW &#x2717;';
+        badgeToggle.setAttribute('aria-pressed', 'false');
+      }
+      if (gearBadgeToggle) gearBadgeToggle.textContent = '\u2726 Show NEW Badges';
+    }
+    try { localStorage.setItem('aahub-show-badges', show ? '1' : '0'); } catch(e) {}
+  }
+
+  // --- Render shortcuts inside the gear dropdown ---
+  function renderShortcutDropdown() {
+    var listEl = root.querySelector('.aahub-shortcut-list');
+    if (!listEl) return;
+    while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+
+    if (!userShortcuts.length) {
+      var empty = document.createElement('div');
+      empty.className = 'aahub-shortcut-empty';
+      empty.textContent = 'No shortcuts yet';
+      listEl.appendChild(empty);
+      return;
+    }
+    for (var i = 0; i < userShortcuts.length; i++) {
+      var sc = userShortcuts[i];
+      var a = document.createElement('a');
+      a.className = 'aahub-shortcut-item';
+      a.href = sc.ShortcutUrl;
+      if (sc.OpenInNewWindow) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      }
+      var iconSpan = document.createElement('span');
+      iconSpan.className = 'sc-icon';
+      iconSpan.textContent = sc.ShortcutIcon || '\u2605';
+      a.appendChild(iconSpan);
+      var titleSpan = document.createElement('span');
+      titleSpan.textContent = sc.Title;
+      a.appendChild(titleSpan);
+      listEl.appendChild(a);
+    }
+  }
+
+  // --- Inject shortcut items into the main nav bar ---
+  function injectShortcutNavItems() {
+    if (!navInner) return;
+
+    // Remove existing user-shortcut items and separator
+    var old = navInner.querySelectorAll('.user-shortcut, .aahub-nav-sep');
+    for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
+
+    if (!userShortcuts.length) {
+      if (typeof priorityNav === 'function') priorityNav();
+      return;
+    }
+
+    // Insert separator
+    var sep = document.createElement('div');
+    sep.className = 'aahub-nav-sep';
+    if (moreBtn) navInner.insertBefore(sep, moreBtn);
+    else navInner.appendChild(sep);
+
+    // Insert shortcut nav items
+    for (var j = 0; j < userShortcuts.length; j++) {
+      var sc = userShortcuts[j];
+      var div = document.createElement('div');
+      div.className = 'aahub-nav-item user-shortcut';
+      var a = document.createElement('a');
+      a.href = sc.ShortcutUrl;
+      a.textContent = sc.Title;
+      a.setAttribute('data-icon', sc.ShortcutIcon || '\u2605');
+      if (sc.OpenInNewWindow) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      }
+      div.appendChild(a);
+      if (moreBtn) navInner.insertBefore(div, moreBtn);
+      else navInner.appendChild(div);
+    }
+
+    // Refresh Priority+ overflow
+    allItems = [];
+    var allNavItems = navInner.querySelectorAll(':scope > .aahub-nav-item:not(.aahub-nav-more)');
+    for (var k = 0; k < allNavItems.length; k++) allItems.push(allNavItems[k]);
+    overflowItems = [];
+    if (typeof priorityNav === 'function') priorityNav();
+  }
+
+  // --- "Edit Shortcuts" link opens modal ---
+  var editLink = root.querySelector('.aahub-shortcut-edit-link');
+  if (editLink) {
+    editLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (homeItem) homeItem.classList.remove('shortcut-open');
+      openShortcutEditor();
+    });
+  }
+
+  // --- Shortcuts modal editor ---
+  function openShortcutEditor() {
+    var existing = document.querySelector('.aahub-sc-overlay');
+    if (existing) existing.parentNode.removeChild(existing);
+
+    var overlay = document.createElement('div');
+    overlay.className = 'aahub-sc-overlay';
+
+    var backdrop = document.createElement('div');
+    backdrop.className = 'aahub-sc-backdrop';
+    overlay.appendChild(backdrop);
+
+    var dialog = document.createElement('div');
+    dialog.className = 'aahub-sc-dialog';
+    overlay.appendChild(dialog);
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'aahub-sc-header';
+    var h3 = document.createElement('h3');
+    h3.textContent = '\u2699 My Shortcuts';
+    header.appendChild(h3);
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'aahub-sc-close';
+    closeBtn.innerHTML = '&times;';
+    header.appendChild(closeBtn);
+    dialog.appendChild(header);
+
+    // List
+    var listEl = document.createElement('div');
+    listEl.className = 'aahub-sc-list';
+    dialog.appendChild(listEl);
+
+    // Add form section
+    var addSection = document.createElement('div');
+    addSection.className = 'aahub-sc-add';
+
+    var addTitle = document.createElement('div');
+    addTitle.className = 'aahub-sc-add-title';
+    addTitle.textContent = 'Add New Shortcut';
+    addSection.appendChild(addTitle);
+
+    // Title field
+    var titleField = document.createElement('div');
+    titleField.className = 'aahub-sc-field';
+    var titleLabel = document.createElement('label');
+    titleLabel.textContent = 'Title';
+    titleField.appendChild(titleLabel);
+    var titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.placeholder = 'e.g. Finance Dashboard';
+    titleField.appendChild(titleInput);
+    addSection.appendChild(titleField);
+
+    // URL field
+    var urlField = document.createElement('div');
+    urlField.className = 'aahub-sc-field';
+    var urlLabel = document.createElement('label');
+    urlLabel.textContent = 'URL';
+    urlField.appendChild(urlLabel);
+    var urlInput = document.createElement('input');
+    urlInput.type = 'text';
+    urlInput.placeholder = 'https://...';
+    urlField.appendChild(urlInput);
+    addSection.appendChild(urlField);
+
+    // Icon field
+    var iconField = document.createElement('div');
+    iconField.className = 'aahub-sc-field';
+    var iconLabel = document.createElement('label');
+    iconLabel.textContent = 'Icon';
+    iconField.appendChild(iconLabel);
+    var iconInput = document.createElement('input');
+    iconInput.type = 'text';
+    iconInput.className = 'sc-icon-input';
+    iconInput.placeholder = '\u2605';
+    iconInput.maxLength = 2;
+    iconField.appendChild(iconInput);
+    var iconHint = document.createElement('span');
+    iconHint.style.cssText = 'font-size:11px;color:#5a6d7e;';
+    iconHint.textContent = 'Emoji or symbol (optional)';
+    iconField.appendChild(iconHint);
+    addSection.appendChild(iconField);
+
+    var errorEl = document.createElement('div');
+    errorEl.className = 'aahub-sc-error';
+    errorEl.style.display = 'none';
+    addSection.appendChild(errorEl);
+
+    // Add button row
+    var addActions = document.createElement('div');
+    addActions.className = 'aahub-sc-add-actions';
+    var addBtn = document.createElement('button');
+    addBtn.className = 'sc-btn-add';
+    addBtn.textContent = '+ Add Shortcut';
+    addBtn.disabled = true;
+    addActions.appendChild(addBtn);
+    addSection.appendChild(addActions);
+
+    dialog.appendChild(addSection);
+
+    // Footer with Done button
+    var footer = document.createElement('div');
+    footer.className = 'aahub-sc-footer';
+    var doneBtn = document.createElement('button');
+    doneBtn.textContent = 'Done';
+    footer.appendChild(doneBtn);
+    dialog.appendChild(footer);
+
+    document.body.appendChild(overlay);
+
+    // Render the current shortcuts list
+    function renderList() {
+      while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+      if (!userShortcuts.length) {
+        var empty = document.createElement('div');
+        empty.className = 'aahub-sc-empty';
+        empty.textContent = 'No shortcuts yet. Add one below!';
+        listEl.appendChild(empty);
+        return;
+      }
+      for (var i = 0; i < userShortcuts.length; i++) {
+        (function(sc, idx) {
+          var row = document.createElement('div');
+          row.className = 'aahub-sc-row';
+
+          var icon = document.createElement('span');
+          icon.className = 'sc-icon';
+          icon.textContent = sc.ShortcutIcon || '\u2605';
+          row.appendChild(icon);
+
+          var info = document.createElement('div');
+          info.className = 'sc-info';
+          var title = document.createElement('span');
+          title.className = 'sc-title';
+          title.textContent = sc.Title;
+          info.appendChild(title);
+          var url = document.createElement('span');
+          url.className = 'sc-url';
+          url.textContent = sc.ShortcutUrl;
+          info.appendChild(url);
+          row.appendChild(info);
+
+          var actions = document.createElement('div');
+          actions.className = 'sc-actions';
+
+          var upBtn = document.createElement('button');
+          upBtn.textContent = '\u2191';
+          upBtn.title = 'Move up';
+          if (idx === 0) upBtn.style.visibility = 'hidden';
+          upBtn.addEventListener('click', function() {
+            var ids = userShortcuts.map(function(s) { return s.Id; });
+            ids.splice(idx, 1);
+            ids.splice(idx - 1, 0, sc.Id);
+            root.dispatchEvent(new CustomEvent('picanvas:shortcut-reorder', {
+              detail: { orderedIds: ids }, bubbles: false
+            }));
+          });
+          actions.appendChild(upBtn);
+
+          var downBtn = document.createElement('button');
+          downBtn.textContent = '\u2193';
+          downBtn.title = 'Move down';
+          if (idx === userShortcuts.length - 1) downBtn.style.visibility = 'hidden';
+          downBtn.addEventListener('click', function() {
+            var ids = userShortcuts.map(function(s) { return s.Id; });
+            ids.splice(idx, 1);
+            ids.splice(idx + 1, 0, sc.Id);
+            root.dispatchEvent(new CustomEvent('picanvas:shortcut-reorder', {
+              detail: { orderedIds: ids }, bubbles: false
+            }));
+          });
+          actions.appendChild(downBtn);
+
+          var delBtn = document.createElement('button');
+          delBtn.className = 'sc-del';
+          delBtn.textContent = '\u2715';
+          delBtn.title = 'Delete';
+          delBtn.addEventListener('click', function() {
+            root.dispatchEvent(new CustomEvent('picanvas:shortcut-delete', {
+              detail: { id: sc.Id }, bubbles: false
+            }));
+          });
+          actions.appendChild(delBtn);
+
+          row.appendChild(actions);
+          listEl.appendChild(row);
+        })(userShortcuts[i], i);
+      }
+    }
+
+    renderList();
+
+    // Validate add form
+    function validateAdd() {
+      addBtn.disabled = !titleInput.value.trim() || !urlInput.value.trim();
+      errorEl.style.display = 'none';
+    }
+    titleInput.addEventListener('input', validateAdd);
+    urlInput.addEventListener('input', validateAdd);
+
+    // Add button
+    addBtn.addEventListener('click', function() {
+      var url = urlInput.value.trim();
+      if (!/^(https?:\/\/|mailto:)/i.test(url)) {
+        errorEl.textContent = 'URL must start with http://, https://, or mailto:';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (userShortcuts.length >= 50) {
+        errorEl.textContent = 'Maximum 50 shortcuts reached';
+        errorEl.style.display = 'block';
+        return;
+      }
+      root.dispatchEvent(new CustomEvent('picanvas:shortcut-add', {
+        detail: {
+          title: titleInput.value.trim(),
+          url: url,
+          icon: iconInput.value.trim() || '\u2605',
+          openInNewWindow: true
+        },
+        bubbles: false
+      }));
+      titleInput.value = '';
+      urlInput.value = '';
+      iconInput.value = '';
+      addBtn.disabled = true;
+    });
+
+    // Enter key submits the add form
+    urlInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !addBtn.disabled) addBtn.click();
+    });
+
+    // Close handlers
+    function closeEditor() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+    backdrop.addEventListener('click', closeEditor);
+    closeBtn.addEventListener('click', closeEditor);
+    doneBtn.addEventListener('click', closeEditor);
+    function onEsc(e) {
+      if (e.key === 'Escape') { closeEditor(); document.removeEventListener('keydown', onEsc); }
+    }
+    document.addEventListener('keydown', onEsc);
+
+    // Re-render when shortcuts update (PiCanvas dispatches fresh data after CRUD)
+    var refreshHandler = function() { renderList(); };
+    root.addEventListener('picanvas:shortcuts-ready', refreshHandler);
+    // Clean up when overlay is removed
+    var obs = new MutationObserver(function() {
+      if (!document.body.contains(overlay)) {
+        root.removeEventListener('picanvas:shortcuts-ready', refreshHandler);
+        obs.disconnect();
+      }
+    });
+    obs.observe(document.body, { childList: true });
+
+    // Focus the title input
+    titleInput.focus();
+  }
+
+  // --- Receive shortcuts from PiCanvas ---
+  function handleShortcutsReady(shortcuts) {
+    userShortcuts = shortcuts || [];
+    renderShortcutDropdown();
+    injectShortcutNavItems();
+  }
+
+  // Sync fallback (PiCanvas may have resolved before script ran)
+  if (window.__picanvasShortcutsData) {
+    handleShortcutsReady(window.__picanvasShortcutsData);
+  }
+  // Async delivery
+  root.addEventListener('picanvas:shortcuts-ready', function(e) {
+    handleShortcutsReady(e.detail && e.detail.shortcuts);
+  });
+
+  // --- A11y toolbar badge toggle click + restore saved preference ---
+  if (badgeToggle) {
+    badgeToggle.addEventListener('click', function() {
+      var isShowing = !root.classList.contains('hide-badges');
+      applyBadgePref(!isShowing);
+    });
+  }
+  try {
+    var savedBadges = localStorage.getItem('aahub-show-badges');
+    if (savedBadges === '0') applyBadgePref(false);
+  } catch(e) {}
+
+  // --- Dynamic News from PiCanvasNews SP list ---
+  (function loadDynamicNews() {
+    var siteUrl = '';
+    if (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) {
+      siteUrl = window._spPageContextInfo.webAbsoluteUrl;
+    } else {
+      // Parse site URL from current page (handles /teams/SITE and /sites/SITE)
+      var m = window.location.href.match(/^(https?:\/\/[^/]+\/(?:teams|sites)\/[^/]+)/i);
+      if (m) siteUrl = m[1];
+    }
+    if (!siteUrl) { console.log('[AAHUB] No site URL detected, keeping static news'); return; }
+
+    var apiUrl = siteUrl + "/_api/web/lists/getbytitle('PiCanvasNews')/items"
+      + '?$select=Title,NewsUrl,NewsContent,NewsSection,NewsSortOrder,NewsHoverText,NewsPublishedDate,NewsNewDays'
+      + '&$orderby=NewsSortOrder,Id&$top=100';
+
+    var digest = document.getElementById('__REQUESTDIGEST');
+    var headers = { 'Accept': 'application/json;odata=nometadata' };
+    if (digest) headers['X-RequestDigest'] = digest.value;
+
+    fetch(apiUrl, { method: 'GET', headers: headers, credentials: 'same-origin' })
+      .then(function(resp) {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+      })
+      .then(function(data) {
+        var items = data.value || [];
+        if (!items.length) { console.log('[AAHUB] PiCanvasNews list empty, keeping static news'); return; }
+
+        var topNews = [];
+        var goodToKnow = [];
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].NewsSection === 'Top News') topNews.push(items[i]);
+          else if (items[i].NewsSection === 'Good to Know') goodToKnow.push(items[i]);
+        }
+
+        function isNew(item) {
+          if (!item.NewsPublishedDate) return false;
+          var pub = new Date(item.NewsPublishedDate);
+          var days = item.NewsNewDays || 30;
+          var age = (Date.now() - pub.getTime()) / 86400000;
+          return age <= days;
+        }
+
+        function renderSection(containerId, newsItems) {
+          var container = root.querySelector('#' + containerId);
+          if (!container) return;
+          var ul = container.querySelector('ul');
+          if (!ul || !newsItems.length) return;
+          // Clear existing static items
+          while (ul.firstChild) ul.removeChild(ul.firstChild);
+          for (var j = 0; j < newsItems.length; j++) {
+            var item = newsItems[j];
+            var li = document.createElement('li');
+            if (item.NewsHoverText) li.title = item.NewsHoverText;
+            if (item.NewsContent) {
+              // Rich HTML content — always takes priority when present
+              // Title as clickable link if NewsUrl exists, otherwise plain label
+              if (item.NewsUrl) {
+                var label = document.createElement('a');
+                label.className = 'aahub-news-label';
+                label.textContent = item.Title;
+                label.href = item.NewsUrl;
+                label.target = '_blank';
+                label.rel = 'noopener noreferrer';
+              } else {
+                var label = document.createElement('span');
+                label.className = 'aahub-news-label';
+                label.textContent = item.Title;
+              }
+              li.appendChild(label);
+              var wrapper = document.createElement('div');
+              wrapper.className = 'aahub-news-rich';
+              wrapper.innerHTML = item.NewsContent;
+              // Strip SP rich text inline styles that break our theme
+              var styled = wrapper.querySelectorAll('[style]');
+              for (var k = 0; k < styled.length; k++) {
+                styled[k].removeAttribute('style');
+              }
+              // Ensure all links open safely
+              var links = wrapper.querySelectorAll('a');
+              for (var k = 0; k < links.length; k++) {
+                links[k].target = '_blank';
+                links[k].rel = 'noopener noreferrer';
+              }
+              li.appendChild(wrapper);
+            } else if (item.NewsUrl) {
+              // Simple link item — Title as clickable link
+              var a = document.createElement('a');
+              a.textContent = item.Title;
+              a.href = item.NewsUrl;
+              a.target = '_blank';
+              a.rel = 'noopener noreferrer';
+              li.appendChild(a);
+            } else {
+              // Fallback — plain text title
+              var span = document.createElement('span');
+              span.className = 'aahub-news-rich';
+              span.textContent = item.Title;
+              li.appendChild(span);
+            }
+
+            // Append NEW badge if item is within its freshness window
+            if (isNew(item)) {
+              var badge = document.createElement('span');
+              badge.className = 'aahub-badge-new';
+              badge.textContent = 'NEW';
+              // Attach to the label/link or the li itself
+              var target = li.querySelector('.aahub-news-label') || li.querySelector('a') || li;
+              target.appendChild(document.createTextNode(' '));
+              target.appendChild(badge);
+            }
+
+            ul.appendChild(li);
+          }
+        }
+
+        renderSection('aahub-top-news', topNews);
+        renderSection('aahub-good-to-know', goodToKnow);
+        console.log('[AAHUB] Dynamic news loaded: ' + topNews.length + ' Top News, ' + goodToKnow.length + ' Good to Know');
+      })
+      .catch(function(err) {
+        console.log('[AAHUB] PiCanvasNews fetch failed, keeping static news:', err.message);
+      });
+  })();
+
+  /* ── Nav Link Badges from PiCanvasNavBadges list ── */
+  (function() {
+    var siteUrl = window.location.origin + '/teams/AAHUB';
+    var apiUrl = siteUrl + "/_api/web/lists/getbytitle('PiCanvasNavBadges')/items"
+      + '?$select=Title,BadgePublishedDate,BadgeDays,BadgeLabel'
+      + '&$top=100';
+
+    fetch(apiUrl, { headers: { 'Accept': 'application/json;odata=nometadata' }, credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var items = data.value || [];
+        if (!items.length) return;
+
+        // Build a map of link text → badge info
+        var badgeMap = {};
+        var now = Date.now();
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          if (!item.BadgePublishedDate) continue;
+          var pub = new Date(item.BadgePublishedDate);
+          var days = item.BadgeDays || 30;
+          var age = (now - pub.getTime()) / 86400000;
+          if (age <= days) {
+            badgeMap[item.Title.trim().toLowerCase()] = item.BadgeLabel || 'NEW';
+          }
+        }
+
+        if (!Object.keys(badgeMap).length) return;
+
+        // Find all Quick Access links and match
+        var links = root.querySelectorAll('.aahub-qa-category li a');
+        var matched = 0;
+        for (var j = 0; j < links.length; j++) {
+          var linkText = links[j].textContent.trim().toLowerCase();
+          if (badgeMap[linkText]) {
+            var badge = document.createElement('span');
+            badge.className = 'aahub-badge-new';
+            badge.textContent = badgeMap[linkText];
+            links[j].appendChild(document.createTextNode(' '));
+            links[j].appendChild(badge);
+            matched++;
+          }
+        }
+        console.log('[AAHUB] Nav badges applied: ' + matched + ' of ' + Object.keys(badgeMap).length + ' active badges');
+      })
+      .catch(function(err) {
+        console.log('[AAHUB] NavBadges fetch failed:', err.message);
+      });
+  })();
+
+  /* ── Quick Access Tools from PiCanvasQuickAccess list ── */
+  (function() {
+    var siteUrl = window.location.origin + '/teams/AAHUB';
+    var apiUrl = siteUrl + "/_api/web/lists/getbytitle('PiCanvasQuickAccess')/items"
+      + '?$select=Title,QALinkUrl,QACategory,QASortOrder,QACategoryOrder,QAPublishedDate,QABadgeDays,QABadgeLabel'
+      + '&$orderby=QACategoryOrder,QASortOrder,Id'
+      + '&$top=200';
+
+    fetch(apiUrl, { headers: { 'Accept': 'application/json;odata=nometadata' }, credentials: 'same-origin' })
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(data) {
+        var items = data.value || [];
+        if (!items.length) { console.log('[AAHUB] PiCanvasQuickAccess list empty, keeping static links'); return; }
+
+        var grid = root.querySelector('.aahub-qa-grid');
+        if (!grid) return;
+
+        // Group items by category, preserving order
+        var categories = {};
+        var categoryOrder = [];
+        var now = Date.now();
+        for (var i = 0; i < items.length; i++) {
+          var cat = items[i].QACategory;
+          if (!categories[cat]) {
+            categories[cat] = [];
+            categoryOrder.push({ name: cat, order: items[i].QACategoryOrder || 99 });
+          }
+          categories[cat].push(items[i]);
+        }
+        // Sort categories by order
+        categoryOrder.sort(function(a, b) { return a.order - b.order; });
+
+        // Clear existing static categories and rebuild
+        while (grid.firstChild) grid.removeChild(grid.firstChild);
+
+        for (var c = 0; c < categoryOrder.length; c++) {
+          var catName = categoryOrder[c].name;
+          var catItems = categories[catName];
+
+          var catDiv = document.createElement('div');
+          catDiv.className = 'aahub-qa-category';
+          catDiv.setAttribute('data-category', catName);
+
+          var h3 = document.createElement('h3');
+          h3.textContent = catName;
+          catDiv.appendChild(h3);
+
+          var ul = document.createElement('ul');
+          for (var j = 0; j < catItems.length; j++) {
+            var item = catItems[j];
+            var li = document.createElement('li');
+            var a = document.createElement('a');
+            a.textContent = item.Title;
+            a.href = item.QALinkUrl;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+
+            // NEW badge
+            if (item.QAPublishedDate) {
+              var pub = new Date(item.QAPublishedDate);
+              var days = item.QABadgeDays || 30;
+              var age = (now - pub.getTime()) / 86400000;
+              if (age <= days) {
+                var badge = document.createElement('span');
+                badge.className = 'aahub-badge-new';
+                badge.textContent = item.QABadgeLabel || 'NEW';
+                a.appendChild(document.createTextNode(' '));
+                a.appendChild(badge);
+              }
+            }
+
+            li.appendChild(a);
+            ul.appendChild(li);
+          }
+          catDiv.appendChild(ul);
+          grid.appendChild(catDiv);
+        }
+
+        console.log('[AAHUB] Quick Access loaded: ' + items.length + ' items, ' + categoryOrder.length + ' categories');
+      })
+      .catch(function(err) {
+        console.log('[AAHUB] PiCanvasQuickAccess fetch failed, keeping static links:', err.message);
+      });
+  })();
+
+})();
+</script>
