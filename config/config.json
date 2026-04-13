@@ -25,12 +25,21 @@
           "manifest": "./src/extensions/piCanvasLoader/PiCanvasLoaderApplicationCustomizer.manifest.json"
         }
       ]
+    },
+    "aa-hub-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/aaHub/AAHubWebPart.js",
+          "manifest": "./src/webparts/aaHub/AAHubWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},
   "localizedResources": {
     "PiCanvasWebPartStrings": "lib/webparts/piCanvas/loc/{locale}.js",
     "PiRadarCommandWebPartStrings": "lib/webparts/piRadarCommand/loc/{locale}.js",
+    "AAHubWebPartStrings": "lib/webparts/aaHub/loc/{locale}.js",
     "PiCanvasLoaderApplicationCustomizerStrings": "lib/extensions/piCanvasLoader/loc/{locale}.js",
     "PropertyControlStrings": "node_modules/@pnp/spfx-property-controls/lib/loc/{locale}.js"
   }

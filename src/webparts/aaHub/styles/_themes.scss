@@ -1,0 +1,65 @@
+// ════════════════════════════════════════════════════════
+// Theme Definitions
+// Dark (default), Light, High Contrast
+// Applied via CSS custom properties on .aaHub root
+// ════════════════════════════════════════════════════════
+
+@import './tokens';
+
+// ── Default (Dark) Theme — CSS custom properties ──
+// Applied at root scope; light/hc override via class
+:root {
+  --aahub-bg:             hsl(#{$aahub-bg});
+  --aahub-fg:             hsl(#{$aahub-fg});
+  --aahub-card:           hsl(#{$aahub-card});
+  --aahub-card-fg:        hsl(#{$aahub-card-fg});
+  --aahub-primary:        hsl(#{$aahub-primary});
+  --aahub-primary-fg:     hsl(#{$aahub-primary-fg});
+  --aahub-muted:          hsl(#{$aahub-muted});
+  --aahub-muted-fg:       hsl(#{$aahub-muted-fg});
+  --aahub-accent:         hsl(#{$aahub-accent});
+  --aahub-accent-fg:      hsl(#{$aahub-accent-fg});
+  --aahub-destructive:    hsl(#{$aahub-destructive});
+  --aahub-destructive-fg: hsl(#{$aahub-destructive-fg});
+  --aahub-border:         hsl(#{$aahub-border});
+  --aahub-ring:           hsl(#{$aahub-ring});
+  --aahub-radius:         #{$radius-2xl};
+  --aahub-fs:             13;
+  --aahub-font:           #{$font-brand};
+
+  // Glass tokens
+  --aahub-glass-bg:       rgba(255, 255, 255, 0.05);
+  --aahub-glass-border:   rgba(255, 255, 255, 0.08);
+  --aahub-glass-blur:     20px;
+}
+
+// ── Light Theme ──
+.theme-light {
+  --aahub-bg:           hsl(#{$aahub-light-bg});
+  --aahub-fg:           hsl(#{$aahub-light-fg});
+  --aahub-card:         hsl(#{$aahub-light-card});
+  --aahub-card-fg:      hsl(#{$aahub-light-card-fg});
+  --aahub-muted:        hsl(#{$aahub-light-muted});
+  --aahub-muted-fg:     hsl(#{$aahub-light-muted-fg});
+  --aahub-border:       hsl(#{$aahub-light-border});
+  --aahub-glass-bg:     rgba(255, 255, 255, 0.7);
+  --aahub-glass-border: rgba(0, 0, 0, 0.08);
+  --aahub-glass-blur:   20px;
+}
+
+// ── High Contrast Theme ──
+.theme-hc {
+  --aahub-bg:           hsl(#{$aahub-hc-bg});
+  --aahub-fg:           hsl(#{$aahub-hc-fg});
+  --aahub-card:         hsl(0, 0%, 7%);
+  --aahub-card-fg:      hsl(#{$aahub-hc-fg});
+  --aahub-primary:      hsl(#{$aahub-hc-primary});
+  --aahub-primary-fg:   hsl(0, 0%, 0%);
+  --aahub-muted:        hsl(0, 0%, 15%);
+  --aahub-muted-fg:     hsl(0, 0%, 100%);
+  --aahub-border:       hsl(#{$aahub-hc-border});
+  --aahub-ring:         hsl(#{$aahub-hc-primary});
+  --aahub-glass-bg:     rgba(0, 0, 0, 0.9);
+  --aahub-glass-border: rgba(255, 255, 255, 1);
+  --aahub-glass-blur:   0px;
+}

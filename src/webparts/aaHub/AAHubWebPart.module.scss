@@ -1,0 +1,80 @@
+@import './styles/tokens';
+@import './styles/themes';
+@import './styles/animations';
+
+// ════════════════════════════════════════════════════════
+// AA Hub — Full-Page Bleed Root Scope
+// Covers SharePoint chrome, sits below O365 header
+// ════════════════════════════════════════════════════════
+
+.aaHub {
+  // Reset SPFx container styles
+  position: fixed !important;
+  top: 48px !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: calc(100vh - 48px) !important;
+  z-index: 99999 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+
+  // Design system defaults
+  background: var(--aahub-bg) !important;
+  color: var(--aahub-fg);
+  font-family: var(--aahub-font);
+  font-size: calc(var(--aahub-fs, 13) * 1px);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  // Reset all children to border-box
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  // Reset links
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  // Ensure SP property pane opens above
+  & ~ #spPropertyPaneContainer {
+    z-index: 100002 !important;
+    position: relative !important;
+  }
+}
+
+// ── Break CSS containment so position:fixed works ──
+:global {
+  html:has(.aaHub) {
+    // @ts-ignore
+    [data-automation-id="contentScrollRegion"],
+    #spPageCanvasContent {
+      overflow: hidden !important;
+      height: 100vh !important;
+    }
+  }
+}
+
+// ── Scrollbar styling (dark theme) ──
+.aaHub {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}

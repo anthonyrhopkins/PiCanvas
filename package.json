@@ -47,7 +47,11 @@
     "@microsoft/sp-webpart-base": "1.22.0",
     "@pnp/spfx-property-controls": "^3.18.0",
     "@pnp/telemetry-js": "^2.0.0",
+    "@radix-ui/react-slot": "^1.2.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dompurify": "^3.3.1",
+    "echarts": "^6.0.0",
     "jquery": "^3.7.1",
     "marked": "^15.0.0",
     "mermaid": "^11.4.0",
@@ -64,6 +68,7 @@
     "@rushstack/heft": "^1.1.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/dompurify": "^3.0.5",
+    "@types/echarts": "^4.9.22",
     "@types/jquery": "^3.5.33",
     "@types/webpack-env": "1.18.5",
     "ajv": "8.17.1",
@@ -72,5 +77,9 @@
     "eslint": "8.57.0",
     "http-server": "^14.1.1",
     "typescript": "5.6.3"
+  },
+  "overrides": {
+    "react": "17.0.1",
+    "react-dom": "17.0.1"
   }
 }

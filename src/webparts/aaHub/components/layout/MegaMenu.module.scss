@@ -1,0 +1,350 @@
+@import '../../styles/tokens';
+@import '../../styles/glass';
+
+// ════════════════════════════════════════════════════════
+// MegaMenu — 3-Level Navigation with Flyout Submenus
+// CSS hover-based dropdowns matching pispace glassmorphism
+// ════════════════════════════════════════════════════════
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  padding: 0;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+.navInner {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 12px;
+  min-width: 0;
+}
+
+// ── Top-level nav item ──
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+
+  // Show dropdown on hover
+  &:hover > .dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  &:hover > .navLink {
+    color: var(--aahub-accent);
+    background: rgba(0, 112, 242, 0.06);
+  }
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  font-size: 1em;
+  font-weight: 500;
+  color: hsl(210, 16%, 85%);
+  white-space: nowrap;
+  transition: color 0.2s, background 0.2s;
+  height: 44px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.arrow {
+  font-size: 0.7em;
+  opacity: 0.4;
+  transition: transform 0.2s, opacity 0.2s;
+  margin-left: 2px;
+}
+
+.navItem:hover > .navLink .arrow {
+  transform: rotate(180deg);
+  opacity: 0.8;
+}
+
+// ── Dropdown panel (level 1) ──
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 260px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 6px 0;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, visibility 0.2s, transform 0.2s ease;
+  pointer-events: none;
+
+  @include glass(16px, 0.06, 0.1);
+  background: rgba(18, 23, 28, 0.95);
+  border-radius: $radius-lg;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+
+  // Right-aligned items: dropdown from right
+  &.alignRight {
+    left: auto;
+    right: 0;
+  }
+}
+
+// ── Dropdown item (link) ──
+.dropdownLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 0.95em;
+  color: hsl(210, 16%, 73%);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, padding-left 0.15s;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+
+  &:hover {
+    background: rgba(0, 112, 242, 0.08);
+    color: var(--aahub-accent);
+    padding-left: 24px;
+  }
+}
+
+.dropdownIcon {
+  font-size: 1.1em;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+// ── Submenu trigger (has-sub) ──
+.hasSub {
+  position: relative;
+
+  > .dropdownLink::after {
+    content: '\25B6';
+    font-size: 0.6em;
+    margin-left: auto;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+  }
+
+  &:hover > .dropdownLink::after {
+    opacity: 0.9;
+  }
+
+  // Show nested dropdown on hover
+  &:hover > .submenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+}
+
+// ── Submenu (level 2+) ──
+.submenu {
+  position: absolute;
+  top: -6px;
+  left: 100%;
+  min-width: 240px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 6px 0;
+  z-index: 1001;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity 0.2s ease, visibility 0.2s, transform 0.2s ease;
+  pointer-events: none;
+
+  @include glass(16px, 0.06, 0.1);
+  background: rgba(18, 23, 28, 0.97);
+  border-radius: $radius-lg;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+// ── NEW badge ──
+.newBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, hsl(207, 90%, 54%), hsl(207, 90%, 64%));
+  color: #fff;
+  margin-left: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 112, 242, 0.3);
+}
+
+// ── Mobile hamburger ──
+.mobileBtn {
+  display: none;
+  border: none;
+  background: none;
+  color: var(--aahub-fg);
+  font-size: 20px;
+  padding: 8px 12px;
+  cursor: pointer;
+
+  @media (max-width: #{$bp-md}) {
+    display: flex;
+    align-items: center;
+  }
+}
+
+// ── Mobile: stack nav items vertically ──
+@media (max-width: #{$bp-md}) {
+  .navInner {
+    flex-direction: column;
+    display: none;
+    padding: 0;
+  }
+
+  .navInner.mobileOpen {
+    display: flex;
+    background: rgba(18, 23, 28, 0.98);
+    backdrop-filter: blur(16px);
+  }
+
+  .navItem {
+    flex-direction: column;
+  }
+
+  .navLink {
+    padding: 12px 16px;
+    height: auto;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dropdown,
+  .submenu {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.02);
+    padding-left: 16px;
+    max-height: none;
+    display: none;
+  }
+
+  .navItem:hover > .dropdown,
+  .hasSub:hover > .submenu {
+    display: block;
+  }
+}
+
+// ── Loading state ──
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  color: var(--aahub-muted-fg);
+  font-style: italic;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+// ── Separator ──
+.separator {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+// ── Light theme overrides ──
+:global(.theme-light) {
+  .navLink {
+    color: hsl(215, 20%, 40%);
+  }
+
+  .navItem:hover > .navLink {
+    color: hsl(207, 90%, 40%);
+    background: rgba(0, 112, 242, 0.06);
+  }
+
+  .dropdown,
+  .submenu {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .dropdownLink {
+    color: hsl(215, 20%, 35%);
+
+    &:hover {
+      background: rgba(0, 112, 242, 0.06);
+      color: hsl(207, 90%, 40%);
+    }
+  }
+}
+
+// ── High contrast overrides ──
+:global(.theme-hc) {
+  .navLink {
+    color: #fff;
+    &:focus-visible {
+      outline: 2px solid #ff0;
+      outline-offset: -2px;
+    }
+  }
+
+  .navItem:hover > .navLink {
+    color: #ff0;
+    background: rgba(255, 255, 0, 0.1);
+  }
+
+  .dropdown,
+  .submenu {
+    background: #111;
+    border: 2px solid #fff;
+  }
+
+  .dropdownLink {
+    color: #fff;
+    &:hover {
+      color: #ff0;
+      background: rgba(255, 255, 0, 0.1);
+    }
+  }
+
+  .newBadge {
+    background: #ff0;
+    color: #000;
+  }
+}
