@@ -3,7 +3,7 @@ import type { IAAHubAppProps } from '../models/types';
 import { ServiceContext, IServiceContext } from '../contexts/ServiceContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { Banner } from './layout/Banner';
-import { MegaMenu } from './layout/MegaMenu';
+import { NavBar } from './layout/NavBar';
 import { HeroSection } from './layout/HeroSection';
 import { AccessibilityBar } from './layout/AccessibilityBar';
 import { MeshGradientBg } from './features/MeshGradientBg';
@@ -80,7 +80,7 @@ const AAHubShell = React.forwardRef<HTMLDivElement, IShellProps>(
 
         {/* Site banner with mega-menu navigation */}
         <Banner title={siteTitle} iconUrl={siteIconUrl || undefined}>
-          <MegaMenu
+          <NavBar
             nodes={nodes}
             loading={navLoading}
             showBadges={theme.showBadges}

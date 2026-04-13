@@ -1,0 +1,164 @@
+@import '../../styles/tokens';
+@import '../../styles/glass';
+
+// ════════════════════════════════════════════════════════
+// NavBarDesktop — Horizontal category bar
+// ════════════════════════════════════════════════════════
+
+.bar {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 $space-3;
+  min-height: 44px;
+  font-size: 13px;
+  position: relative;
+}
+
+.category {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 $space-3;
+  height: 44px;
+  font-size: 1em;
+  font-weight: 500;
+  color: hsl(210, 16%, 85%);
+  white-space: nowrap;
+  transition: color 200ms ease, background 200ms ease;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  position: relative;
+
+  &:hover {
+    color: var(--aahub-accent);
+    background: rgba(0, 112, 242, 0.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--aahub-ring);
+    outline-offset: -2px;
+    border-radius: $radius-sm;
+  }
+}
+
+.categoryActive {
+  color: var(--aahub-accent);
+  background: rgba(0, 112, 242, 0.08);
+
+  // Active indicator line at bottom
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: $space-3;
+    right: $space-3;
+    height: 2px;
+    background: var(--aahub-primary);
+    border-radius: 1px;
+  }
+}
+
+.chevron {
+  font-size: 0.65em;
+  opacity: 0.4;
+  transition: transform 200ms ease, opacity 200ms ease;
+  margin-left: 2px;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  opacity: 0.8;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 $space-1;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.searchTrigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 $space-2;
+  height: 44px;
+  color: var(--aahub-muted-fg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  transition: color 200ms ease;
+  margin-left: auto;
+
+  &:hover {
+    color: var(--aahub-accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--aahub-ring);
+    outline-offset: -2px;
+    border-radius: $radius-sm;
+  }
+}
+
+.searchIcon {
+  font-size: 14px;
+}
+
+.searchHint {
+  opacity: 0.5;
+  font-size: 11px;
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: $radius-sm;
+}
+
+// ── Light theme ──
+:global(.theme-light) {
+  .category {
+    color: hsl(215, 20%, 40%);
+
+    &:hover {
+      color: hsl(207, 90%, 40%);
+      background: rgba(0, 112, 242, 0.06);
+    }
+  }
+
+  .categoryActive {
+    color: hsl(207, 90%, 40%);
+    background: rgba(0, 112, 242, 0.06);
+  }
+
+  .separator {
+    background: rgba(0, 0, 0, 0.12);
+  }
+
+  .searchHint {
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+}
+
+// ── High contrast ──
+:global(.theme-hc) {
+  .category {
+    color: #fff;
+
+    &:hover { color: #ff0; background: rgba(255, 255, 0, 0.1); }
+    &:focus-visible { outline-color: #ff0; }
+  }
+
+  .categoryActive {
+    color: #ff0;
+    &::after { background: #ff0; }
+  }
+}
