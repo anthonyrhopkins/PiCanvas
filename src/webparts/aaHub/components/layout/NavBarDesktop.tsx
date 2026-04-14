@@ -26,25 +26,35 @@ export const NavBarDesktop: React.FC<INavBarDesktopProps> = ({
 }) => {
   const barRef = React.useRef<HTMLDivElement>(null);
   const navRef = React.useRef<HTMLDivElement>(null);
+  const measureRef = React.useRef<HTMLDivElement>(null);
 
-  // Priority+ overflow: measure which items fit
+  // Priority+ overflow: measure which items fit using a hidden measurement row
   const [visibleCount, setVisibleCount] = React.useState(nodes.length);
+
+  // Pre-compute item widths from the hidden measurement row (always has ALL items)
+  const itemWidthsRef = React.useRef<number[]>([]);
+
+  React.useEffect(() => {
+    // Measure all items from the hidden row on mount / node change
+    if (!measureRef.current) return;
+    const items = measureRef.current.querySelectorAll<HTMLElement>('[data-measure-item]');
+    itemWidthsRef.current = Array.from(items).map(el => el.offsetWidth);
+  }, [nodes]);
 
   React.useEffect(() => {
     const measure = (): void => {
-      if (!barRef.current) return;
+      if (!barRef.current || itemWidthsRef.current.length === 0) return;
       const barWidth = barRef.current.offsetWidth;
-      // Reserve space for search trigger (~80px) and "More" button (~80px)
-      const available = barWidth - 160;
-      const items = barRef.current.querySelectorAll<HTMLElement>('[data-nav-item]');
+      // Reserve space for search trigger (~100px) and "More" button (~80px)
+      const available = barWidth - 180;
       let total = 0;
       let count = 0;
-      for (let i = 0; i < items.length; i++) {
-        total += items[i].offsetWidth;
+      for (let i = 0; i < itemWidthsRef.current.length; i++) {
+        total += itemWidthsRef.current[i];
         if (total <= available) count = i + 1;
         else break;
       }
-      setVisibleCount(Math.max(3, count)); // Show at least 3
+      setVisibleCount(Math.max(3, Math.min(count, nodes.length)));
     };
 
     measure();
@@ -69,6 +79,23 @@ export const NavBarDesktop: React.FC<INavBarDesktopProps> = ({
 
   return (
     <div ref={barRef} className={styles.bar}>
+      {/* Hidden measurement row — always renders ALL items to measure widths */}
+      <div
+        ref={measureRef}
+        aria-hidden="true"
+        style={{
+          position: 'absolute', visibility: 'hidden', height: 0, overflow: 'hidden',
+          display: 'flex', whiteSpace: 'nowrap', pointerEvents: 'none',
+        }}
+      >
+        {nodes.map(node => (
+          <span key={node.Id} data-measure-item style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0 10px', fontSize: '13px', fontWeight: 500 }}>
+            {node.Title}
+            {node.Children && node.Children.length > 0 && <span style={{ fontSize: '0.7em' }}>&#9660;</span>}
+          </span>
+        ))}
+      </div>
+
       <div ref={navRef} style={{ display: 'flex', alignItems: 'stretch' }}>
         {leftNodes.map(node => (
           <CategoryItem
