@@ -79,8 +79,7 @@
   left: 0;
   min-width: 300px;
   max-height: 70vh;
-  overflow-y: auto;
-  overflow-x: visible;
+  overflow: visible;
   background: #1d232a;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-top: 2px solid rgba(0, 112, 242, 0.4);
@@ -173,7 +172,7 @@
   left: 100%;
   min-width: 280px;
   max-height: 70vh;
-  overflow-y: auto;
+  overflow: visible;
   background: #1d232a;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 2px solid rgba(0, 112, 242, 0.3);
@@ -188,10 +187,6 @@
   pointer-events: none;
 }
 
-// Allow nested flyouts to overflow
-.submenu:global(:has(.hasSub)) {
-  overflow: visible;
-}
 
 // ── NEW badge ──
 .newBadge {
