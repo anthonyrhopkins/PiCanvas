@@ -1,8 +1,9 @@
 @import '../../styles/tokens';
-@import '../../styles/glass';
 
 // ════════════════════════════════════════════════════════
-// NavBarDesktop — Horizontal category bar
+// NavBarDesktop — Cascading Flyout Dropdowns
+// Matches original aahub-home-sap.html SAP Horizon Dark aesthetic
+// Click-to-open with hover flyout submenus
 // ════════════════════════════════════════════════════════
 
 .bar {
@@ -11,154 +12,267 @@
   justify-content: center;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 $space-3;
+  padding: 0 12px;
   min-height: 44px;
   font-size: 13px;
   position: relative;
 }
 
-.category {
+// ── Top-level nav item wrapper ──
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.navLink {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 $space-3;
+  padding: 0 10px;
   height: 44px;
   font-size: 1em;
   font-weight: 500;
-  color: hsl(210, 16%, 85%);
+  color: #D5DADF;
   white-space: nowrap;
-  transition: color 200ms ease, background 200ms ease;
+  transition: color 0.2s, background 0.2s;
   border: none;
   background: none;
   cursor: pointer;
   font-family: inherit;
-  flex-shrink: 0;
-  position: relative;
+  text-decoration: none;
 
   &:hover {
-    color: var(--aahub-accent);
+    color: #4DB1FF;
     background: rgba(0, 112, 242, 0.06);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--aahub-ring);
+    outline: 2px solid #4DB1FF;
     outline-offset: -2px;
-    border-radius: $radius-sm;
+    border-radius: 2px;
   }
 }
 
-.categoryActive {
-  color: var(--aahub-accent);
+.navLinkActive {
+  color: #4DB1FF;
   background: rgba(0, 112, 242, 0.08);
-
-  // Active indicator line at bottom
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: $space-3;
-    right: $space-3;
-    height: 2px;
-    background: var(--aahub-primary);
-    border-radius: 1px;
-  }
 }
 
-.chevron {
-  font-size: 0.65em;
+.arrow {
+  font-size: 0.7em;
   opacity: 0.4;
-  transition: transform 200ms ease, opacity 200ms ease;
+  transition: transform 0.2s, opacity 0.2s;
   margin-left: 2px;
 }
 
-.chevronOpen {
+.arrowOpen {
   transform: rotate(180deg);
   opacity: 0.8;
 }
 
+// ── Dropdown panel (level 1) ──
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 300px;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: visible;
+  background: #1d232a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 2px solid rgba(0, 112, 242, 0.4);
+  border-radius: 0 0 10px 10px;
+  padding: 6px 0;
+  z-index: $z-dropdown;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: dropdownIn 0.2s ease both;
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// Right-aligned dropdown (for items near right edge)
+.dropdownRight {
+  left: auto;
+  right: 0;
+}
+
+// ── Dropdown link items ──
+.dropdownLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  font-size: 1em;
+  color: #B8C4D0;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, padding-left 0.15s;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+
+  &::before {
+    content: '\203A';
+    font-size: 1.15em;
+    font-weight: 700;
+    opacity: 0.3;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+
+  &:hover {
+    background: rgba(0, 112, 242, 0.06);
+    color: #4DB1FF;
+    padding-left: 26px;
+
+    &::before { opacity: 0.7; }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #4DB1FF;
+    outline-offset: -2px;
+  }
+}
+
+// ── Flyout sub-menu trigger ──
+.hasSub {
+  position: relative;
+
+  > .dropdownLink::after {
+    content: '▸';
+    margin-left: auto;
+    font-size: 0.85em;
+    opacity: 0.35;
+    transition: opacity 0.2s;
+  }
+
+  &:hover > .dropdownLink::after { opacity: 0.8; }
+
+  // Hover opens flyout submenu
+  &:hover > .submenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+}
+
+// ── Flyout submenu (level 2+) ──
+.submenu {
+  position: absolute;
+  top: -6px;
+  left: 100%;
+  min-width: 280px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #1d232a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid rgba(0, 112, 242, 0.3);
+  border-radius: 0 10px 10px 0;
+  padding: 6px 0;
+  z-index: $z-dropdown + 1;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-4px);
+  transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+
+// Allow nested flyouts to overflow
+.submenu:global(:has(.hasSub)) {
+  overflow: visible;
+}
+
+// ── NEW badge ──
+.newBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, hsl(207, 90%, 54%), hsl(207, 90%, 64%));
+  color: #fff;
+  margin-left: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 112, 242, 0.3);
+}
+
+// ── Separator ──
 .separator {
   width: 1px;
   height: 20px;
   background: rgba(255, 255, 255, 0.12);
-  margin: 0 $space-1;
+  margin: 0 4px;
   align-self: center;
   flex-shrink: 0;
 }
 
+// ── Search trigger ──
 .searchTrigger {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 $space-2;
+  padding: 0 8px;
   height: 44px;
-  color: var(--aahub-muted-fg);
+  color: #8496A7;
   background: none;
   border: none;
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
-  transition: color 200ms ease;
+  transition: color 0.2s;
   margin-left: auto;
 
-  &:hover {
-    color: var(--aahub-accent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--aahub-ring);
-    outline-offset: -2px;
-    border-radius: $radius-sm;
-  }
-}
-
-.searchIcon {
-  font-size: 14px;
+  &:hover { color: #4DB1FF; }
+  &:focus-visible { outline: 2px solid #4DB1FF; outline-offset: -2px; }
 }
 
 .searchHint {
   opacity: 0.5;
-  font-size: 11px;
-  padding: 1px 5px;
+  font-size: 10px;
+  padding: 1px 4px;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: $radius-sm;
+  border-radius: 3px;
+}
+
+// ── "More" overflow button ──
+.moreBtn {
+  composes: navLink;
 }
 
 // ── Light theme ──
 :global(.theme-light) {
-  .category {
-    color: hsl(215, 20%, 40%);
-
-    &:hover {
-      color: hsl(207, 90%, 40%);
-      background: rgba(0, 112, 242, 0.06);
-    }
-  }
-
-  .categoryActive {
-    color: hsl(207, 90%, 40%);
-    background: rgba(0, 112, 242, 0.06);
-  }
-
-  .separator {
-    background: rgba(0, 0, 0, 0.12);
-  }
-
-  .searchHint {
-    border-color: rgba(0, 0, 0, 0.15);
-  }
+  .navLink { color: #4a5568; &:hover { color: #1a6dd2; background: rgba(0,112,242,0.06); } }
+  .navLinkActive { color: #1a6dd2; }
+  .dropdown, .submenu { background: #ebeff3; border-color: rgba(0,0,0,0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .dropdown { border-top-color: rgba(0,112,242,0.3); }
+  .submenu { border-left-color: rgba(0,112,242,0.2); }
+  .dropdownLink { color: #4a5568; &:hover { color: #1a6dd2; background: rgba(0,112,242,0.06); } }
 }
 
 // ── High contrast ──
 :global(.theme-hc) {
-  .category {
-    color: #fff;
+  .navLink { color: #fff; &:hover { color: #ff0; } &:focus-visible { outline-color: #ff0; } }
+  .navLinkActive { color: #ff0; }
+  .dropdown, .submenu { background: #111; border: 2px solid #fff; }
+  .dropdownLink { color: #fff; &:hover { color: #ff0; } &:focus-visible { outline-color: #ff0; } }
+  .newBadge { background: #ff0; color: #000; }
+}
 
-    &:hover { color: #ff0; background: rgba(255, 255, 0, 0.1); }
-    &:focus-visible { outline-color: #ff0; }
-  }
-
-  .categoryActive {
-    color: #ff0;
-    &::after { background: #ff0; }
-  }
+// ── Reduced motion ──
+@media (prefers-reduced-motion: reduce) {
+  .dropdown { animation-duration: 0.01ms !important; }
+  .submenu { transition-duration: 0.01ms !important; }
 }

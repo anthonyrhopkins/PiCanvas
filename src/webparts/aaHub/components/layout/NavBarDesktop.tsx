@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { INavNode } from '../../hooks/useNavigation';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import styles from './NavBarDesktop.module.scss';
 
 interface INavBarDesktopProps {
@@ -11,8 +12,10 @@ interface INavBarDesktopProps {
 }
 
 /**
- * NavBarDesktop — Horizontal category bar with click-to-toggle mega panels.
- * Implements roving tabindex for Left/Right arrow keyboard navigation.
+ * NavBarDesktop — Horizontal nav bar with cascading flyout dropdowns.
+ * Matches the original aahub-home-sap.html SAP Horizon Dark aesthetic.
+ * Click-to-open top level, hover-to-open flyout submenus.
+ * Priority+ pattern: items that don't fit overflow into "More ▼".
  */
 export const NavBarDesktop: React.FC<INavBarDesktopProps> = ({
   nodes,
@@ -21,95 +24,244 @@ export const NavBarDesktop: React.FC<INavBarDesktopProps> = ({
   onSearchClick,
   showBadges,
 }) => {
-  const [focusIndex, setFocusIndex] = React.useState(0);
-  const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const barRef = React.useRef<HTMLDivElement>(null);
+  const navRef = React.useRef<HTMLDivElement>(null);
 
-  // Focus the button at focusIndex when it changes via keyboard
+  // Priority+ overflow: measure which items fit
+  const [visibleCount, setVisibleCount] = React.useState(nodes.length);
+
   React.useEffect(() => {
-    const btn = buttonRefs.current[focusIndex];
-    if (btn && document.activeElement && buttonRefs.current.includes(document.activeElement as HTMLButtonElement)) {
-      btn.focus();
-    }
-  }, [focusIndex]);
+    const measure = (): void => {
+      if (!barRef.current) return;
+      const barWidth = barRef.current.offsetWidth;
+      // Reserve space for search trigger (~80px) and "More" button (~80px)
+      const available = barWidth - 160;
+      const items = barRef.current.querySelectorAll<HTMLElement>('[data-nav-item]');
+      let total = 0;
+      let count = 0;
+      for (let i = 0; i < items.length; i++) {
+        total += items[i].offsetWidth;
+        if (total <= available) count = i + 1;
+        else break;
+      }
+      setVisibleCount(Math.max(3, count)); // Show at least 3
+    };
 
-  const handleKeyDown = React.useCallback((e: React.KeyboardEvent) => {
-    const count = nodes.length;
-    if (count === 0) return;
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [nodes]);
 
-    switch (e.key) {
-      case 'ArrowRight':
-        e.preventDefault();
-        setFocusIndex(prev => (prev + 1) % count);
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        setFocusIndex(prev => (prev - 1 + count) % count);
-        break;
-      case 'Home':
-        e.preventDefault();
-        setFocusIndex(0);
-        break;
-      case 'End':
-        e.preventDefault();
-        setFocusIndex(count - 1);
-        break;
-      case 'Escape':
-        if (activeCategory !== null) {
-          e.preventDefault();
-          onCategoryClick(null);
-        }
-        break;
-    }
-  }, [nodes.length, activeCategory, onCategoryClick]);
+  // Close dropdown on click outside
+  useClickOutside(
+    [navRef],
+    () => onCategoryClick(null),
+    activeCategory !== null
+  );
 
-  // Split: first 5 left, rest right (with separator)
-  const leftNodes = nodes.slice(0, 5);
-  const rightNodes = nodes.slice(5);
+  // Split into visible + overflow
+  const visibleNodes = nodes.slice(0, visibleCount);
+  const overflowNodes = nodes.slice(visibleCount);
 
-  let globalIndex = 0;
-
-  const renderButton = (node: INavNode): React.ReactElement => {
-    const idx = globalIndex++;
-    const isActive = activeCategory === node.Id;
-
-    return (
-      <button
-        key={node.Id}
-        ref={el => { buttonRefs.current[idx] = el; }}
-        className={`${styles.category} ${isActive ? styles.categoryActive : ''}`}
-        onClick={() => onCategoryClick(isActive ? null : node.Id)}
-        onKeyDown={handleKeyDown}
-        tabIndex={idx === focusIndex ? 0 : -1}
-        aria-expanded={isActive}
-        aria-haspopup="true"
-        aria-controls={isActive ? `mega-panel-${node.Id}` : undefined}
-      >
-        {node.Icon && <span>{node.Icon}</span>}
-        {node.Title}
-        {node.IsNew && showBadges && (
-          <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: 'var(--aahub-primary)', color: '#fff', marginLeft: '4px' }}>NEW</span>
-        )}
-        <span className={`${styles.chevron} ${isActive ? styles.chevronOpen : ''}`}>&#9660;</span>
-      </button>
-    );
-  };
+  // Split visible: first 5 left, rest right (with separator)
+  const leftNodes = visibleNodes.slice(0, Math.min(5, visibleNodes.length));
+  const rightNodes = visibleNodes.slice(5);
 
   return (
-    <div className={styles.bar} role="menubar" aria-label="Category navigation">
-      {leftNodes.map(renderButton)}
-      {rightNodes.length > 0 && <div className={styles.separator} />}
-      {rightNodes.map(renderButton)}
+    <div ref={barRef} className={styles.bar}>
+      <div ref={navRef} style={{ display: 'flex', alignItems: 'stretch' }}>
+        {leftNodes.map(node => (
+          <CategoryItem
+            key={node.Id}
+            node={node}
+            isActive={activeCategory === node.Id}
+            onClick={() => onCategoryClick(activeCategory === node.Id ? null : node.Id)}
+            showBadges={showBadges}
+          />
+        ))}
+
+        {rightNodes.length > 0 && <div className={styles.separator} />}
+
+        {rightNodes.map(node => (
+          <CategoryItem
+            key={node.Id}
+            node={node}
+            isActive={activeCategory === node.Id}
+            onClick={() => onCategoryClick(activeCategory === node.Id ? null : node.Id)}
+            showBadges={showBadges}
+            alignRight
+          />
+        ))}
+
+        {/* Priority+ "More" overflow */}
+        {overflowNodes.length > 0 && (
+          <MoreDropdown
+            nodes={overflowNodes}
+            activeCategory={activeCategory}
+            onCategoryClick={onCategoryClick}
+            showBadges={showBadges}
+          />
+        )}
+      </div>
 
       {/* Search trigger */}
       <button
         className={styles.searchTrigger}
         onClick={onSearchClick}
-        aria-label="Search navigation"
+        aria-label="Search navigation (Ctrl+K)"
         title="Search navigation (Ctrl+K)"
       >
-        <span className={styles.searchIcon}>&#128269;</span>
-        <span className={styles.searchHint}>Ctrl+K</span>
+        &#128269; <span className={styles.searchHint}>Ctrl+K</span>
       </button>
+    </div>
+  );
+};
+
+// ── CategoryItem (top-level) ──
+
+interface ICategoryItemProps {
+  node: INavNode;
+  isActive: boolean;
+  onClick: () => void;
+  showBadges: boolean;
+  alignRight?: boolean;
+}
+
+const CategoryItem: React.FC<ICategoryItemProps> = ({ node, isActive, onClick, showBadges, alignRight }) => {
+  const hasChildren = node.Children && node.Children.length > 0;
+
+  return (
+    <div className={styles.navItem} data-nav-item>
+      <button
+        className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
+        onClick={onClick}
+        aria-expanded={isActive}
+        aria-haspopup={hasChildren ? 'true' : undefined}
+      >
+        {node.Icon && <span>{node.Icon}</span>}
+        {node.Title}
+        {node.IsNew && showBadges && <span className={styles.newBadge}>NEW</span>}
+        {hasChildren && (
+          <span className={`${styles.arrow} ${isActive ? styles.arrowOpen : ''}`}>&#9660;</span>
+        )}
+      </button>
+
+      {hasChildren && isActive && (
+        <div className={`${styles.dropdown} ${alignRight ? styles.dropdownRight : ''}`}>
+          {node.Children.map(child => (
+            <DropdownItem key={child.Id} node={child} showBadges={showBadges} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── DropdownItem (level 2+, recursive with flyout submenus) ──
+
+interface IDropdownItemProps {
+  node: INavNode;
+  showBadges: boolean;
+}
+
+const DropdownItem: React.FC<IDropdownItemProps> = ({ node, showBadges }) => {
+  const hasChildren = node.Children && node.Children.length > 0;
+  const isExternal = node.OpenInNewWindow || node.IsExternal;
+
+  if (!hasChildren) {
+    return (
+      <a
+        className={styles.dropdownLink}
+        href={node.Url || '#'}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+      >
+        {node.Title}
+        {node.IsNew && showBadges && <span className={styles.newBadge}>NEW</span>}
+      </a>
+    );
+  }
+
+  // Has children → render as flyout submenu trigger
+  return (
+    <div className={styles.hasSub}>
+      <a
+        className={styles.dropdownLink}
+        href={node.Url || '#'}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+      >
+        {node.Title}
+        {node.IsNew && showBadges && <span className={styles.newBadge}>NEW</span>}
+      </a>
+      <div className={styles.submenu}>
+        {node.Children.map(child => (
+          <DropdownItem key={child.Id} node={child} showBadges={showBadges} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── More Dropdown (Priority+ overflow) ──
+
+interface IMoreDropdownProps {
+  nodes: INavNode[];
+  activeCategory: number | null;
+  onCategoryClick: (id: number | null) => void;
+  showBadges: boolean;
+}
+
+const MoreDropdown: React.FC<IMoreDropdownProps> = ({ nodes, activeCategory, onCategoryClick, showBadges }) => {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  useClickOutside([ref], () => setOpen(false), open);
+
+  return (
+    <div className={styles.navItem} ref={ref}>
+      <button
+        className={`${styles.navLink} ${open ? styles.navLinkActive : ''}`}
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="true"
+      >
+        More <span className={`${styles.arrow} ${open ? styles.arrowOpen : ''}`}>&#9660;</span>
+      </button>
+
+      {open && (
+        <div className={`${styles.dropdown} ${styles.dropdownRight}`}>
+          {nodes.map(node => {
+            const hasChildren = node.Children && node.Children.length > 0;
+            if (!hasChildren) {
+              return (
+                <a key={node.Id} className={styles.dropdownLink} href={node.Url || '#'} target="_blank" rel="noopener noreferrer">
+                  {node.Title}
+                </a>
+              );
+            }
+            return (
+              <div key={node.Id} className={styles.hasSub}>
+                <button
+                  className={styles.dropdownLink}
+                  onClick={() => {
+                    setOpen(false);
+                    onCategoryClick(activeCategory === node.Id ? null : node.Id);
+                  }}
+                >
+                  {node.Title}
+                  {node.IsNew && showBadges && <span className={styles.newBadge}>NEW</span>}
+                </button>
+                <div className={styles.submenu}>
+                  {node.Children.map(child => (
+                    <DropdownItem key={child.Id} node={child} showBadges={showBadges} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

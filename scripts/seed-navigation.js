@@ -191,12 +191,19 @@ async function createItem(node, parentId) {
   if (node.isNew) args.push('--IsNew true');
   if (node.icon) args.push(`--Icon "${node.icon}"`);
 
-  const cmd = `m365 spo listitem add --listTitle "${LIST}" --webUrl "${SITE}" ${args.join(' ')}`;
+  const cmd = `m365 spo listitem add --listTitle "${LIST}" --webUrl "${SITE}" ${args.join(' ')} --output json`;
 
   try {
     const output = execSync(cmd, { encoding: 'utf8', timeout: 30000 });
-    const idMatch = output.match(/Id\s*:\s*(\d+)/);
-    const id = idMatch ? parseInt(idMatch[1]) : null;
+    let id = null;
+    try {
+      const json = JSON.parse(output);
+      id = json.Id || json.id || null;
+    } catch {
+      // Fallback: grep for top-level Id
+      const idMatch = output.match(/^Id\s*:\s*(\d+)/m);
+      id = idMatch ? parseInt(idMatch[1]) : null;
+    }
     itemCount++;
 
     const depth = parentId ? '  ' : '';
