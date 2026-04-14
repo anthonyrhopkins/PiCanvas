@@ -86,7 +86,7 @@ export function useNavigation(): {
       const rawItems: IListNavItem[] = (data.value || []).map((item: Record<string, unknown>) => ({
         Id: item.Id as number,
         Title: (item.Title as string) || '',
-        NavUrl: (item.NavUrl as string) || '#',
+        NavUrl: parseNavUrl(item.NavUrl),
         ParentId0: (item.ParentId0 as number | null) || null,
         SortOrder: (item.SortOrder as number) || 0,
         IsNew: item.IsNew === true,
@@ -124,6 +124,17 @@ export function useNavigation(): {
   }, [fetchNav]);
 
   return { nodes, loading, error, refresh };
+}
+
+// ── URL field parser (handles both string and {Url, Description} object) ──
+
+function parseNavUrl(value: unknown): string {
+  if (typeof value === 'string') return value || '#';
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj.Url === 'string') return obj.Url || '#';
+  }
+  return '#';
 }
 
 // ── Tree builder ──
