@@ -1,17 +1,16 @@
 @import '../../styles/tokens';
 
 .glassCard {
-  background: #1d232a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--hub-card-bg, #1d232a);
+  border: 1px solid var(--hub-card-border, rgba(255, 255, 255, 0.08));
   border-radius: 10px;
   padding: $space-6;
-  color: #D5DADF;
+  color: var(--hub-text, #D5DADF);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--hub-shadow, 0 4px 16px rgba(0, 0, 0, 0.3));
   transition: transform 300ms ease, box-shadow 300ms ease;
 
-  // Subtle gradient shine overlay on hover
   &::after {
     content: '';
     position: absolute;
@@ -25,8 +24,6 @@
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-
     &::after { opacity: 1; }
   }
 }
@@ -36,10 +33,7 @@
   z-index: 2;
 }
 
-// ── Variants ──
-
 .elevated {
-  background: #222a33;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
@@ -49,21 +43,14 @@
   box-shadow: none;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(128, 128, 128, 0.06);
     transform: none;
     box-shadow: none;
   }
 }
 
-.compact {
-  padding: $space-4;
-}
-
-.noPad {
-  padding: 0;
-}
-
-// ── Header / Title / Description compound ──
+.compact { padding: $space-4; }
+.noPad   { padding: 0; }
 
 .header {
   display: flex;
@@ -76,45 +63,19 @@
   margin: 0;
   font-size: $text-lg;
   font-weight: 600;
-  color: #fff;
+  color: var(--hub-heading, #fff);
   line-height: 1.4;
 }
 
 .description {
   margin: 0;
   font-size: $text-sm;
-  color: #8496A7;
+  color: var(--hub-text-muted, #8496A7);
   line-height: 1.5;
 }
 
 .footer {
   margin-top: $space-4;
   padding-top: $space-4;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--hub-divider, rgba(255, 255, 255, 0.06));
 }
-
-// ── Light theme ──
-:global(.theme-light) .glassCard {
-  background: #ebeff3;
-  border-color: rgba(0, 0, 0, 0.08);
-  color: #2e3e4e;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-  &:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  }
-}
-
-:global(.theme-light) .title { color: #1a2b3c; }
-:global(.theme-light) .description { color: #5a6d7e; }
-
-// ── High contrast ──
-:global(.theme-hc) .glassCard {
-  background: #111;
-  border: 2px solid #fff;
-  color: #fff;
-
-  &:hover { border-color: #ff0; }
-}
-
-:global(.theme-hc) .title { color: #ff0; }

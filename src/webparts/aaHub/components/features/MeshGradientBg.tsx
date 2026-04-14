@@ -21,7 +21,7 @@ export const MeshGradientBg: React.FC<IMeshGradientBgProps> = ({ className = '' 
     inset: 0,
     overflow: 'hidden',
     zIndex: 0,
-    background: 'hsl(240, 10%, 3.9%)',
+    background: 'var(--hub-bg, #12171C)',
   };
 
   const baseOrbStyle: React.CSSProperties = {
@@ -34,11 +34,11 @@ export const MeshGradientBg: React.FC<IMeshGradientBgProps> = ({ className = '' 
 
   return (
     <div className={className} style={containerStyle} aria-hidden="true">
-      {/* Primary gradient backdrop */}
+      {/* Primary gradient backdrop — uses CSS var so it adapts to light/dark/hc */}
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(135deg, hsl(220, 30%, 6%) 0%, hsl(240, 20%, 4%) 50%, hsl(210, 25%, 7%) 100%)',
+        background: 'var(--hub-bg, #12171C)',
       }} />
 
       {/* Animated orb 1 — large blue */}

@@ -21,24 +21,24 @@ const linkStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: '8px',
   padding: '8px 0',
-  color: '#D5DADF',
+  color: 'var(--hub-link, #D5DADF)',
   textDecoration: 'none',
   fontSize: 'calc(var(--aahub-fs, 13) * 1px)',
-  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  borderBottom: '1px solid var(--hub-divider, rgba(255,255,255,0.04))',
   transition: 'color 200ms ease, padding-left 200ms ease',
 };
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontWeight: 600,
-  color: '#4DB1FF',
+  color: 'var(--hub-accent, #4DB1FF)',
   fontSize: 'calc(var(--aahub-fs, 13) * 1px)',
   marginBottom: '4px',
 };
 
 const richContentStyle: React.CSSProperties = {
   fontSize: 'calc((var(--aahub-fs, 13) - 1) * 1px)',
-  color: '#8496A7',
+  color: 'var(--hub-text-muted, #8496A7)',
   lineHeight: 1.5,
 };
 

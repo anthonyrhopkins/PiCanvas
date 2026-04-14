@@ -23,9 +23,20 @@
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
 
-  // Design system defaults — solid dark background matching original SAP Horizon
-  background: #12171C !important;
-  color: #D5DADF;
+  // Theme-switchable color tokens
+  --hub-bg: #12171C;
+  --hub-card-bg: #1d232a;
+  --hub-card-border: rgba(255, 255, 255, 0.08);
+  --hub-text: #D5DADF;
+  --hub-text-muted: #8496A7;
+  --hub-link: #B8C4D0;
+  --hub-accent: #4DB1FF;
+  --hub-heading: #fff;
+  --hub-divider: rgba(255, 255, 255, 0.04);
+  --hub-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  background: var(--hub-bg) !important;
+  color: var(--hub-text);
   font-family: var(--aahub-font);
   font-size: calc(var(--aahub-fs, 13) * 1px);
   line-height: 1.6;
@@ -62,7 +73,35 @@
   }
 }
 
-// ── Scrollbar styling (dark theme) ──
+// ── Light theme token overrides ──
+.aaHub:global(.theme-light) {
+  --hub-bg: #f0f2f5;
+  --hub-card-bg: #ffffff;
+  --hub-card-border: rgba(0, 0, 0, 0.08);
+  --hub-text: #2e3e4e;
+  --hub-text-muted: #5a6d7e;
+  --hub-link: #3a4d5e;
+  --hub-accent: #0070f2;
+  --hub-heading: #1a2b3c;
+  --hub-divider: rgba(0, 0, 0, 0.06);
+  --hub-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// ── High contrast theme token overrides ──
+.aaHub:global(.theme-hc) {
+  --hub-bg: #000;
+  --hub-card-bg: #111;
+  --hub-card-border: #fff;
+  --hub-text: #fff;
+  --hub-text-muted: #ccc;
+  --hub-link: #fff;
+  --hub-accent: #ff0;
+  --hub-heading: #ff0;
+  --hub-divider: rgba(255, 255, 255, 0.2);
+  --hub-shadow: none;
+}
+
+// ── Scrollbar styling ──
 .aaHub {
   &::-webkit-scrollbar {
     width: 8px;

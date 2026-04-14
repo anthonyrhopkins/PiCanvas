@@ -13,7 +13,7 @@ const sectionTitleStyle: React.CSSProperties = {
   margin: '0 0 16px',
   fontSize: '18px',
   fontWeight: 700,
-  color: '#fff',
+  color: 'var(--hub-heading, #fff)',
   letterSpacing: '0.3px',
 };
 
@@ -27,7 +27,7 @@ const categoryTitleStyle: React.CSSProperties = {
   margin: '0 0 8px',
   fontSize: '13px',
   fontWeight: 700,
-  color: '#4DB1FF',
+  color: 'var(--hub-accent, #4DB1FF)',
   textTransform: 'uppercase' as const,
   letterSpacing: '0.5px',
 };
@@ -37,10 +37,10 @@ const linkStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: '6px',
   padding: '6px 0',
-  color: '#B8C4D0',
+  color: 'var(--hub-link, #B8C4D0)',
   textDecoration: 'none',
   fontSize: '12px',
-  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  borderBottom: '1px solid var(--hub-divider, rgba(255,255,255,0.04))',
   transition: 'color 200ms ease, padding-left 200ms ease',
 };
 
