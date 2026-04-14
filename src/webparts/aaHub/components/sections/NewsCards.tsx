@@ -21,7 +21,7 @@ const linkStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: '8px',
   padding: '8px 0',
-  color: 'var(--aahub-fg)',
+  color: '#D5DADF',
   textDecoration: 'none',
   fontSize: 'calc(var(--aahub-fs, 13) * 1px)',
   borderBottom: '1px solid rgba(255,255,255,0.04)',
@@ -31,14 +31,14 @@ const linkStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontWeight: 600,
-  color: 'var(--aahub-accent)',
+  color: '#4DB1FF',
   fontSize: 'calc(var(--aahub-fs, 13) * 1px)',
   marginBottom: '4px',
 };
 
 const richContentStyle: React.CSSProperties = {
   fontSize: 'calc((var(--aahub-fs, 13) - 1) * 1px)',
-  color: 'var(--aahub-muted-fg)',
+  color: '#8496A7',
   lineHeight: 1.5,
 };
 

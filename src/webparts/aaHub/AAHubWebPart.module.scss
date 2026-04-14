@@ -23,9 +23,9 @@
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
 
-  // Design system defaults
-  background: var(--aahub-bg) !important;
-  color: var(--aahub-fg);
+  // Design system defaults — solid dark background matching original SAP Horizon
+  background: #12171C !important;
+  color: #D5DADF;
   font-family: var(--aahub-font);
   font-size: calc(var(--aahub-fs, 13) * 1px);
   line-height: 1.6;
