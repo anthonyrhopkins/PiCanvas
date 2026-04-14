@@ -9,15 +9,14 @@ const barStyle: React.CSSProperties = {
   justifyContent: 'center',
   gap: '8px',
   padding: '8px 16px',
-  background: 'rgba(0, 0, 0, 0.3)',
-  backdropFilter: 'blur(8px)',
-  borderTop: '1px solid rgba(255,255,255,0.06)',
+  background: 'var(--hub-card-bg, #1d232a)',
+  borderTop: '1px solid var(--hub-card-border, rgba(255,255,255,0.06))',
   fontSize: '12px',
   flexWrap: 'wrap',
 };
 
 const labelStyle: React.CSSProperties = {
-  color: 'var(--aahub-muted-fg)',
+  color: 'var(--hub-text-muted, #8496A7)',
   fontWeight: 600,
   fontSize: '11px',
   textTransform: 'uppercase' as const,
@@ -27,13 +26,13 @@ const labelStyle: React.CSSProperties = {
 const sepStyle: React.CSSProperties = {
   width: '1px',
   height: '16px',
-  background: 'rgba(255,255,255,0.12)',
+  background: 'var(--hub-divider, rgba(255,255,255,0.12))',
   margin: '0 4px',
 };
 
 const sliderStyle: React.CSSProperties = {
   width: '100px',
-  accentColor: 'var(--aahub-primary)',
+  accentColor: 'var(--hub-accent, #4DB1FF)',
   cursor: 'pointer',
 };
 
@@ -56,7 +55,7 @@ const ThemeButton: React.FC<IThemeButtonProps> = ({ mode, label, current, onClic
         fontSize: '11px',
         height: '26px',
         padding: '0 10px',
-        ...(isActive ? {} : { color: 'var(--aahub-muted-fg)' }),
+        ...(isActive ? {} : { color: 'var(--hub-text-muted, #8496A7)' }),
       }}
     >
       {label}
@@ -81,7 +80,7 @@ export const AccessibilityBar: React.FC = () => {
       <span style={sepStyle} role="separator" />
 
       <span style={labelStyle}>Size</span>
-      <span style={{ color: 'var(--aahub-fg)', minWidth: '20px', textAlign: 'center' as const }} aria-live="polite">
+      <span style={{ color: 'var(--hub-text, #D5DADF)', minWidth: '20px', textAlign: 'center' as const }} aria-live="polite">
         {theme.fontSize}
       </span>
       <input
@@ -107,7 +106,7 @@ export const AccessibilityBar: React.FC = () => {
           fontSize: '11px',
           height: '26px',
           padding: '0 10px',
-          ...(theme.showBadges ? {} : { color: 'var(--aahub-muted-fg)' }),
+          ...(theme.showBadges ? {} : { color: 'var(--hub-text-muted, #8496A7)' }),
         }}
       >
         NEW {theme.showBadges ? '\u2713' : '\u2717'}

@@ -12,10 +12,8 @@ const bannerStyle: React.CSSProperties = {
   zIndex: 100,
   display: 'grid',
   gridTemplateColumns: '110px minmax(0, 1fr) 110px',
-  background: 'linear-gradient(180deg, rgba(18,23,28,0.98) 0%, rgba(29,35,42,0.95) 100%)',
-  borderBottom: '1px solid rgba(0,112,242,0.15)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
+  background: 'var(--hub-card-bg, #1d232a)',
+  borderBottom: '1px solid var(--hub-card-border, rgba(0,112,242,0.15))',
 };
 
 const logoContainerStyle: React.CSSProperties = {
@@ -47,7 +45,7 @@ const headerStyle: React.CSSProperties = {
 const titleStyle: React.CSSProperties = {
   fontSize: '15px',
   fontWeight: 700,
-  color: '#fff',
+  color: 'var(--hub-heading, #fff)',
   letterSpacing: '0.3px',
   margin: 0,
 };
