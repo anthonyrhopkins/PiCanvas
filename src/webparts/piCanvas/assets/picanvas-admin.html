@@ -1,0 +1,3956 @@
+<style>
+/* ══════════════════════════════════════════════════════
+   PiCanvas Admin — Navigation & Content Management
+   Standalone HTML asset for SharePoint
+   ══════════════════════════════════════════════════════ */
+
+/* ── Theme: Light (default) ── */
+.piadmin-root {
+  --accent: #0078d4;
+  --accent-hover: #106ebe;
+  --accent-light: #e8f4fd;
+  --accent-text: #fff;
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --surface-hover: #f0f0f0;
+  --surface-alt: #fafafa;
+  --border: #e1e1e1;
+  --border-light: #f0f0f0;
+  --text: #1a1a1a;
+  --text-secondary: #616161;
+  --text-tertiary: #999;
+  --danger: #d13438;
+  --danger-bg: #fde7e9;
+  --success: #107c10;
+  --success-bg: #dff6dd;
+  --warning: #ffaa44;
+  --warning-bg: #fff4ce;
+  --dirty-update-bg: rgba(255,170,68,.08);
+  --dirty-update-border: #ffaa44;
+  --dirty-create-bg: rgba(16,124,16,.08);
+  --dirty-create-border: #107c10;
+  --dirty-move-bg: rgba(0,120,212,.08);
+  --dirty-move-border: #0078d4;
+  --shadow: 0 2px 8px rgba(0,0,0,.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+  --radius: 6px;
+  --radius-lg: 10px;
+  --transition: .2s ease;
+  --font: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SF Mono', Monaco, Consolas, monospace;
+  --header-h: 52px;
+  --tabs-h: 40px;
+  --toolbar-h: 48px;
+  --indent: 24px;
+}
+
+/* ── Theme: Dark ── */
+.piadmin-root.piadmin-dark {
+  --accent: #4ea8fe;
+  --accent-hover: #73baff;
+  --accent-light: rgba(78,168,254,.15);
+  --accent-text: #000;
+  --bg: #1b1b1b;
+  --surface: #252525;
+  --surface-hover: #2d2d2d;
+  --surface-alt: #202020;
+  --border: #404040;
+  --border-light: #333;
+  --text: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #707070;
+  --danger: #f5a0a0;
+  --danger-bg: rgba(209,52,56,.2);
+  --success: #7ece7e;
+  --success-bg: rgba(16,124,16,.2);
+  --dirty-update-bg: rgba(255,170,68,.15);
+  --dirty-update-border: #ffaa44;
+  --dirty-create-bg: rgba(63,242,63,.12);
+  --dirty-create-border: #3ff23f;
+  --dirty-move-bg: rgba(78,168,254,.12);
+  --dirty-move-border: #4fc3f7;
+  --shadow: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+}
+
+/* ── Theme: High Contrast ── */
+.piadmin-root.piadmin-hc {
+  --accent: #1aebff;
+  --accent-hover: #23f0ff;
+  --accent-light: rgba(26,235,255,.2);
+  --accent-text: #000;
+  --bg: #000000;
+  --surface: #000000;
+  --surface-hover: #1a1a1a;
+  --surface-alt: #000000;
+  --border: #6fc3df;
+  --border-light: #3b8da6;
+  --text: #ffffff;
+  --text-secondary: #ffff00;
+  --text-tertiary: #1aebff;
+  --danger: #ff6060;
+  --danger-bg: rgba(255,96,96,.25);
+  --success: #3ff23f;
+  --success-bg: rgba(63,242,63,.2);
+  --warning: #ffff00;
+  --warning-bg: rgba(255,255,0,.2);
+  --dirty-update-bg: rgba(255,255,0,.15);
+  --dirty-update-border: #ffff00;
+  --dirty-create-bg: rgba(63,242,63,.15);
+  --dirty-create-border: #3ff23f;
+  --dirty-move-bg: rgba(26,235,255,.15);
+  --dirty-move-border: #1aebff;
+  --shadow: 0 0 0 1px var(--border);
+  --shadow-lg: 0 0 0 2px var(--border);
+}
+.piadmin-root.piadmin-hc button,
+.piadmin-root.piadmin-hc input,
+.piadmin-root.piadmin-hc select,
+.piadmin-root.piadmin-hc textarea { border: 1px solid var(--border) !important; }
+.piadmin-root.piadmin-hc a { color: var(--accent); text-decoration: underline; }
+.piadmin-root.piadmin-hc .piadmin-tree-row:focus-within,
+.piadmin-root.piadmin-hc .piadmin-tree-row:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+.piadmin-root.piadmin-hc .piadmin-btn-primary { background: var(--accent); color: #000; border-color: var(--accent) !important; }
+.piadmin-root.piadmin-hc .piadmin-btn-primary:hover { background: var(--accent-hover); }
+.piadmin-root.piadmin-hc .piadmin-badge { border: 1px solid currentColor; }
+
+/* ── Reset & base ── */
+.piadmin-root { position:relative; width:100%; min-height:calc(100vh - 48px);
+  font-family:var(--font); font-size:13px; color:var(--text); background:var(--bg);
+  display:flex; flex-direction:column; overflow:hidden; line-height:1.5;
+  -webkit-font-smoothing:antialiased; }
+.piadmin-root *, .piadmin-root *::before, .piadmin-root *::after { box-sizing:border-box; margin:0; padding:0; }
+.piadmin-root button { font:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+.piadmin-root input, .piadmin-root select, .piadmin-root textarea { font:inherit; color:var(--text); }
+
+/* ── Header ── */
+.piadmin-header { display:flex; align-items:center; justify-content:space-between;
+  height:var(--header-h); padding:0 20px; background:var(--surface); border-bottom:1px solid var(--border);
+  flex-shrink:0; }
+.piadmin-header-left { display:flex; align-items:center; gap:12px; }
+.piadmin-logo { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#0078d4,#50e6ff);
+  display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:14px; }
+.piadmin-title { font-size:16px; font-weight:600; }
+.piadmin-header-actions { display:flex; align-items:center; gap:8px; }
+.piadmin-search-box { position:relative; }
+.piadmin-search-box input { width:240px; height:32px; padding:0 32px 0 10px; border:1px solid var(--border);
+  border-radius:var(--radius); background:var(--surface-alt); outline:none; transition:border var(--transition); }
+.piadmin-search-box input:focus { border-color:var(--accent); }
+.piadmin-search-box .piadmin-search-icon { position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  color:var(--text-tertiary); pointer-events:none; font-size:14px; }
+.piadmin-search-box .piadmin-search-clear { position:absolute; right:28px; top:50%; transform:translateY(-50%);
+  color:var(--text-tertiary); font-size:16px; display:none; padding:2px 4px; line-height:1; }
+.piadmin-search-box input:not(:placeholder-shown) ~ .piadmin-search-clear { display:block; }
+
+/* ── Icon buttons ── */
+.piadmin-icon-btn { width:32px; height:32px; border-radius:var(--radius); display:flex;
+  align-items:center; justify-content:center; transition:background var(--transition); font-size:16px; }
+.piadmin-icon-btn:hover { background:var(--surface-hover); }
+
+/* ── Section Tabs ── */
+.piadmin-tabs { display:flex; height:var(--tabs-h); padding:0 20px; background:var(--surface);
+  border-bottom:1px solid var(--border); flex-shrink:0; gap:0; }
+.piadmin-tab { padding:0 16px; height:100%; display:flex; align-items:center; font-size:13px;
+  font-weight:500; color:var(--text-secondary); border-bottom:2px solid transparent;
+  transition:all var(--transition); white-space:nowrap; }
+.piadmin-tab:hover { color:var(--text); background:var(--surface-hover); }
+.piadmin-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.piadmin-tab-badge { margin-left:6px; padding:0 6px; height:18px; border-radius:9px;
+  background:var(--accent-light); color:var(--accent); font-size:11px; font-weight:600;
+  display:flex; align-items:center; }
+
+/* ── Toolbar ── */
+.piadmin-toolbar { display:flex; align-items:center; padding:8px 20px; background:var(--surface-alt);
+  border-bottom:1px solid var(--border-light); flex-shrink:0; gap:6px; flex-wrap:wrap; }
+.piadmin-btn { height:30px; padding:0 12px; border-radius:var(--radius); font-size:12px; font-weight:500;
+  display:inline-flex; align-items:center; gap:4px; transition:all var(--transition);
+  border:1px solid var(--border); background:var(--surface); color:var(--text); }
+.piadmin-btn:hover { background:var(--surface-hover); border-color:var(--text-tertiary); }
+.piadmin-btn:disabled { opacity:.4; cursor:default; }
+.piadmin-btn-primary { height:30px; padding:0 14px; border-radius:var(--radius); font-size:12px;
+  font-weight:600; background:var(--accent); color:var(--accent-text); display:inline-flex;
+  align-items:center; gap:4px; transition:all var(--transition); border:none; }
+.piadmin-btn-primary:hover { background:var(--accent-hover); }
+.piadmin-btn-primary:disabled { opacity:.5; cursor:default; }
+.piadmin-btn-danger { background:var(--danger); color:#fff; border:none; }
+.piadmin-btn-danger:hover { opacity:.9; }
+.piadmin-toolbar-sep { width:1px; height:20px; background:var(--border); margin:0 4px; }
+.piadmin-toolbar select { height:30px; padding:0 8px; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--surface); font-size:12px; }
+.piadmin-toolbar-right { margin-left:auto; display:flex; align-items:center; gap:6px; }
+.piadmin-item-count { font-size:11px; color:var(--text-tertiary); }
+
+/* ── Main layout ── */
+.piadmin-body { display:flex; flex:1; overflow:hidden; }
+.piadmin-main { flex:1; overflow-y:auto; overflow-x:hidden; position:relative; }
+.piadmin-section { display:none; }
+.piadmin-section.active { display:contents; }
+
+/* ── Breadcrumb bar ── */
+.piadmin-breadcrumb { padding:6px 20px; background:var(--surface-alt); border-bottom:1px solid var(--border-light);
+  font-size:12px; color:var(--text-secondary); display:none; flex-shrink:0; }
+.piadmin-breadcrumb.visible { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+.piadmin-breadcrumb-seg { cursor:pointer; color:var(--accent); }
+.piadmin-breadcrumb-seg:hover { text-decoration:underline; }
+.piadmin-breadcrumb-sep { color:var(--text-tertiary); }
+.piadmin-breadcrumb-current { color:var(--text); font-weight:500; }
+
+/* ── Tree View ── */
+.piadmin-tree { padding:0; }
+.piadmin-tree-empty { padding:40px 20px; text-align:center; color:var(--text-tertiary); }
+
+/* Column header */
+.piadmin-tree-header { display:flex; align-items:center; height:32px; padding:0 12px 0 0;
+  background:var(--surface); border-bottom:2px solid var(--border); font-size:11px;
+  font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.3px;
+  position:sticky; top:0; z-index:10; user-select:none; flex-shrink:0; }
+.piadmin-tree-header-name { flex:1; min-width:200px; display:flex; align-items:center;
+  padding-left:12px; gap:6px; cursor:pointer; }
+.piadmin-tree-header-url { width:var(--col-url, 280px); min-width:100px; flex-shrink:0;
+  display:flex; align-items:center; gap:4px; padding:0 8px; cursor:pointer; }
+.piadmin-tree-header-status { width:var(--col-status, 100px); flex-shrink:0;
+  display:flex; align-items:center; gap:4px; padding:0 8px; cursor:pointer; }
+.piadmin-tree-header-actions { width:84px; flex-shrink:0; }
+.piadmin-sort-indicator { font-size:9px; opacity:.6; }
+.piadmin-tree-header > div:hover { color:var(--text); }
+
+/* Column resize handle */
+.piadmin-col-resize { width:5px; cursor:col-resize; flex-shrink:0; align-self:stretch;
+  position:relative; z-index:11; }
+.piadmin-col-resize::after { content:''; position:absolute; top:4px; bottom:4px; left:2px;
+  width:1px; background:var(--border); transition:background .15s; }
+.piadmin-col-resize:hover::after { background:var(--accent); width:3px; left:1px; border-radius:2px; }
+
+/* Select-all checkbox in header */
+.piadmin-tree-header .piadmin-tree-check { width:16px; height:16px; margin-right:6px;
+  flex-shrink:0; accent-color:var(--accent); cursor:pointer; }
+
+/* Tree node row — grid approach via flex with matched column widths */
+.piadmin-tree-row { display:flex; align-items:center; height:36px; padding-right:0;
+  cursor:pointer; transition:background .1s; position:relative; user-select:none; }
+.piadmin-tree-row:hover { background:var(--surface-hover); }
+.piadmin-tree-row.selected { background:var(--accent-light); }
+.piadmin-tree-row:nth-child(even of .piadmin-tree-row) { background:var(--surface-alt); }
+.piadmin-tree-row:nth-child(even of .piadmin-tree-row):hover { background:var(--surface-hover); }
+.piadmin-tree-row.saving::after { content:''; position:absolute; right:120px; top:50%;
+  width:14px; height:14px; margin-top:-7px; border:2px solid var(--accent); border-top-color:transparent;
+  border-radius:50%; animation:piadmin-spin .6s linear infinite; }
+
+/* Name column (flex child) */
+.piadmin-tree-col-name { flex:1; min-width:200px; display:flex; align-items:center;
+  overflow:hidden; height:100%; }
+
+/* URL column */
+.piadmin-tree-col-url { width:var(--col-url, 280px); min-width:100px; flex-shrink:0;
+  font-size:11px; color:var(--text-tertiary); white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; padding:0 8px; display:flex; align-items:center; height:100%;
+  border-left:1px solid var(--border-light); }
+
+/* Status column */
+.piadmin-tree-col-status { width:var(--col-status, 100px); flex-shrink:0;
+  display:flex; align-items:center; gap:3px; padding:0 6px; height:100%;
+  border-left:1px solid var(--border-light); flex-wrap:wrap; overflow:hidden; }
+
+/* Actions column */
+.piadmin-tree-col-actions { width:84px; flex-shrink:0; display:flex; align-items:center;
+  gap:2px; justify-content:center; opacity:0; transition:opacity .15s; height:100%; }
+.piadmin-tree-row:hover .piadmin-tree-col-actions { opacity:1; }
+
+/* Indentation guides */
+.piadmin-tree-row::before { content:''; position:absolute; top:0; bottom:0; width:1px;
+  background:var(--border-light); pointer-events:none; }
+.piadmin-tree-row[data-depth="0"]::before { display:none; }
+
+/* Expand/collapse chevron */
+.piadmin-tree-expand { width:20px; height:20px; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; color:var(--text-tertiary); transition:transform .15s; font-size:10px; }
+.piadmin-tree-expand.has-children { color:var(--text-secondary); }
+.piadmin-tree-expand.expanded { transform:rotate(90deg); }
+.piadmin-tree-expand:not(.has-children) { visibility:hidden; }
+
+/* Checkbox */
+.piadmin-tree-check { width:16px; height:16px; margin-right:6px; flex-shrink:0; accent-color:var(--accent); cursor:pointer; }
+
+/* Node content */
+.piadmin-tree-icon { font-size:14px; margin-right:4px; flex-shrink:0; width:20px; text-align:center; }
+.piadmin-tree-title { font-size:13px; font-weight:400; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; min-width:0; }
+.piadmin-tree-title mark { background:var(--warning-bg); border-radius:2px; padding:0 1px; }
+.piadmin-tree-row.disabled-item .piadmin-tree-title { opacity:.5; text-decoration:line-through; }
+
+/* Depth pill for capped indentation */
+.piadmin-depth-pill { font-size:9px; padding:1px 5px; border-radius:8px; background:var(--surface-hover);
+  color:var(--text-tertiary); font-weight:600; flex-shrink:0; margin-right:4px; line-height:1.3; }
+
+/* Badges */
+.piadmin-tree-badges { display:flex; gap:3px; flex-shrink:0; flex-wrap:wrap; }
+.piadmin-badge { padding:0 5px; height:16px; border-radius:8px; font-size:9px; font-weight:600;
+  display:flex; align-items:center; line-height:1; white-space:nowrap; }
+.piadmin-badge-new { background:#fbbf24; color:#000; }
+.piadmin-badge-disabled { background:var(--danger-bg); color:var(--danger); }
+.piadmin-badge-audience { background:var(--accent-light); color:var(--accent); }
+.piadmin-badge-header { background:var(--surface-hover); color:var(--text-secondary); }
+
+/* URL display (now inside col-url) */
+.piadmin-tree-url { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+
+/* Action buttons (now inside col-actions) */
+.piadmin-tree-action { width:26px; height:26px; border-radius:4px; display:flex;
+  align-items:center; justify-content:center; font-size:13px; color:var(--text-secondary); }
+.piadmin-tree-action:hover { background:var(--surface); color:var(--text); }
+.piadmin-tree-action.danger:hover { color:var(--danger); }
+.piadmin-tree-handle { cursor:grab; color:var(--text-tertiary); font-size:14px; }
+.piadmin-tree-handle:active { cursor:grabbing; }
+
+/* Drag indicators */
+.piadmin-tree-row.drag-over-top { box-shadow:inset 0 2px 0 var(--accent); }
+.piadmin-tree-row.drag-over-bottom { box-shadow:inset 0 -2px 0 var(--accent); }
+.piadmin-tree-row.drag-over-child { background:var(--accent-light); }
+.piadmin-tree-row.dragging { opacity:.4; }
+
+/* Children container */
+.piadmin-tree-children { overflow:hidden; }
+.piadmin-tree-children.collapsed { display:none; }
+
+/* ── Edit Panel (slide from right) ── */
+.piadmin-panel-overlay { position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:100;
+  opacity:0; transition:opacity var(--transition); pointer-events:none; }
+.piadmin-panel-overlay.visible { opacity:1; pointer-events:all; }
+
+.piadmin-panel { position:absolute; top:0; right:0; bottom:0; width:420px; background:var(--surface);
+  border-left:1px solid var(--border); box-shadow:var(--shadow-lg); z-index:101;
+  display:flex; flex-direction:column; transform:translateX(100%); transition:transform .25s ease; }
+.piadmin-panel.open { transform:translateX(0); }
+.piadmin-panel-header { display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px; border-bottom:1px solid var(--border); }
+.piadmin-panel-title { font-size:16px; font-weight:600; }
+.piadmin-panel-close { width:32px; height:32px; font-size:20px; border-radius:var(--radius);
+  display:flex; align-items:center; justify-content:center; }
+.piadmin-panel-close:hover { background:var(--surface-hover); }
+.piadmin-panel-body { flex:1; overflow-y:auto; padding:20px; }
+.piadmin-panel-footer { display:flex; justify-content:flex-end; gap:8px; padding:16px 20px;
+  border-top:1px solid var(--border); }
+
+/* ── Form fields ── */
+.piadmin-field { margin-bottom:16px; }
+.piadmin-field label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary);
+  margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px; }
+.piadmin-field input[type="text"], .piadmin-field input[type="url"], .piadmin-field input[type="number"],
+.piadmin-field select, .piadmin-field textarea { width:100%; height:34px; padding:0 10px;
+  border:1px solid var(--border); border-radius:var(--radius); background:var(--surface-alt);
+  outline:none; transition:border var(--transition); }
+.piadmin-field input:focus, .piadmin-field select:focus, .piadmin-field textarea:focus {
+  border-color:var(--accent); }
+.piadmin-field textarea { height:auto; min-height:60px; padding:8px 10px; resize:vertical; }
+.piadmin-field select { cursor:pointer; }
+.piadmin-field-hint { font-size:11px; color:var(--text-tertiary); margin-top:2px; }
+.piadmin-field-error { font-size:11px; color:var(--danger); margin-top:2px; }
+
+/* Toggle */
+.piadmin-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; }
+.piadmin-toggle input { display:none; }
+.piadmin-toggle-track { width:36px; height:20px; border-radius:10px; background:var(--border);
+  position:relative; transition:background var(--transition); flex-shrink:0; }
+.piadmin-toggle input:checked ~ .piadmin-toggle-track { background:var(--accent); }
+.piadmin-toggle-thumb { position:absolute; top:2px; left:2px; width:16px; height:16px;
+  border-radius:50%; background:#fff; transition:left var(--transition); box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.piadmin-toggle input:checked ~ .piadmin-toggle-track .piadmin-toggle-thumb { left:18px; }
+.piadmin-toggle-label { font-size:13px; }
+
+/* ── Confirmation Dialog ── */
+.piadmin-dialog-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.4); z-index:200;
+  display:none; align-items:center; justify-content:center; }
+.piadmin-dialog-backdrop.visible { display:flex; }
+.piadmin-dialog { background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
+  padding:24px; max-width:400px; width:90%; }
+.piadmin-dialog h3 { font-size:16px; font-weight:600; margin-bottom:8px; }
+.piadmin-dialog p { font-size:13px; color:var(--text-secondary); margin-bottom:16px; line-height:1.5; }
+.piadmin-dialog-actions { display:flex; justify-content:flex-end; gap:8px; }
+
+/* ── Toast notifications ── */
+.piadmin-toasts { position:absolute; bottom:20px; right:20px; z-index:300;
+  display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.piadmin-toast { padding:10px 16px; border-radius:var(--radius); font-size:13px; font-weight:500;
+  box-shadow:var(--shadow-lg); pointer-events:all; display:flex; align-items:center; gap:8px;
+  animation:piadmin-slide-in .3s ease; max-width:360px; }
+.piadmin-toast.success { background:var(--success-bg); color:var(--success); }
+.piadmin-toast.error { background:var(--danger-bg); color:var(--danger); }
+.piadmin-toast.info { background:var(--accent-light); color:var(--accent); }
+
+/* ── Preview Panel (resizable) ── */
+.piadmin-preview { width:var(--preview-w, 320px); min-width:200px; max-width:50vw; border-left:1px solid var(--border);
+  background:var(--surface); display:flex; flex-direction:column; flex-shrink:0; }
+.piadmin-preview-resize { width:5px; cursor:col-resize; flex-shrink:0; align-self:stretch; position:relative; }
+.piadmin-preview-resize::after { content:''; position:absolute; top:4px; bottom:4px; right:2px;
+  width:1px; background:var(--border); transition:background .15s; }
+.piadmin-preview-resize:hover::after { background:var(--accent); width:3px; right:1px; border-radius:2px; }
+.piadmin-preview-header { display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; border-bottom:1px solid var(--border-light); font-size:12px;
+  font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; }
+.piadmin-preview-body { flex:1; overflow-y:auto; padding:12px; }
+.piadmin-preview-nav { font-size:12px; }
+.piadmin-preview-item { padding:4px 8px; border-radius:4px; display:flex;
+  align-items:center; gap:4px; text-decoration:none; color:var(--text); cursor:default; }
+.piadmin-preview-item[href]:not([href="#"]):not([href=""]) { cursor:pointer; }
+.piadmin-preview-item[href]:not([href="#"]):not([href=""]):hover { background:var(--accent-light); color:var(--accent); }
+.piadmin-preview-item:hover { background:var(--surface-hover); }
+.piadmin-preview-item.depth-0 { font-weight:600; margin-top:8px; }
+.piadmin-preview-item.depth-0:first-child { margin-top:0; }
+.piadmin-preview-item .new-dot { width:6px; height:6px; border-radius:50%; background:#fbbf24; flex-shrink:0; }
+.piadmin-preview-disabled { opacity:.4; text-decoration:line-through; }
+
+/* ── Dirty-state indicators ── */
+.piadmin-tree-row--dirty-update { border-left:3px solid var(--dirty-update-border) !important; background:var(--dirty-update-bg) !important; }
+.piadmin-tree-row--dirty-create { border-left:3px solid var(--dirty-create-border) !important; background:var(--dirty-create-bg) !important; }
+.piadmin-tree-row--dirty-move { border-left:3px solid var(--dirty-move-border) !important; background:var(--dirty-move-bg) !important; }
+.piadmin-dirty-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:10px;
+  font-size:11px; font-weight:600; background:var(--warning-bg); color:var(--warning); white-space:nowrap; }
+.piadmin-dirty-dot { width:6px; height:6px; border-radius:50%; background:var(--warning); animation:piadmin-pulse 1.5s ease-in-out infinite; }
+@keyframes piadmin-pulse { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+.piadmin-editmode-btn { font-size:12px; padding:4px 12px; border-radius:var(--radius); cursor:pointer;
+  border:1px solid var(--border); background:var(--surface); color:var(--text); transition:all var(--transition); }
+.piadmin-editmode-btn:hover { background:var(--surface-hover); }
+.piadmin-editmode-btn:disabled { opacity:.4; cursor:default; }
+.piadmin-editmode-btn.primary { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+.piadmin-editmode-btn.primary:hover { background:var(--accent-hover); }
+.piadmin-editmode-btn.primary:disabled { opacity:.5; }
+.piadmin-editmode-sep { width:1px; height:20px; background:var(--border-light); margin:0 4px; flex-shrink:0; }
+
+/* ── Changes summary panel ── */
+.piadmin-changes-section { border-bottom:1px solid var(--border-light); }
+.piadmin-changes-header { display:flex; align-items:center; justify-content:space-between;
+  padding:8px 12px; font-size:11px; font-weight:600; color:var(--text-secondary);
+  text-transform:uppercase; letter-spacing:.5px; cursor:pointer; user-select:none; }
+.piadmin-changes-header:hover { background:var(--surface-hover); }
+.piadmin-changes-list { font-size:12px; max-height:200px; overflow-y:auto; }
+.piadmin-change-entry { display:flex; align-items:center; gap:6px; padding:4px 12px; cursor:pointer;
+  border-radius:4px; }
+.piadmin-change-entry:hover { background:var(--surface-hover); }
+.piadmin-change-icon { width:16px; text-align:center; font-size:11px; flex-shrink:0; }
+.piadmin-change-icon--create { color:var(--success); }
+.piadmin-change-icon--update { color:var(--warning); }
+.piadmin-change-icon--delete { color:var(--danger); }
+.piadmin-change-icon--move { color:var(--accent); }
+.piadmin-change-desc { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+.piadmin-change-desc small { color:var(--text-tertiary); }
+
+/* ── Diff & Revert ── */
+.piadmin-diff-section { padding:2px 12px 6px 34px; font-size:11px; }
+.piadmin-diff-row { display:flex; align-items:baseline; gap:6px; padding:2px 0; line-height:1.4; }
+.piadmin-diff-label { color:var(--text-tertiary); min-width:70px; flex-shrink:0; font-weight:500; }
+.piadmin-diff-old { color:var(--danger); text-decoration:line-through; opacity:.8; word-break:break-word; }
+.piadmin-diff-arrow { color:var(--text-tertiary); flex-shrink:0; font-size:10px; }
+.piadmin-diff-new { color:var(--success); font-weight:500; word-break:break-word; }
+.piadmin-revert-btn { background:none; border:1px solid var(--border); color:var(--text-secondary);
+  font-size:10px; padding:1px 6px; border-radius:3px; cursor:pointer; flex-shrink:0; line-height:1.4;
+  transition:all .15s ease; }
+.piadmin-revert-btn:hover { border-color:var(--danger); color:var(--danger); background:rgba(196,49,75,.08); }
+.piadmin-change-expand { background:none; border:none; color:var(--text-tertiary); cursor:pointer;
+  font-size:10px; padding:2px 4px; flex-shrink:0; transition:transform .15s ease; }
+.piadmin-change-expand[aria-expanded="true"] { transform:rotate(90deg); }
+.piadmin-field-baseline { font-size:10px; color:var(--text-tertiary); margin-top:2px; font-style:italic; }
+.piadmin-field-baseline::before { content:'Original: '; font-weight:500; }
+.piadmin-field--dirty input, .piadmin-field--dirty select { border-color:var(--warning) !important; }
+.piadmin-panel-revert { width:100%; margin-top:12px; background:none; border:1px dashed var(--danger);
+  color:var(--danger); padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px;
+  transition:all .15s ease; }
+.piadmin-panel-revert:hover { background:rgba(196,49,75,.08); border-style:solid; }
+
+/* ── Review dialog ── */
+.piadmin-review-dialog { max-width:640px !important; }
+.piadmin-review-body { max-height:60vh; overflow-y:auto; padding:0 4px; }
+.piadmin-review-item { border:1px solid var(--border); border-radius:6px; margin-bottom:8px; overflow:hidden; }
+.piadmin-review-item-header { display:flex; align-items:center; gap:8px; padding:8px 12px;
+  background:var(--surface-hover); font-size:12px; }
+.piadmin-review-item-header strong { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.piadmin-review-badge { font-size:10px; padding:1px 6px; border-radius:10px; font-weight:600; flex-shrink:0; }
+.piadmin-review-badge--create { background:rgba(16,124,16,.12); color:var(--success); }
+.piadmin-review-badge--update { background:rgba(255,170,68,.12); color:var(--warning); }
+.piadmin-review-badge--delete { background:rgba(196,49,75,.12); color:var(--danger); }
+.piadmin-review-badge--move { background:rgba(0,120,212,.12); color:var(--accent); }
+.piadmin-review-item-diffs { padding:6px 12px; font-size:11px; }
+.piadmin-review-item-diffs .piadmin-diff-row { padding:1px 0; }
+.piadmin-danger-zone { border:2px solid var(--danger); border-radius:6px; padding:12px; margin-top:12px;
+  background:rgba(196,49,75,.04); }
+.piadmin-challenge-input { border:1px solid var(--danger); border-radius:4px; padding:4px 8px;
+  font-size:13px; width:80px; margin-top:6px; }
+
+/* ── Snapshot / Version History ── */
+.piadmin-snapshot-table { width:100%; font-size:11px; border-collapse:collapse; }
+.piadmin-snapshot-table th { text-align:left; padding:4px 8px; border-bottom:1px solid var(--border);
+  color:var(--text-tertiary); font-weight:600; }
+.piadmin-snapshot-table td { padding:4px 8px; border-bottom:1px solid var(--border); }
+.piadmin-snapshot-table tr:hover td { background:var(--surface-hover); }
+
+/* ── Save progress ── */
+.piadmin-save-progress { height:4px; background:var(--border); border-radius:2px; overflow:hidden; margin-top:12px; }
+.piadmin-save-progress-bar { height:100%; background:var(--accent); transition:width .3s ease; }
+
+/* ── Placeholder sections ── */
+.piadmin-placeholder { padding:60px 20px; text-align:center; color:var(--text-tertiary); font-size:14px; }
+.piadmin-placeholder-icon { font-size:40px; margin-bottom:12px; display:block; }
+
+/* ── News Tab ── */
+.piadmin-news-toolbar { display:flex; align-items:center; padding:8px 20px; background:var(--surface-alt);
+  border-bottom:1px solid var(--border-light); flex-shrink:0; gap:6px; }
+.piadmin-news-group { margin-bottom:24px; }
+.piadmin-news-group-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+  color:var(--text-secondary); padding:12px 20px 6px; border-bottom:1px solid var(--border-light); }
+.piadmin-news-cards { padding:8px 16px; display:flex; flex-direction:column; gap:6px; }
+.piadmin-news-card { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:var(--radius);
+  background:var(--surface); border:1px solid var(--border-light); cursor:pointer; transition:all .15s; }
+.piadmin-news-card:hover { border-color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.piadmin-news-card.dragging { opacity:.4; }
+.piadmin-news-card-drag { cursor:grab; color:var(--text-tertiary); font-size:14px; flex-shrink:0; }
+.piadmin-news-card-drag:active { cursor:grabbing; }
+.piadmin-news-card-body { flex:1; min-width:0; }
+.piadmin-news-card-title { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.piadmin-news-card-meta { font-size:11px; color:var(--text-tertiary); margin-top:2px; display:flex; gap:8px; }
+.piadmin-news-card-badges { display:flex; gap:4px; flex-shrink:0; align-items:center; }
+.piadmin-news-card-actions { display:flex; gap:2px; flex-shrink:0; opacity:0; transition:opacity .15s; }
+.piadmin-news-card:hover .piadmin-news-card-actions { opacity:1; }
+.piadmin-news-badge-section { font-size:9px; padding:2px 6px; border-radius:8px; font-weight:600; }
+.piadmin-news-badge-top { background:#e8f4fd; color:#0078d4; }
+.piadmin-news-badge-gtk { background:#fff4ce; color:#996600; }
+.piadmin-news-badge-new { background:#fbbf24; color:#000; font-size:9px; padding:2px 6px; border-radius:8px; font-weight:600; }
+.piadmin-dark .piadmin-news-badge-top { background:rgba(78,168,254,.15); color:#4ea8fe; }
+.piadmin-dark .piadmin-news-badge-gtk { background:rgba(255,170,68,.15); color:#ffaa44; }
+.piadmin-news-preview { padding:12px; font-size:12px; }
+.piadmin-news-preview-card { padding:8px 12px; border-radius:var(--radius); background:var(--surface-alt);
+  border-left:3px solid var(--accent); margin-bottom:6px; }
+.piadmin-news-preview-title { font-weight:600; font-size:12px; }
+.piadmin-news-preview-snippet { font-size:11px; color:var(--text-tertiary); margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ── Shortcuts Tab ── */
+.piadmin-shortcuts-toolbar { display:flex; align-items:center; padding:8px 20px; background:var(--surface-alt);
+  border-bottom:1px solid var(--border-light); flex-shrink:0; gap:6px; }
+.piadmin-shortcuts-stats { display:flex; gap:16px; padding:12px 20px; background:var(--surface-alt);
+  border-bottom:1px solid var(--border-light); }
+.piadmin-stat-card { display:flex; flex-direction:column; align-items:center; padding:8px 16px;
+  background:var(--surface); border-radius:var(--radius); border:1px solid var(--border-light); min-width:100px; }
+.piadmin-stat-value { font-size:20px; font-weight:700; color:var(--accent); }
+.piadmin-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-tertiary); margin-top:2px; }
+.piadmin-shortcuts-table { width:100%; border-collapse:collapse; font-size:12px; }
+.piadmin-shortcuts-table th { text-align:left; padding:8px 12px; font-size:11px; font-weight:600;
+  text-transform:uppercase; letter-spacing:.3px; color:var(--text-secondary); border-bottom:2px solid var(--border);
+  background:var(--surface); position:sticky; top:0; z-index:5; cursor:pointer; user-select:none; }
+.piadmin-shortcuts-table th:hover { color:var(--text); }
+.piadmin-shortcuts-table td { padding:6px 12px; border-bottom:1px solid var(--border-light); vertical-align:middle; }
+.piadmin-shortcuts-table tr:hover td { background:var(--surface-hover); }
+.piadmin-shortcuts-table .sc-icon { font-size:16px; text-align:center; width:32px; }
+.piadmin-shortcuts-table .sc-url { color:var(--text-tertiary); max-width:200px; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+.piadmin-shortcuts-table .sc-user { color:var(--accent); }
+
+/* ── Settings Tab ── */
+.piadmin-settings { padding:20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; }
+.piadmin-settings-card { background:var(--surface); border:1px solid var(--border-light); border-radius:var(--radius-lg);
+  overflow:hidden; }
+.piadmin-settings-card-header { padding:14px 16px; font-size:13px; font-weight:600; border-bottom:1px solid var(--border-light);
+  display:flex; align-items:center; gap:8px; }
+.piadmin-settings-card-header .icon { font-size:16px; }
+.piadmin-settings-card-body { padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
+.piadmin-settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.piadmin-settings-label { font-size:12px; color:var(--text-secondary); }
+.piadmin-settings-value { font-size:12px; color:var(--text); font-weight:500; }
+.piadmin-settings-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.piadmin-settings-card-body .piadmin-btn { font-size:11px; height:28px; }
+
+/* ── Loading spinner ── */
+.piadmin-loading { display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:60px 20px; gap:12px; color:var(--text-tertiary); }
+.piadmin-spinner { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--accent);
+  border-radius:50%; animation:piadmin-spin .7s linear infinite; }
+
+@keyframes piadmin-spin { to { transform:rotate(360deg); } }
+@keyframes piadmin-slide-in { from { transform:translateX(100px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+/* ── Responsive ── */
+@media (max-width:900px) {
+  .piadmin-tree-col-url, .piadmin-tree-header-url,
+  .piadmin-tree-col-status, .piadmin-tree-header-status,
+  .piadmin-col-resize { display:none; }
+}
+@media (max-width:768px) {
+  .piadmin-preview { display:none; }
+  .piadmin-panel { width:100%; }
+  .piadmin-search-box input { width:160px; }
+  .piadmin-tree-col-actions { width:auto; }
+}
+</style>
+
+<!-- ══════════════════════════════════════════════════════
+     HTML Structure
+     ══════════════════════════════════════════════════════ -->
+<div class="piadmin-root" id="piadminRoot">
+
+  <!-- Header -->
+  <header class="piadmin-header">
+    <div class="piadmin-header-left">
+      <div class="piadmin-logo">Pi</div>
+      <span class="piadmin-title">PiCanvas Admin</span>
+    </div>
+    <div class="piadmin-header-actions">
+      <div class="piadmin-search-box">
+        <input type="search" id="piadminSearch" placeholder="Search items..." autocomplete="off">
+        <button class="piadmin-search-clear" id="piadminSearchClear" title="Clear">&times;</button>
+        <span class="piadmin-search-icon">&#128269;</span>
+      </div>
+      <button class="piadmin-icon-btn" id="piadminThemeToggle" title="Switch theme: Light / Dark / High Contrast">&#9788;</button>
+      <button class="piadmin-icon-btn" id="piadminRefresh" title="Refresh data">&#8635;</button>
+    </div>
+  </header>
+
+  <!-- Section Tabs -->
+  <nav class="piadmin-tabs" role="tablist">
+    <button class="piadmin-tab active" data-section="navigation" role="tab" aria-selected="true">
+      Navigation <span class="piadmin-tab-badge" id="piadminNavCount">0</span>
+    </button>
+    <button class="piadmin-tab" data-section="news" role="tab" aria-selected="false">News</button>
+    <button class="piadmin-tab" data-section="shortcuts" role="tab" aria-selected="false">Shortcuts</button>
+    <button class="piadmin-tab" data-section="settings" role="tab" aria-selected="false">Settings</button>
+  </nav>
+
+  <!-- Navigation Section -->
+  <div class="piadmin-section active" data-section-content="navigation">
+
+    <!-- Toolbar -->
+    <div class="piadmin-toolbar">
+      <button class="piadmin-editmode-btn primary" id="piadminSaveAll" style="display:none;">Save Changes</button>
+      <button class="piadmin-editmode-btn" id="piadminDiscardAll" style="display:none;">Discard</button>
+      <button class="piadmin-editmode-btn" id="piadminUndoBtn" style="display:none;" disabled title="Undo (Ctrl+Z)">&#8617; Undo</button>
+      <button class="piadmin-editmode-btn" id="piadminRedoBtn" style="display:none;" disabled title="Redo (Ctrl+Y)">&#8618; Redo</button>
+      <div class="piadmin-editmode-sep" id="piadminEditModeSep" style="display:none;"></div>
+      <button class="piadmin-btn-primary" id="piadminAddRoot">+ Add Item</button>
+      <div class="piadmin-toolbar-sep"></div>
+      <button class="piadmin-btn" id="piadminExpandAll">Expand All</button>
+      <button class="piadmin-btn" id="piadminCollapseAll">Collapse All</button>
+      <div class="piadmin-toolbar-sep"></div>
+      <select id="piadminStatusFilter" title="Filter by status">
+        <option value="">All Status</option>
+        <option value="enabled">Enabled</option>
+        <option value="disabled">Disabled</option>
+        <option value="new">New Only</option>
+        <option value="header">Headers Only</option>
+      </select>
+      <select id="piadminDepthFilter" title="Filter by depth">
+        <option value="">All Levels</option>
+        <option value="0">Top-level Only</option>
+        <option value="0-1">Level 0–1</option>
+        <option value="0-2">Level 0–2</option>
+        <option value="3+">Level 3+</option>
+      </select>
+      <div class="piadmin-toolbar-sep"></div>
+      <select id="piadminBulkAction">
+        <option value="">Bulk Actions...</option>
+        <option value="enable">Enable Selected</option>
+        <option value="disable">Disable Selected</option>
+        <option value="delete">Delete Selected</option>
+      </select>
+      <button class="piadmin-btn" id="piadminBulkApply" disabled>Apply</button>
+      <div class="piadmin-toolbar-right">
+        <span class="piadmin-dirty-badge" id="piadminDirtyBadge" style="display:none;">
+          <span class="piadmin-dirty-dot"></span>
+          <span id="piadminDirtyCount">0</span> unsaved
+        </span>
+        <span class="piadmin-item-count" id="piadminItemCount"></span>
+      </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <div class="piadmin-breadcrumb" id="piadminBreadcrumb"></div>
+
+    <!-- Main + Preview layout -->
+    <div class="piadmin-body">
+      <div class="piadmin-main">
+        <div class="piadmin-tree" id="piadminTree" role="tree" aria-label="Navigation tree">
+          <!-- Column header -->
+          <div class="piadmin-tree-header" id="piadminTreeHeader">
+            <div class="piadmin-tree-header-name" data-sort="name">
+              <input type="checkbox" class="piadmin-tree-check" id="piadminSelectAll" title="Select all">
+              Name <span class="piadmin-sort-indicator" id="piadminSortName"></span>
+            </div>
+            <div class="piadmin-col-resize" id="piadminColResize1" title="Drag to resize"></div>
+            <div class="piadmin-tree-header-url" data-sort="url">
+              URL <span class="piadmin-sort-indicator" id="piadminSortUrl"></span>
+            </div>
+            <div class="piadmin-col-resize" id="piadminColResize2" title="Drag to resize"></div>
+            <div class="piadmin-tree-header-status" data-sort="status">
+              Status <span class="piadmin-sort-indicator" id="piadminSortStatus"></span>
+            </div>
+            <div class="piadmin-tree-header-actions"></div>
+          </div>
+          <!-- Tree content -->
+          <div id="piadminTreeBody">
+            <div class="piadmin-loading" id="piadminLoading">
+              <div class="piadmin-spinner"></div>
+              <span>Loading navigation items...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="piadmin-preview-resize" id="piadminPreviewResize" title="Drag to resize preview"></div>
+      <aside class="piadmin-preview" id="piadminPreviewPanel">
+        <div class="piadmin-preview-header">
+          <span>Live Preview</span>
+          <button class="piadmin-icon-btn" id="piadminPreviewRefresh" title="Refresh preview" style="font-size:12px;">&#8635;</button>
+        </div>
+        <div class="piadmin-preview-body" id="piadminPreview">
+          <div class="piadmin-changes-section" id="piadminChangesSection" style="display:none;">
+            <div class="piadmin-changes-header" id="piadminChangesToggle">
+              <span>&#9662; Pending Changes (<span id="piadminChangesCount">0</span>)</span>
+            </div>
+            <div class="piadmin-changes-list" id="piadminChangesList"></div>
+          </div>
+          <div class="piadmin-preview-nav"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- News Section -->
+  <div class="piadmin-section" data-section-content="news">
+    <div class="piadmin-news-toolbar">
+      <button class="piadmin-btn-primary" id="piadminNewsAdd">+ Add News</button>
+      <div class="piadmin-toolbar-sep"></div>
+      <span class="piadmin-item-count" id="piadminNewsCount"></span>
+    </div>
+    <div class="piadmin-body">
+      <div class="piadmin-main" id="piadminNewsMain">
+        <div class="piadmin-loading" id="piadminNewsLoading">
+          <div class="piadmin-spinner"></div>
+          <span>Loading news...</span>
+        </div>
+      </div>
+      <aside class="piadmin-preview" style="width:280px;">
+        <div class="piadmin-preview-header"><span>News Preview</span></div>
+        <div class="piadmin-preview-body piadmin-news-preview" id="piadminNewsPreview"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Shortcuts Section -->
+  <div class="piadmin-section" data-section-content="shortcuts">
+    <div class="piadmin-shortcuts-toolbar">
+      <div class="piadmin-search-box">
+        <input type="search" id="piadminShortcutsSearch" placeholder="Search shortcuts..." autocomplete="off" style="width:200px;">
+        <span class="piadmin-search-icon">&#128269;</span>
+      </div>
+      <div class="piadmin-toolbar-right">
+        <span class="piadmin-item-count" id="piadminShortcutsCount"></span>
+      </div>
+    </div>
+    <div class="piadmin-shortcuts-stats" id="piadminShortcutsStats"></div>
+    <div class="piadmin-body">
+      <div class="piadmin-main" style="overflow-y:auto;">
+        <table class="piadmin-shortcuts-table" id="piadminShortcutsTable">
+          <thead><tr>
+            <th style="width:32px;">Icon</th>
+            <th data-sort="title">Title <span class="piadmin-sort-indicator"></span></th>
+            <th data-sort="url">URL <span class="piadmin-sort-indicator"></span></th>
+            <th data-sort="user">User <span class="piadmin-sort-indicator"></span></th>
+            <th data-sort="created">Created <span class="piadmin-sort-indicator"></span></th>
+          </tr></thead>
+          <tbody id="piadminShortcutsBody">
+            <tr><td colspan="5"><div class="piadmin-loading"><div class="piadmin-spinner"></div><span>Loading shortcuts...</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Section -->
+  <div class="piadmin-section" data-section-content="settings">
+    <div class="piadmin-body">
+      <div class="piadmin-main" style="overflow-y:auto;">
+        <div class="piadmin-settings" id="piadminSettingsGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Panel -->
+  <div class="piadmin-panel-overlay" id="piadminPanelOverlay"></div>
+  <div class="piadmin-panel" id="piadminPanel">
+    <div class="piadmin-panel-header">
+      <span class="piadmin-panel-title" id="piadminPanelTitle">Add Item</span>
+      <button class="piadmin-panel-close" id="piadminPanelClose">&times;</button>
+    </div>
+    <div class="piadmin-panel-body" id="piadminPanelBody"></div>
+    <div class="piadmin-panel-footer">
+      <button class="piadmin-btn" id="piadminPanelCancel">Cancel</button>
+      <button class="piadmin-btn-primary" id="piadminPanelSave">Save</button>
+    </div>
+  </div>
+
+  <!-- Confirmation Dialog -->
+  <div class="piadmin-dialog-backdrop" id="piadminDialogBackdrop">
+    <div class="piadmin-dialog" id="piadminDialog"></div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="piadmin-toasts" id="piadminToasts"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     JavaScript — single IIFE, vanilla JS, no build step
+     ══════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  // ── Fix PiCanvas tab container to allow full-height layout ──
+  var root = document.querySelector('.piadmin-root');
+  if (root) {
+    var p = root.parentElement;
+    while (p && p !== document.body) {
+      var cls = p.className || '';
+      if (cls.indexOf('picanvas-tab-content') > -1 || cls.indexOf('addui-Tabs-content') > -1) {
+        p.style.overflow = 'visible';
+        p.style.contain = 'none';
+        p.style.padding = '0';
+      }
+      if (cls.indexOf('addui-Tabs-contentHolder') > -1) {
+        p.style.overflow = 'visible';
+      }
+      // Hide the PiCanvas tab bar since admin has its own header
+      if (cls.indexOf('addui-Tabs') > -1 && cls.indexOf('addui-Tabs-') === -1) {
+        var tabRow = p.querySelector('.addui-Tabs-row');
+        if (tabRow) tabRow.style.display = 'none';
+      }
+      p = p.parentElement;
+    }
+  }
+
+  // ── Site URL detection ──
+  var siteUrl = '';
+  if (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) {
+    siteUrl = window._spPageContextInfo.webAbsoluteUrl.replace(/\/$/, '');
+  } else {
+    var m = window.location.href.match(/^(https?:\/\/[^\/]+\/(?:teams|sites)\/[^\/]+)/i);
+    if (m) siteUrl = m[1];
+  }
+
+  var LIST_TITLE = 'PiCanvasNavigation';
+  var SELECT_FIELDS = 'Id,Title,NavUrl,ParentId0,SortOrder,IsNew,Icon,OpenInNewWindow,Audience,IsEnabled';
+
+  // ═══════════════════════════════════════════════════
+  // ApiService — SharePoint REST CRUD
+  // ═══════════════════════════════════════════════════
+  function ApiService(url) {
+    this._url = url;
+    this._digest = '';
+    this._digestExpiry = 0;
+  }
+
+  ApiService.prototype.getDigest = function() {
+    var self = this;
+    if (self._digest && Date.now() < self._digestExpiry) return Promise.resolve(self._digest);
+    var el = document.getElementById('__REQUESTDIGEST');
+    if (el && el.value) {
+      self._digest = el.value;
+      self._digestExpiry = Date.now() + 25 * 60000;
+      return Promise.resolve(self._digest);
+    }
+    return fetch(self._url + '/_api/contextinfo', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json;odata=nometadata' },
+      credentials: 'same-origin'
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      self._digest = d.FormDigestValue;
+      self._digestExpiry = Date.now() + 25 * 60000;
+      return self._digest;
+    });
+  };
+
+  ApiService.prototype.getItems = function() {
+    var url = this._url + "/_api/web/lists/getbytitle('" + LIST_TITLE + "')/items" +
+      '?$select=' + SELECT_FIELDS + '&$orderby=SortOrder,Id&$top=500';
+    return fetch(url, {
+      headers: { 'Accept': 'application/json;odata=nometadata' },
+      credentials: 'same-origin'
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(d) { return d.value || []; });
+  };
+
+  ApiService.prototype.createItem = function(data) {
+    var self = this;
+    return self.getDigest().then(function(digest) {
+      return fetch(self._url + "/_api/web/lists/getbytitle('" + LIST_TITLE + "')/items", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'Content-Type': 'application/json;odata=nometadata',
+          'X-RequestDigest': digest
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(data)
+      });
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  };
+
+  ApiService.prototype.updateItem = function(id, data) {
+    var self = this;
+    return self.getDigest().then(function(digest) {
+      return fetch(self._url + "/_api/web/lists/getbytitle('" + LIST_TITLE + "')/items(" + id + ")", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'Content-Type': 'application/json;odata=nometadata',
+          'X-RequestDigest': digest,
+          'X-HTTP-Method': 'MERGE',
+          'If-Match': '*'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(data)
+      });
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+    });
+  };
+
+  ApiService.prototype.deleteItem = function(id) {
+    var self = this;
+    return self.getDigest().then(function(digest) {
+      return fetch(self._url + "/_api/web/lists/getbytitle('" + LIST_TITLE + "')/items(" + id + ")", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'X-RequestDigest': digest,
+          'X-HTTP-Method': 'DELETE',
+          'If-Match': '*'
+        },
+        credentials: 'same-origin'
+      });
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+    });
+  };
+
+  // ── Site Assets snapshot file operations ──
+  var SNAPSHOT_FILE = 'PiCanvasNavBackup.json';
+  var SNAPSHOT_FOLDER = 'SiteAssets';
+  var siteRelativeUrl = '';
+  if (window._spPageContextInfo && window._spPageContextInfo.webServerRelativeUrl) {
+    siteRelativeUrl = window._spPageContextInfo.webServerRelativeUrl.replace(/\/$/, '');
+  } else {
+    try { siteRelativeUrl = new URL(siteUrl).pathname.replace(/\/$/, ''); } catch(e) {}
+  }
+
+  ApiService.prototype.uploadSnapshot = function(jsonString) {
+    var self = this;
+    var url = self._url + "/_api/web/GetFolderByServerRelativeUrl('" + SNAPSHOT_FOLDER + "')" +
+      "/Files/add(url='" + SNAPSHOT_FILE + "',overwrite=true)";
+    return self.getDigest().then(function(digest) {
+      return fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'X-RequestDigest': digest
+        },
+        credentials: 'same-origin',
+        body: jsonString
+      });
+    }).then(function(r) {
+      if (!r.ok) throw new Error('Snapshot upload HTTP ' + r.status);
+    });
+  };
+
+  ApiService.prototype.getSnapshotVersions = function() {
+    var filePath = siteRelativeUrl + '/' + SNAPSHOT_FOLDER + '/' + SNAPSHOT_FILE;
+    var url = this._url + "/_api/web/GetFileByServerRelativeUrl('" + filePath + "')/Versions" +
+      '?$select=VersionId,VersionLabel,Created,CreatedBy/Title&$expand=CreatedBy&$orderby=Created desc&$top=20';
+    return fetch(url, {
+      headers: { 'Accept': 'application/json;odata=nometadata' },
+      credentials: 'same-origin'
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(d) { return d.value || []; });
+  };
+
+  ApiService.prototype.getSnapshotVersionContent = function(versionId) {
+    var filePath = siteRelativeUrl + '/' + SNAPSHOT_FOLDER + '/' + SNAPSHOT_FILE;
+    var url = this._url + "/_api/web/GetFileByServerRelativeUrl('" + filePath + "')/Versions(" + versionId + ')/$value';
+    return fetch(url, { credentials: 'same-origin' }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  };
+
+  ApiService.prototype.getLatestSnapshot = function() {
+    var url = this._url + '/' + SNAPSHOT_FOLDER + '/' + SNAPSHOT_FILE + '?nocache=' + Date.now();
+    return fetch(url, { credentials: 'same-origin' }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  };
+
+  // ═══════════════════════════════════════════════════
+  // DiffEngine — Field-level comparison & rendering
+  // ═══════════════════════════════════════════════════
+  var DiffEngine = {
+    FIELD_LABELS: {
+      Title: 'Title', NavUrl: 'URL', ParentId0: 'Parent', SortOrder: 'Sort Order',
+      Icon: 'Icon', IsNew: 'NEW Badge', IsEnabled: 'Enabled',
+      OpenInNewWindow: 'New Window', Audience: 'Audience'
+    },
+    TRACKED_FIELDS: ['Title', 'NavUrl', 'ParentId0', 'SortOrder', 'Icon', 'IsNew', 'IsEnabled', 'OpenInNewWindow', 'Audience'],
+
+    formatValue: function(field, value, itemMap) {
+      if (field === 'ParentId0') {
+        if (!value || value === 0) return 'Root';
+        if (itemMap && itemMap[value]) return itemMap[value].Title || 'Item #' + value;
+        return 'Item #' + value;
+      }
+      if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+      if (value === null || value === undefined || value === '') return '(empty)';
+      if (field === 'NavUrl' && value === '#') return '# (header)';
+      return String(value);
+    },
+
+    diffItem: function(baseline, pending, baselineMap, pendingMap) {
+      if (!baseline || !pending) return [];
+      var diffs = [];
+      for (var i = 0; i < this.TRACKED_FIELDS.length; i++) {
+        var f = this.TRACKED_FIELDS[i];
+        var ov = baseline[f], nv = pending[f];
+        var changed = false;
+        if (typeof ov === 'boolean' || typeof nv === 'boolean') {
+          changed = (!!ov) !== (!!nv);
+        } else if (f === 'ParentId0' || f === 'SortOrder') {
+          changed = (ov || 0) !== (nv || 0);
+        } else {
+          changed = (ov || '') !== (nv || '');
+        }
+        if (changed) {
+          diffs.push({
+            field: f,
+            label: this.FIELD_LABELS[f] || f,
+            oldValue: ov,
+            newValue: nv,
+            oldDisplay: this.formatValue(f, ov, baselineMap),
+            newDisplay: this.formatValue(f, nv, pendingMap)
+          });
+        }
+      }
+      return diffs;
+    },
+
+    renderFieldDiff: function(diffs) {
+      if (!diffs || !diffs.length) return '';
+      var html = '';
+      for (var i = 0; i < diffs.length; i++) {
+        var d = diffs[i];
+        html += '<div class="piadmin-diff-row">' +
+          '<span class="piadmin-diff-label">' + esc(d.label) + '</span>' +
+          '<span class="piadmin-diff-old">' + esc(d.oldDisplay) + '</span>' +
+          '<span class="piadmin-diff-arrow">&#8594;</span>' +
+          '<span class="piadmin-diff-new">' + esc(d.newDisplay) + '</span>' +
+          '</div>';
+      }
+      return html;
+    },
+
+    renderReviewItem: function(item, changeType, diffs) {
+      var badgeClass = 'piadmin-review-badge piadmin-review-badge--' + changeType;
+      var badgeText = changeType === 'create' ? 'Created' : changeType === 'delete' ? 'Deleted'
+        : changeType === 'move' ? 'Moved' : 'Updated';
+      var html = '<div class="piadmin-review-item" data-review-id="' + item.Id + '">' +
+        '<div class="piadmin-review-item-header">' +
+          '<strong>' + esc(item.Title || 'Untitled') + '</strong>' +
+          '<span class="' + badgeClass + '">' + badgeText + '</span>' +
+          '<button class="piadmin-revert-btn" data-revert-id="' + item.Id + '">Revert</button>' +
+        '</div>';
+      if (diffs && diffs.length) {
+        html += '<div class="piadmin-review-item-diffs">' + this.renderFieldDiff(diffs) + '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+  };
+
+  // ═══════════════════════════════════════════════════
+  // Session Recovery — localStorage backup
+  // ═══════════════════════════════════════════════════
+  var SESSION_KEY = 'piadmin_session_' + siteUrl;
+
+  function saveSessionRecovery(items) {
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ timestamp: Date.now(), items: items }));
+    } catch(e) { /* quota exceeded — ignore silently */ }
+  }
+
+  function getSessionRecovery() {
+    try {
+      var raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      // Expire after 24 hours
+      if (data.timestamp && (Date.now() - data.timestamp) > 86400000) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return data;
+    } catch(e) { return null; }
+  }
+
+  function clearSessionRecovery() {
+    try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+  }
+
+  // ═══════════════════════════════════════════════════
+  // ChangeTracker — Batch edits with undo/redo
+  // ═══════════════════════════════════════════════════
+  function ChangeTracker() {
+    this._baseline = [];
+    this._baselineMap = {};
+    this._pendingItems = [];
+    this._pendingMap = {};
+    this._changes = {};       // { id: { type:'create'|'update'|'delete', original:{}, fields:{} } }
+    this._undoStack = [];
+    this._redoStack = [];
+    this._compoundOps = null; // when non-null, collecting ops for compound undo
+    this._compoundDesc = '';
+    this._nextTempId = -1;
+    this._maxUndo = 50;
+    this._onChange = null;    // callback
+  }
+
+  ChangeTracker.prototype.init = function(items) {
+    this._baseline = JSON.parse(JSON.stringify(items));
+    this._baselineMap = {};
+    for (var i = 0; i < this._baseline.length; i++) {
+      this._baselineMap[this._baseline[i].Id] = this._baseline[i];
+    }
+    this._pendingItems = JSON.parse(JSON.stringify(items));
+    this._pendingMap = {};
+    for (var i = 0; i < this._pendingItems.length; i++) {
+      this._pendingMap[this._pendingItems[i].Id] = this._pendingItems[i];
+    }
+    this._changes = {};
+    this._undoStack = [];
+    this._redoStack = [];
+    this._nextTempId = -1;
+    this._fire();
+  };
+
+  ChangeTracker.prototype._fire = function() {
+    if (this._onChange) this._onChange();
+  };
+
+  ChangeTracker.prototype.isDirty = function() {
+    return Object.keys(this._changes).length > 0;
+  };
+
+  ChangeTracker.prototype.getChangeCount = function() {
+    return Object.keys(this._changes).length;
+  };
+
+  ChangeTracker.prototype.getChangeType = function(id) {
+    var c = this._changes[id];
+    return c ? c.type : null;
+  };
+
+  ChangeTracker.prototype.getChangedFields = function(id) {
+    var c = this._changes[id];
+    return c ? c.fields || {} : {};
+  };
+
+  ChangeTracker.prototype.getPendingItems = function() {
+    return this._pendingItems;
+  };
+
+  ChangeTracker.prototype.getPendingMap = function() {
+    return this._pendingMap;
+  };
+
+  ChangeTracker.prototype.canUndo = function() { return this._undoStack.length > 0; };
+  ChangeTracker.prototype.canRedo = function() { return this._redoStack.length > 0; };
+
+  ChangeTracker.prototype._valuesEqual = function(key, a, b) {
+    var boolKeys = { IsNew: 1, IsEnabled: 1, OpenInNewWindow: 1 };
+    if (boolKeys[key]) return (!!a) === (!!b);
+    if (key === 'ParentId0' || key === 'SortOrder') return (a || 0) === (b || 0);
+    return (a || '') === (b || '');
+  };
+
+  // ── Push undo entry ──
+  ChangeTracker.prototype._pushUndo = function(entry) {
+    if (this._compoundOps !== null) {
+      // Collecting into compound — merge ops
+      for (var i = 0; i < entry.operations.length; i++) {
+        this._compoundOps.push(entry.operations[i]);
+      }
+      return;
+    }
+    this._undoStack.push(entry);
+    if (this._undoStack.length > this._maxUndo) this._undoStack.shift();
+    this._redoStack = [];
+  };
+
+  // ── Compound undo (for bulk ops) ──
+  ChangeTracker.prototype.beginCompound = function(desc) {
+    this._compoundOps = [];
+    this._compoundDesc = desc || 'Bulk action';
+  };
+
+  ChangeTracker.prototype.endCompound = function() {
+    if (this._compoundOps && this._compoundOps.length > 0) {
+      this._undoStack.push({
+        description: this._compoundDesc,
+        operations: this._compoundOps
+      });
+      if (this._undoStack.length > this._maxUndo) this._undoStack.shift();
+      this._redoStack = [];
+    }
+    this._compoundOps = null;
+    this._compoundDesc = '';
+    this._fire();
+  };
+
+  // ── Record an update ──
+  ChangeTracker.prototype.recordUpdate = function(id, fields) {
+    var item = this._pendingMap[id];
+    if (!item) return;
+    var original = {};
+    var after = {};
+    var changedFieldNames = {};
+    for (var key in fields) {
+      if (!fields.hasOwnProperty(key)) continue;
+      original[key] = item[key];
+      after[key] = fields[key];
+      item[key] = fields[key];
+      changedFieldNames[key] = true;
+    }
+
+    // Update change entry
+    var existing = this._changes[id];
+    if (existing && existing.type === 'create') {
+      // Still a create — just update the pending item, no separate update entry needed
+    } else {
+      // Check if item matches baseline now
+      var bl = this._baselineMap[id];
+      if (bl) {
+        var stillDirty = false;
+        var allFields = existing ? Object.assign({}, existing.fields || {}, changedFieldNames) : changedFieldNames;
+        for (var k in allFields) {
+          if (!this._valuesEqual(k, item[k], bl[k])) { stillDirty = true; break; }
+        }
+        if (stillDirty) {
+          // Determine if this is a move (ParentId0 changed from baseline)
+          var isMove = !this._valuesEqual('ParentId0', item.ParentId0, bl.ParentId0);
+          this._changes[id] = {
+            type: isMove ? 'move' : 'update',
+            original: existing ? existing.original : original,
+            fields: allFields
+          };
+        } else {
+          delete this._changes[id];
+        }
+      } else {
+        // Item not in baseline (shouldn't happen for updates on real items)
+        this._changes[id] = { type: 'update', original: original, fields: changedFieldNames };
+      }
+    }
+
+    this._pushUndo({
+      description: 'Edit "' + item.Title + '"',
+      operations: [{ type: 'update', itemId: id, before: original, after: after }]
+    });
+    this._fire();
+  };
+
+  // ── Record a move (special update) ──
+  ChangeTracker.prototype.recordMove = function(id, newParentId, newSortOrder) {
+    var item = this._pendingMap[id];
+    if (!item) return;
+    var oldTitle = item.Title;
+    var parentTitle = newParentId && this._pendingMap[newParentId] ? this._pendingMap[newParentId].Title : 'Root';
+    this.recordUpdate(id, { ParentId0: newParentId, SortOrder: newSortOrder });
+    // Override the undo description for clarity
+    if (this._undoStack.length > 0 && !this._compoundOps) {
+      this._undoStack[this._undoStack.length - 1].description = 'Move "' + oldTitle + '" under "' + parentTitle + '"';
+    }
+    // Ensure it's tagged as move
+    if (this._changes[id]) this._changes[id].type = 'move';
+  };
+
+  // ── Record a create ──
+  ChangeTracker.prototype.recordCreate = function(data) {
+    var tempId = this._nextTempId--;
+    var item = Object.assign({}, data, { Id: tempId });
+    this._pendingItems.push(item);
+    this._pendingMap[tempId] = item;
+    this._changes[tempId] = { type: 'create', original: null, fields: {} };
+
+    this._pushUndo({
+      description: 'Create "' + data.Title + '"',
+      operations: [{ type: 'create', itemId: tempId, before: null, after: JSON.parse(JSON.stringify(item)) }]
+    });
+    this._fire();
+    return tempId;
+  };
+
+  // ── Record a delete (with cascade) ──
+  ChangeTracker.prototype.recordDelete = function(id) {
+    var item = this._pendingMap[id];
+    if (!item) return;
+
+    // Gather descendants
+    var toDelete = [id];
+    var queue = [id];
+    while (queue.length) {
+      var pid = queue.shift();
+      for (var i = 0; i < this._pendingItems.length; i++) {
+        if (this._pendingItems[i].ParentId0 === pid && toDelete.indexOf(this._pendingItems[i].Id) === -1) {
+          toDelete.push(this._pendingItems[i].Id);
+          queue.push(this._pendingItems[i].Id);
+        }
+      }
+    }
+
+    var ops = [];
+    // Delete in reverse order (children first for proper undo)
+    for (var d = toDelete.length - 1; d >= 0; d--) {
+      var did = toDelete[d];
+      var ditem = this._pendingMap[did];
+      if (!ditem) continue;
+      ops.push({ type: 'delete', itemId: did, before: JSON.parse(JSON.stringify(ditem)), after: null });
+
+      // If it was a pending create, just annihilate
+      if (this._changes[did] && this._changes[did].type === 'create') {
+        delete this._changes[did];
+      } else {
+        this._changes[did] = { type: 'delete', original: JSON.parse(JSON.stringify(ditem)), fields: {} };
+      }
+      // Remove from pending
+      this._pendingItems = this._pendingItems.filter(function(it) { return it.Id !== did; });
+      delete this._pendingMap[did];
+    }
+
+    this._pushUndo({
+      description: 'Delete "' + item.Title + '"' + (toDelete.length > 1 ? ' (+' + (toDelete.length - 1) + ' children)' : ''),
+      operations: ops
+    });
+    this._fire();
+  };
+
+  // ── Undo ──
+  ChangeTracker.prototype.undo = function() {
+    if (!this._undoStack.length) return;
+    var entry = this._undoStack.pop();
+    // Reverse operations in reverse order
+    for (var i = entry.operations.length - 1; i >= 0; i--) {
+      this._reverseOp(entry.operations[i]);
+    }
+    this._redoStack.push(entry);
+    this._rebuildChanges();
+    this._fire();
+  };
+
+  // ── Redo ──
+  ChangeTracker.prototype.redo = function() {
+    if (!this._redoStack.length) return;
+    var entry = this._redoStack.pop();
+    // Apply operations in forward order
+    for (var i = 0; i < entry.operations.length; i++) {
+      this._applyOp(entry.operations[i]);
+    }
+    this._undoStack.push(entry);
+    this._rebuildChanges();
+    this._fire();
+  };
+
+  ChangeTracker.prototype._reverseOp = function(op) {
+    if (op.type === 'update') {
+      var item = this._pendingMap[op.itemId];
+      if (item && op.before) {
+        for (var k in op.before) item[k] = op.before[k];
+      }
+    } else if (op.type === 'create') {
+      // Undo create = remove item
+      this._pendingItems = this._pendingItems.filter(function(it) { return it.Id !== op.itemId; });
+      delete this._pendingMap[op.itemId];
+    } else if (op.type === 'delete') {
+      // Undo delete = restore item
+      if (op.before) {
+        var restored = JSON.parse(JSON.stringify(op.before));
+        this._pendingItems.push(restored);
+        this._pendingMap[restored.Id] = restored;
+      }
+    }
+  };
+
+  ChangeTracker.prototype._applyOp = function(op) {
+    if (op.type === 'update') {
+      var item = this._pendingMap[op.itemId];
+      if (item && op.after) {
+        for (var k in op.after) item[k] = op.after[k];
+      }
+    } else if (op.type === 'create') {
+      if (op.after) {
+        var newItem = JSON.parse(JSON.stringify(op.after));
+        this._pendingItems.push(newItem);
+        this._pendingMap[newItem.Id] = newItem;
+      }
+    } else if (op.type === 'delete') {
+      this._pendingItems = this._pendingItems.filter(function(it) { return it.Id !== op.itemId; });
+      delete this._pendingMap[op.itemId];
+    }
+  };
+
+  // ── Rebuild _changes from diff of pending vs baseline ──
+  ChangeTracker.prototype._rebuildChanges = function() {
+    this._changes = {};
+    var blMap = this._baselineMap;
+    var pMap = this._pendingMap;
+
+    // Check for updates and moves
+    for (var id in pMap) {
+      if (!pMap.hasOwnProperty(id)) continue;
+      var numId = parseInt(id);
+      if (numId < 0) {
+        // Temp ID = pending create
+        this._changes[id] = { type: 'create', original: null, fields: {} };
+        continue;
+      }
+      var bl = blMap[id];
+      if (!bl) {
+        this._changes[id] = { type: 'create', original: null, fields: {} };
+        continue;
+      }
+      var item = pMap[id];
+      var diffs = {};
+      var hasDiff = false;
+      var isMove = false;
+      var keys = ['Title', 'NavUrl', 'ParentId0', 'SortOrder', 'Icon', 'IsNew', 'IsEnabled', 'OpenInNewWindow', 'Audience'];
+      for (var k = 0; k < keys.length; k++) {
+        var key = keys[k];
+        if (!this._valuesEqual(key, item[key], bl[key])) {
+          diffs[key] = true;
+          hasDiff = true;
+          if (key === 'ParentId0') isMove = true;
+        }
+      }
+      if (hasDiff) {
+        this._changes[id] = { type: isMove ? 'move' : 'update', original: bl, fields: diffs };
+      }
+    }
+
+    // Check for deletes (in baseline but not in pending)
+    for (var bid in blMap) {
+      if (!blMap.hasOwnProperty(bid)) continue;
+      if (!pMap[bid]) {
+        this._changes[bid] = { type: 'delete', original: blMap[bid], fields: {} };
+      }
+    }
+  };
+
+  // ── Get change list for UI ──
+  ChangeTracker.prototype.getChangeList = function() {
+    var list = [];
+    for (var id in this._changes) {
+      if (!this._changes.hasOwnProperty(id)) continue;
+      var c = this._changes[id];
+      var title = '';
+      var desc = '';
+      if (c.type === 'delete') {
+        title = c.original ? c.original.Title : 'Item #' + id;
+        desc = 'Deleted';
+      } else if (c.type === 'create') {
+        var item = this._pendingMap[id];
+        title = item ? item.Title : 'New item';
+        desc = 'Created';
+      } else if (c.type === 'move') {
+        var item = this._pendingMap[id];
+        title = item ? item.Title : 'Item #' + id;
+        var parentTitle = item && item.ParentId0 && this._pendingMap[item.ParentId0]
+          ? this._pendingMap[item.ParentId0].Title : 'Root';
+        desc = 'Moved under "' + parentTitle + '"';
+      } else {
+        var item = this._pendingMap[id];
+        title = item ? item.Title : 'Item #' + id;
+        var fields = c.fields ? Object.keys(c.fields) : [];
+        desc = 'Modified: ' + fields.join(', ');
+      }
+      list.push({ id: parseInt(id), type: c.type, title: title, description: desc });
+    }
+    return list;
+  };
+
+  // ── Get changes organized for save ──
+  ChangeTracker.prototype.getChangesForSave = function() {
+    var creates = [], updates = [], deletes = [];
+    for (var id in this._changes) {
+      if (!this._changes.hasOwnProperty(id)) continue;
+      var c = this._changes[id];
+      var numId = parseInt(id);
+      if (c.type === 'create') {
+        var item = this._pendingMap[id];
+        if (item) creates.push({ tempId: numId, data: item });
+      } else if (c.type === 'delete') {
+        deletes.push(numId);
+      } else {
+        // update or move — send only changed fields
+        var item = this._pendingMap[id];
+        if (!item) continue;
+        var data = {};
+        for (var k in c.fields) {
+          if (c.fields.hasOwnProperty(k)) data[k] = item[k];
+        }
+        updates.push({ id: numId, data: data });
+      }
+    }
+    // Sort creates: parents before children (higher ParentId0 depth later)
+    creates.sort(function(a, b) {
+      var aDepth = a.data.ParentId0 && a.data.ParentId0 < 0 ? 1 : 0;
+      var bDepth = b.data.ParentId0 && b.data.ParentId0 < 0 ? 1 : 0;
+      return aDepth - bDepth;
+    });
+    return { creates: creates, updates: updates, deletes: deletes };
+  };
+
+  // ── Reset to baseline ──
+  ChangeTracker.prototype.reset = function() {
+    this._pendingItems = JSON.parse(JSON.stringify(this._baseline));
+    this._pendingMap = {};
+    for (var i = 0; i < this._pendingItems.length; i++) {
+      this._pendingMap[this._pendingItems[i].Id] = this._pendingItems[i];
+    }
+    this._changes = {};
+    this._undoStack = [];
+    this._redoStack = [];
+    this._fire();
+  };
+
+  // ── Revert a single item to baseline ──
+  ChangeTracker.prototype.revertItem = function(id) {
+    var change = this._changes[id];
+    if (!change) return;
+    var numId = typeof id === 'string' ? parseInt(id) : id;
+    var KEYS = ['Title','NavUrl','ParentId0','SortOrder','Icon','IsNew','IsEnabled','OpenInNewWindow','Audience'];
+
+    if (change.type === 'create') {
+      var item = this._pendingMap[numId];
+      if (!item) return;
+      this._pushUndo({
+        description: 'Revert create "' + item.Title + '"',
+        operations: [{ type: 'delete', itemId: numId, before: JSON.parse(JSON.stringify(item)), after: null }]
+      });
+      this._pendingItems = this._pendingItems.filter(function(it) { return it.Id !== numId; });
+      delete this._pendingMap[numId];
+      delete this._changes[id];
+    } else if (change.type === 'delete') {
+      var bl = this._baselineMap[id];
+      if (!bl) return;
+      var restored = JSON.parse(JSON.stringify(bl));
+      this._pushUndo({
+        description: 'Revert delete "' + restored.Title + '"',
+        operations: [{ type: 'create', itemId: numId, before: null, after: JSON.parse(JSON.stringify(restored)) }]
+      });
+      this._pendingItems.push(restored);
+      this._pendingMap[numId] = restored;
+      this._pendingMap[id] = restored;
+      delete this._changes[id];
+    } else {
+      // update or move — restore baseline values
+      var bl = this._baselineMap[id];
+      var item = this._pendingMap[numId] || this._pendingMap[id];
+      if (!bl || !item) return;
+      var before = {}, after = {};
+      for (var k = 0; k < KEYS.length; k++) {
+        var key = KEYS[k];
+        if (!this._valuesEqual(key, item[key], bl[key])) {
+          before[key] = item[key];
+          after[key] = bl[key];
+          item[key] = bl[key];
+        }
+      }
+      this._pushUndo({
+        description: 'Revert "' + item.Title + '" to original',
+        operations: [{ type: 'update', itemId: numId, before: before, after: after }]
+      });
+      delete this._changes[id];
+    }
+    this._fire();
+  };
+
+  // ── Baseline fingerprint for staleness comparison ──
+  ChangeTracker.prototype.getBaselineFingerprint = function() {
+    var parts = [];
+    for (var i = 0; i < this._baseline.length; i++) {
+      var it = this._baseline[i];
+      parts.push(it.Id + ':' + (it.Title || '') + ':' + (it.SortOrder || 0));
+    }
+    parts.sort();
+    return parts.join('|');
+  };
+
+  // ═══════════════════════════════════════════════════
+  // Toast notifications
+  // ═══════════════════════════════════════════════════
+  function showToast(msg, type) {
+    var container = document.getElementById('piadminToasts');
+    var el = document.createElement('div');
+    el.className = 'piadmin-toast ' + (type || 'info');
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(function() { el.remove(); }, 3500);
+  }
+
+  // ═══════════════════════════════════════════════════
+  // HTML escaping
+  // ═══════════════════════════════════════════════════
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  function truncUrl(u) {
+    if (!u || u === '#') return '';
+    try { var p = new URL(u); return p.hostname + p.pathname.substring(0, 30) + (p.pathname.length > 30 ? '...' : ''); }
+    catch(e) { return u.substring(0, 50); }
+  }
+
+  // ═══════════════════════════════════════════════════
+  // TreeManager
+  // ═══════════════════════════════════════════════════
+  function TreeManager(containerEl, opts) {
+    this._el = containerEl;
+    this._items = [];
+    this._tree = [];
+    this._map = {};
+    this._expanded = {};
+    this._checked = {};
+    this._selectedId = null;
+    this._filter = '';
+    this._matchIds = null; // set of ids matching filter
+    this._statusFilter = '';
+    this._depthFilter = '';
+    this._sortCol = '';
+    this._sortDir = 'asc';
+    this._opts = opts || {};
+
+    // Load expanded state from sessionStorage
+    try {
+      var saved = sessionStorage.getItem('piadmin_expanded');
+      if (saved) this._expanded = JSON.parse(saved);
+    } catch(e) {}
+  }
+
+  TreeManager.prototype.loadData = function(items) {
+    this._items = items;
+    this._map = {};
+    for (var i = 0; i < items.length; i++) {
+      this._map[items[i].Id] = items[i];
+    }
+    this._tree = this._buildTree(items);
+    this.render();
+  };
+
+  TreeManager.prototype._buildTree = function(items) {
+    var nodeMap = {}, roots = [], i, item, children = {};
+    for (i = 0; i < items.length; i++) {
+      item = items[i];
+      nodeMap[item.Id] = item;
+      item._children = [];
+    }
+    for (i = 0; i < items.length; i++) {
+      item = items[i];
+      var pid = item.ParentId0;
+      if (pid && pid !== 0 && nodeMap[pid]) {
+        nodeMap[pid]._children.push(item);
+      } else {
+        roots.push(item);
+      }
+    }
+    return roots;
+  };
+
+  TreeManager.prototype.render = function() {
+    var html = '';
+    var hasActiveFilter = this._filter || this._statusFilter || this._depthFilter;
+    if (this._tree.length === 0 && !hasActiveFilter) {
+      html = '<div class="piadmin-tree-empty">No navigation items found.</div>';
+    } else {
+      for (var i = 0; i < this._tree.length; i++) {
+        html += this._renderNode(this._tree[i], 0);
+      }
+      if (!html && hasActiveFilter) {
+        html = '<div class="piadmin-tree-empty">No items match the current filters</div>';
+      } else if (!html) {
+        html = '<div class="piadmin-tree-empty">No navigation items found.</div>';
+      }
+    }
+    this._el.innerHTML = html;
+    this._bindEvents();
+  };
+
+  TreeManager.prototype._renderNode = function(item, depth) {
+    var hasChildren = item._children && item._children.length > 0;
+    var isExpanded = this._expanded[item.Id] !== false; // default expanded
+    var isSelected = item.Id === this._selectedId;
+    var isChecked = !!this._checked[item.Id];
+    var isDisabled = item.IsEnabled === false;
+
+    // Cap indentation at depth 3, show depth pill for deeper
+    var visualDepth = Math.min(depth, 3);
+    var padLeft = visualDepth * 20 + 12;
+    var depthPill = depth > 3 ? '<span class="piadmin-depth-pill">L' + depth + '</span>' : '';
+
+    // Filter: if matchIds is set, skip items not in the set and not ancestors of matches
+    if (this._matchIds && !this._matchIds.has(item.Id) && !this._hasMatchDescendant(item)) {
+      return '';
+    }
+
+    // Depth filter
+    if (this._depthFilter) {
+      var df = this._depthFilter;
+      var passDepth = false;
+      if (df === '0') passDepth = depth === 0;
+      else if (df === '0-1') passDepth = depth <= 1;
+      else if (df === '0-2') passDepth = depth <= 2;
+      else if (df === '3+') passDepth = depth >= 3;
+      else passDepth = true;
+      if (!passDepth && !this._hasFilterDescendant(item, depth)) return '';
+    }
+
+    // Status filter
+    if (this._statusFilter) {
+      var sf = this._statusFilter;
+      var passStatus = true;
+      if (sf === 'enabled') passStatus = item.IsEnabled !== false;
+      else if (sf === 'disabled') passStatus = item.IsEnabled === false;
+      else if (sf === 'new') passStatus = !!item.IsNew;
+      else if (sf === 'header') passStatus = item.NavUrl === '#';
+      if (!passStatus && !this._hasStatusDescendant(item)) return '';
+    }
+
+    var rowClasses = 'piadmin-tree-row';
+    if (isSelected) rowClasses += ' selected';
+    if (isDisabled) rowClasses += ' disabled-item';
+    // Dirty-state indicator
+    var dirtyType = typeof changeTracker !== 'undefined' ? changeTracker.getChangeType(item.Id) : null;
+    if (dirtyType === 'update') rowClasses += ' piadmin-tree-row--dirty-update';
+    else if (dirtyType === 'create') rowClasses += ' piadmin-tree-row--dirty-create';
+    else if (dirtyType === 'move') rowClasses += ' piadmin-tree-row--dirty-move';
+
+    var chevronClass = 'piadmin-tree-expand';
+    if (hasChildren) chevronClass += ' has-children';
+    if (hasChildren && isExpanded) chevronClass += ' expanded';
+
+    var badges = '';
+    if (item.IsNew) badges += '<span class="piadmin-badge piadmin-badge-new">NEW</span>';
+    if (isDisabled) badges += '<span class="piadmin-badge piadmin-badge-disabled">OFF</span>';
+    if (item.Audience) badges += '<span class="piadmin-badge piadmin-badge-audience">' + esc(item.Audience) + '</span>';
+    if (item.NavUrl === '#') badges += '<span class="piadmin-badge piadmin-badge-header">Header</span>';
+
+    var titleHtml = this._filter ? this._highlight(item.Title, this._filter) : esc(item.Title);
+
+    var html = '<div class="piadmin-tree-node" data-id="' + item.Id + '">' +
+      '<div class="' + rowClasses + '" data-id="' + item.Id + '" data-depth="' + depth + '" ' +
+        'draggable="true" title="' + esc(item.Title) + '">' +
+        // Name column
+        '<div class="piadmin-tree-col-name" style="padding-left:' + padLeft + 'px;">' +
+          '<input type="checkbox" class="piadmin-tree-check" data-id="' + item.Id + '"' + (isChecked ? ' checked' : '') + ' tabindex="-1">' +
+          '<button class="' + chevronClass + '" data-id="' + item.Id + '">&#9654;</button>' +
+          depthPill +
+          '<span class="piadmin-tree-icon">' + (item.Icon ? esc(item.Icon) : (hasChildren ? '&#128193;' : '&#128279;')) + '</span>' +
+          '<span class="piadmin-tree-title">' + titleHtml + '</span>' +
+        '</div>' +
+        // URL column
+        '<div class="piadmin-tree-col-url"><span class="piadmin-tree-url" title="' + esc(item.NavUrl) + '">' + esc(truncUrl(item.NavUrl)) + '</span></div>' +
+        // Status column
+        '<div class="piadmin-tree-col-status"><span class="piadmin-tree-badges">' + badges + '</span></div>' +
+        // Actions column
+        '<div class="piadmin-tree-col-actions">' +
+          '<button class="piadmin-tree-action" data-action="add-child" data-id="' + item.Id + '" title="Add child">+</button>' +
+          '<button class="piadmin-tree-action" data-action="edit" data-id="' + item.Id + '" title="Edit">&#9998;</button>' +
+          '<button class="piadmin-tree-action danger" data-action="delete" data-id="' + item.Id + '" title="Delete">&times;</button>' +
+        '</div>' +
+      '</div>';
+
+    if (hasChildren) {
+      html += '<div class="piadmin-tree-children' + (isExpanded ? '' : ' collapsed') + '">';
+      for (var c = 0; c < item._children.length; c++) {
+        html += this._renderNode(item._children[c], depth + 1);
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  };
+
+  TreeManager.prototype._hasMatchDescendant = function(item) {
+    if (!item._children) return false;
+    for (var i = 0; i < item._children.length; i++) {
+      if (this._matchIds.has(item._children[i].Id)) return true;
+      if (this._hasMatchDescendant(item._children[i])) return true;
+    }
+    return false;
+  };
+
+  // Depth filter: check if any descendant passes at the required depth
+  TreeManager.prototype._hasFilterDescendant = function(item, currentDepth) {
+    if (!item._children) return false;
+    var df = this._depthFilter;
+    for (var i = 0; i < item._children.length; i++) {
+      var cd = currentDepth + 1;
+      var pass = false;
+      if (df === '0') pass = cd === 0;
+      else if (df === '0-1') pass = cd <= 1;
+      else if (df === '0-2') pass = cd <= 2;
+      else if (df === '3+') pass = cd >= 3;
+      if (pass) return true;
+      if (this._hasFilterDescendant(item._children[i], cd)) return true;
+    }
+    return false;
+  };
+
+  // Status filter: check if any descendant passes the status filter
+  TreeManager.prototype._hasStatusDescendant = function(item) {
+    if (!item._children) return false;
+    var sf = this._statusFilter;
+    for (var i = 0; i < item._children.length; i++) {
+      var c = item._children[i];
+      var pass = true;
+      if (sf === 'enabled') pass = c.IsEnabled !== false;
+      else if (sf === 'disabled') pass = c.IsEnabled === false;
+      else if (sf === 'new') pass = !!c.IsNew;
+      else if (sf === 'header') pass = c.NavUrl === '#';
+      if (pass) return true;
+      if (this._hasStatusDescendant(c)) return true;
+    }
+    return false;
+  };
+
+  // Set status/depth filters
+  TreeManager.prototype.setStatusFilter = function(val) {
+    this._statusFilter = val;
+    this.render();
+    this._updateVisibleCount();
+  };
+
+  TreeManager.prototype.setDepthFilter = function(val) {
+    this._depthFilter = val;
+    this.render();
+    this._updateVisibleCount();
+  };
+
+  // Count visible items and update counter
+  TreeManager.prototype._updateVisibleCount = function() {
+    var shown = this._el.querySelectorAll('.piadmin-tree-row').length;
+    var total = this._items.length;
+    var el = document.getElementById('piadminItemCount');
+    if (el) {
+      if (shown < total) el.textContent = shown + ' of ' + total + ' items';
+      else el.textContent = total + ' items';
+    }
+  };
+
+  // Sort
+  TreeManager.prototype.sortBy = function(col, dir) {
+    this._sortCol = col;
+    this._sortDir = dir;
+    // Re-sort children at each level
+    this._sortTree(this._tree);
+    this.render();
+  };
+
+  TreeManager.prototype._sortTree = function(nodes) {
+    var col = this._sortCol;
+    var dir = this._sortDir === 'desc' ? -1 : 1;
+    if (!col) return;
+    nodes.sort(function(a, b) {
+      var va, vb;
+      if (col === 'name') { va = (a.Title || '').toLowerCase(); vb = (b.Title || '').toLowerCase(); }
+      else if (col === 'url') { va = (a.NavUrl || '').toLowerCase(); vb = (b.NavUrl || '').toLowerCase(); }
+      else if (col === 'status') {
+        va = (a.IsEnabled === false ? 'z' : 'a') + (a.IsNew ? 'a' : 'z');
+        vb = (b.IsEnabled === false ? 'z' : 'a') + (b.IsNew ? 'a' : 'z');
+      }
+      else return 0;
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i]._children && nodes[i]._children.length) this._sortTree(nodes[i]._children);
+    }
+  };
+
+  TreeManager.prototype._highlight = function(text, query) {
+    var lower = text.toLowerCase();
+    var qLower = query.toLowerCase();
+    var idx = lower.indexOf(qLower);
+    if (idx === -1) return esc(text);
+    return esc(text.substring(0, idx)) + '<mark>' + esc(text.substring(idx, idx + query.length)) + '</mark>' + esc(text.substring(idx + query.length));
+  };
+
+  TreeManager.prototype.filterByText = function(query) {
+    this._filter = query;
+    if (!query) {
+      this._matchIds = null;
+      this.render();
+      this._updateVisibleCount();
+      return;
+    }
+    var q = query.toLowerCase();
+    this._matchIds = new Set();
+    for (var i = 0; i < this._items.length; i++) {
+      if (this._items[i].Title.toLowerCase().indexOf(q) !== -1) {
+        this._matchIds.add(this._items[i].Id);
+        // Expand ancestors
+        var pid = this._items[i].ParentId0;
+        while (pid && pid !== 0 && this._map[pid]) {
+          this._expanded[pid] = true;
+          pid = this._map[pid].ParentId0;
+        }
+      }
+    }
+    this.render();
+    this._updateVisibleCount();
+  };
+
+  TreeManager.prototype._bindEvents = function() {
+    var self = this;
+    this._el.addEventListener('click', function(e) {
+      var target = e.target;
+
+      // Expand/collapse
+      if (target.closest('.piadmin-tree-expand')) {
+        var btn = target.closest('.piadmin-tree-expand');
+        var id = parseInt(btn.getAttribute('data-id'));
+        self._toggleExpand(id);
+        e.stopPropagation();
+        return;
+      }
+
+      // Checkbox
+      if (target.classList.contains('piadmin-tree-check')) {
+        var cid = parseInt(target.getAttribute('data-id'));
+        self._checked[cid] = target.checked;
+        self._updateBulkButton();
+        e.stopPropagation();
+        return;
+      }
+
+      // Action buttons
+      var actionBtn = target.closest('.piadmin-tree-action');
+      if (actionBtn) {
+        var action = actionBtn.getAttribute('data-action');
+        var aid = parseInt(actionBtn.getAttribute('data-id'));
+        if (action === 'edit' && self._opts.onEdit) self._opts.onEdit(self._map[aid]);
+        if (action === 'delete' && self._opts.onDelete) self._opts.onDelete(self._map[aid]);
+        if (action === 'add-child' && self._opts.onAddChild) self._opts.onAddChild(self._map[aid]);
+        e.stopPropagation();
+        return;
+      }
+
+      // Row click = select
+      var row = target.closest('.piadmin-tree-row');
+      if (row) {
+        var rid = parseInt(row.getAttribute('data-id'));
+        self._selectItem(rid);
+      }
+    });
+
+    // Drag and drop
+    this._initDragDrop();
+  };
+
+  TreeManager.prototype._toggleExpand = function(id) {
+    this._expanded[id] = !this._expanded[id];
+    try { sessionStorage.setItem('piadmin_expanded', JSON.stringify(this._expanded)); } catch(e) {}
+    var node = this._el.querySelector('.piadmin-tree-node[data-id="' + id + '"]');
+    if (!node) return;
+    var chevron = node.querySelector(':scope > .piadmin-tree-row .piadmin-tree-expand');
+    var children = node.querySelector(':scope > .piadmin-tree-children');
+    if (chevron) chevron.classList.toggle('expanded', this._expanded[id]);
+    if (children) children.classList.toggle('collapsed', !this._expanded[id]);
+  };
+
+  TreeManager.prototype.expandAll = function() {
+    for (var id in this._map) { this._expanded[id] = true; }
+    try { sessionStorage.setItem('piadmin_expanded', JSON.stringify(this._expanded)); } catch(e) {}
+    this.render();
+  };
+
+  TreeManager.prototype.collapseAll = function() {
+    for (var id in this._map) { this._expanded[id] = false; }
+    try { sessionStorage.setItem('piadmin_expanded', JSON.stringify(this._expanded)); } catch(e) {}
+    this.render();
+  };
+
+  TreeManager.prototype._selectItem = function(id) {
+    // Deselect old
+    var old = this._el.querySelector('.piadmin-tree-row.selected');
+    if (old) old.classList.remove('selected');
+    this._selectedId = id;
+    var row = this._el.querySelector('.piadmin-tree-row[data-id="' + id + '"]');
+    if (row) row.classList.add('selected');
+    // Update breadcrumb
+    this._updateBreadcrumb(id);
+    if (this._opts.onSelect) this._opts.onSelect(this._map[id]);
+  };
+
+  TreeManager.prototype._updateBreadcrumb = function(id) {
+    var bc = document.getElementById('piadminBreadcrumb');
+    var path = this.getPath(id);
+    if (path.length <= 1) { bc.classList.remove('visible'); return; }
+    var html = '';
+    for (var i = 0; i < path.length; i++) {
+      if (i > 0) html += '<span class="piadmin-breadcrumb-sep">&#8250;</span>';
+      if (i === path.length - 1) {
+        html += '<span class="piadmin-breadcrumb-current">' + esc(path[i].Title) + '</span>';
+      } else {
+        html += '<span class="piadmin-breadcrumb-seg" data-id="' + path[i].Id + '">' + esc(path[i].Title) + '</span>';
+      }
+    }
+    bc.innerHTML = html;
+    bc.classList.add('visible');
+  };
+
+  TreeManager.prototype.getPath = function(id) {
+    var path = [];
+    var item = this._map[id];
+    while (item) {
+      path.unshift(item);
+      item = (item.ParentId0 && item.ParentId0 !== 0) ? this._map[item.ParentId0] : null;
+    }
+    return path;
+  };
+
+  TreeManager.prototype.getCheckedIds = function() {
+    var ids = [];
+    for (var id in this._checked) {
+      if (this._checked[id]) ids.push(parseInt(id));
+    }
+    return ids;
+  };
+
+  TreeManager.prototype.clearChecks = function() {
+    this._checked = {};
+    var boxes = this._el.querySelectorAll('.piadmin-tree-check:checked');
+    for (var i = 0; i < boxes.length; i++) boxes[i].checked = false;
+    this._updateBulkButton();
+  };
+
+  TreeManager.prototype._updateBulkButton = function() {
+    var btn = document.getElementById('piadminBulkApply');
+    btn.disabled = this.getCheckedIds().length === 0;
+  };
+
+  TreeManager.prototype.getDescendantIds = function(id) {
+    var ids = [];
+    var item = this._map[id];
+    if (!item || !item._children) return ids;
+    for (var i = 0; i < item._children.length; i++) {
+      ids.push(item._children[i].Id);
+      ids = ids.concat(this.getDescendantIds(item._children[i].Id));
+    }
+    return ids;
+  };
+
+  // ── Drag & Drop ──
+  TreeManager.prototype._initDragDrop = function() {
+    var self = this;
+    var dragId = null;
+    var dragDescendants = new Set();
+
+    this._el.addEventListener('dragstart', function(e) {
+      var row = e.target.closest('.piadmin-tree-row');
+      if (!row) return;
+      dragId = parseInt(row.getAttribute('data-id'));
+      dragDescendants = new Set(self.getDescendantIds(dragId));
+      dragDescendants.add(dragId);
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(dragId));
+    });
+
+    this._el.addEventListener('dragover', function(e) {
+      var row = e.target.closest('.piadmin-tree-row');
+      if (!row) return;
+      var targetId = parseInt(row.getAttribute('data-id'));
+      if (dragDescendants.has(targetId)) return; // can't drop on self/descendants
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      // Clear old indicators
+      var allRows = self._el.querySelectorAll('.piadmin-tree-row');
+      for (var i = 0; i < allRows.length; i++) {
+        allRows[i].classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
+      }
+
+      // Determine drop position
+      var rect = row.getBoundingClientRect();
+      var y = e.clientY - rect.top;
+      var pct = y / rect.height;
+      if (pct < 0.25) row.classList.add('drag-over-top');
+      else if (pct > 0.75) row.classList.add('drag-over-bottom');
+      else row.classList.add('drag-over-child');
+    });
+
+    this._el.addEventListener('dragleave', function(e) {
+      var row = e.target.closest('.piadmin-tree-row');
+      if (row) row.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
+    });
+
+    this._el.addEventListener('drop', function(e) {
+      e.preventDefault();
+      var row = e.target.closest('.piadmin-tree-row');
+      if (!row || !dragId) return;
+      var targetId = parseInt(row.getAttribute('data-id'));
+      if (dragDescendants.has(targetId)) return;
+
+      var rect = row.getBoundingClientRect();
+      var y = e.clientY - rect.top;
+      var pct = y / rect.height;
+      var position = pct < 0.25 ? 'before' : (pct > 0.75 ? 'after' : 'child');
+
+      if (self._opts.onDrop) self._opts.onDrop(dragId, targetId, position);
+
+      // Cleanup
+      var allRows = self._el.querySelectorAll('.piadmin-tree-row');
+      for (var i = 0; i < allRows.length; i++) {
+        allRows[i].classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child', 'dragging');
+      }
+      dragId = null;
+      dragDescendants = new Set();
+    });
+
+    this._el.addEventListener('dragend', function() {
+      var allRows = self._el.querySelectorAll('.piadmin-tree-row');
+      for (var i = 0; i < allRows.length; i++) {
+        allRows[i].classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child', 'dragging');
+      }
+      dragId = null;
+      dragDescendants = new Set();
+    });
+  };
+
+  // ═══════════════════════════════════════════════════
+  // ItemEditor — Edit Panel
+  // ═══════════════════════════════════════════════════
+  function ItemEditor(opts) {
+    this._mode = 'create';
+    this._item = null;
+    this._allItems = [];
+    this._parentId = null;
+    this._opts = opts;
+  }
+
+  ItemEditor.prototype.open = function(mode, item, allItems, parentId) {
+    this._mode = mode;
+    this._item = item;
+    this._allItems = allItems;
+    this._parentId = parentId || null;
+
+    document.getElementById('piadminPanelTitle').textContent = mode === 'create' ? 'Add Item' : 'Edit Item';
+
+    var body = document.getElementById('piadminPanelBody');
+    var parentOptions = '<option value="0">Root (no parent)</option>';
+    var editId = item ? item.Id : null;
+    var flatItems = this._flattenTree(allItems, '', editId);
+    for (var i = 0; i < flatItems.length; i++) {
+      var fi = flatItems[i];
+      var sel = '';
+      if (mode === 'create' && this._parentId && fi.id === this._parentId) sel = ' selected';
+      else if (mode === 'edit' && item && item.ParentId0 === fi.id) sel = ' selected';
+      parentOptions += '<option value="' + fi.id + '"' + sel + '>' + esc(fi.label) + '</option>';
+    }
+
+    var val = item || { Title:'', NavUrl:'', Icon:'', SortOrder:0, IsNew:false, IsEnabled:true, OpenInNewWindow:true, Audience:'' };
+
+    // Check if this item has pending changes (for baseline hints)
+    var bl = null, isDirtyItem = false;
+    if (mode === 'edit' && item && changeTracker._changes[item.Id]) {
+      bl = changeTracker._baselineMap[item.Id] || null;
+      isDirtyItem = !!bl;
+    }
+
+    // Helper: baseline hint for a text/number field
+    function baselineHint(field, blVal) {
+      if (!isDirtyItem || !bl) return '';
+      var curVal = val[field];
+      var changed = false;
+      if (typeof blVal === 'boolean' || typeof curVal === 'boolean') {
+        changed = (!!blVal) !== (!!curVal);
+      } else if (field === 'ParentId0' || field === 'SortOrder') {
+        changed = (blVal || 0) !== (curVal || 0);
+      } else {
+        changed = (blVal || '') !== (curVal || '');
+      }
+      if (!changed) return '';
+      var display = DiffEngine.formatValue(field, blVal, changeTracker._baselineMap);
+      return '<div class="piadmin-field-baseline">' + esc(display) + '</div>';
+    }
+    function dirtyClass(field) {
+      if (!isDirtyItem || !bl) return 'piadmin-field';
+      var curVal = val[field], blVal = bl[field];
+      var changed = false;
+      if (typeof blVal === 'boolean' || typeof curVal === 'boolean') {
+        changed = (!!blVal) !== (!!curVal);
+      } else if (field === 'ParentId0' || field === 'SortOrder') {
+        changed = (blVal || 0) !== (curVal || 0);
+      } else {
+        changed = (blVal || '') !== (curVal || '');
+      }
+      return changed ? 'piadmin-field piadmin-field--dirty' : 'piadmin-field';
+    }
+
+    body.innerHTML =
+      '<div class="' + dirtyClass('Title') + '"><label>Title *</label>' +
+        '<input type="text" id="piadminFieldTitle" value="' + esc(val.Title) + '" placeholder="Menu item title">' +
+        baselineHint('Title', bl ? bl.Title : null) + '</div>' +
+      '<div class="' + dirtyClass('NavUrl') + '"><label>URL</label>' +
+        '<input type="url" id="piadminFieldUrl" value="' + esc(val.NavUrl === '#' ? '' : val.NavUrl) + '" placeholder="https://... or # for header">' +
+        '<div class="piadmin-field-hint">Use # for parent/header items with no link</div>' +
+        baselineHint('NavUrl', bl ? bl.NavUrl : null) + '</div>' +
+      '<div class="' + dirtyClass('ParentId0') + '"><label>Parent</label>' +
+        '<select id="piadminFieldParent">' + parentOptions + '</select>' +
+        baselineHint('ParentId0', bl ? bl.ParentId0 : null) + '</div>' +
+      '<div class="' + dirtyClass('Icon') + '"><label>Icon</label>' +
+        '<input type="text" id="piadminFieldIcon" value="' + esc(val.Icon) + '" placeholder="Emoji or text">' +
+        '<div class="piadmin-field-hint">e.g. &#128640; &#9733; &#128200;</div>' +
+        baselineHint('Icon', bl ? bl.Icon : null) + '</div>' +
+      '<div class="' + dirtyClass('SortOrder') + '"><label>Sort Order</label>' +
+        '<input type="number" id="piadminFieldSort" value="' + (val.SortOrder || 0) + '">' +
+        baselineHint('SortOrder', bl ? bl.SortOrder : null) + '</div>' +
+      '<div class="' + dirtyClass('Audience') + '"><label>Audience</label>' +
+        '<input type="text" id="piadminFieldAudience" value="' + esc(val.Audience) + '" placeholder="Group names (comma separated)">' +
+        baselineHint('Audience', bl ? bl.Audience : null) + '</div>' +
+      '<div class="piadmin-field">' +
+        '<label class="piadmin-toggle"><input type="checkbox" id="piadminFieldNew"' + (val.IsNew ? ' checked' : '') + '>' +
+        '<span class="piadmin-toggle-track"><span class="piadmin-toggle-thumb"></span></span>' +
+        '<span class="piadmin-toggle-label">Show NEW badge</span></label>' +
+        baselineHint('IsNew', bl ? bl.IsNew : null) + '</div>' +
+      '<div class="piadmin-field">' +
+        '<label class="piadmin-toggle"><input type="checkbox" id="piadminFieldEnabled"' + (val.IsEnabled !== false ? ' checked' : '') + '>' +
+        '<span class="piadmin-toggle-track"><span class="piadmin-toggle-thumb"></span></span>' +
+        '<span class="piadmin-toggle-label">Enabled</span></label>' +
+        baselineHint('IsEnabled', bl ? bl.IsEnabled : null) + '</div>' +
+      '<div class="piadmin-field">' +
+        '<label class="piadmin-toggle"><input type="checkbox" id="piadminFieldNewWindow"' + (val.OpenInNewWindow !== false ? ' checked' : '') + '>' +
+        '<span class="piadmin-toggle-track"><span class="piadmin-toggle-thumb"></span></span>' +
+        '<span class="piadmin-toggle-label">Open in new window</span></label>' +
+        baselineHint('OpenInNewWindow', bl ? bl.OpenInNewWindow : null) + '</div>' +
+      (isDirtyItem ? '<button class="piadmin-panel-revert" id="piadminPanelRevert" data-revert-id="' + item.Id + '">Revert to Original</button>' : '');
+
+    document.getElementById('piadminPanel').classList.add('open');
+    document.getElementById('piadminPanelOverlay').classList.add('visible');
+    setTimeout(function() { document.getElementById('piadminFieldTitle').focus(); }, 300);
+
+    // Wire revert button inside panel
+    var panelRevertBtn = document.getElementById('piadminPanelRevert');
+    if (panelRevertBtn) {
+      panelRevertBtn.addEventListener('click', function() {
+        var rid = this.getAttribute('data-revert-id');
+        changeTracker.revertItem(rid);
+        editor.close();
+        refreshTreeFromPending();
+        showToast('Reverted "' + (bl ? bl.Title : 'item') + '" to original', 'info');
+      });
+    }
+  };
+
+  ItemEditor.prototype._flattenTree = function(items, prefix, excludeId) {
+    // Build tree from flat items, then flatten with indent
+    var map = {}, roots = [], result = [];
+    for (var i = 0; i < items.length; i++) {
+      map[items[i].Id] = { item: items[i], children: [] };
+    }
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var pid = it.ParentId0;
+      if (pid && pid !== 0 && map[pid]) {
+        map[pid].children.push(map[it.Id]);
+      } else {
+        roots.push(map[it.Id]);
+      }
+    }
+    var walk = function(nodes, depth) {
+      for (var n = 0; n < nodes.length; n++) {
+        var node = nodes[n];
+        if (excludeId && node.item.Id === excludeId) continue;
+        var indent = '';
+        for (var d = 0; d < depth; d++) indent += '\u00A0\u00A0\u00A0\u00A0';
+        result.push({ id: node.item.Id, label: indent + node.item.Title });
+        if (node.children.length) walk(node.children, depth + 1);
+      }
+    };
+    walk(roots, 0);
+    return result;
+  };
+
+  ItemEditor.prototype.close = function() {
+    document.getElementById('piadminPanel').classList.remove('open');
+    document.getElementById('piadminPanelOverlay').classList.remove('visible');
+  };
+
+  ItemEditor.prototype.getValues = function() {
+    var title = document.getElementById('piadminFieldTitle').value.trim();
+    if (!title) return null;
+    var url = document.getElementById('piadminFieldUrl').value.trim() || '#';
+    var parentId = parseInt(document.getElementById('piadminFieldParent').value) || 0;
+    return {
+      Title: title,
+      NavUrl: url,
+      ParentId0: parentId,
+      SortOrder: parseInt(document.getElementById('piadminFieldSort').value) || 0,
+      Icon: document.getElementById('piadminFieldIcon').value.trim(),
+      IsNew: document.getElementById('piadminFieldNew').checked,
+      IsEnabled: document.getElementById('piadminFieldEnabled').checked,
+      OpenInNewWindow: document.getElementById('piadminFieldNewWindow').checked,
+      Audience: document.getElementById('piadminFieldAudience').value.trim()
+    };
+  };
+
+  // ═══════════════════════════════════════════════════
+  // Preview Renderer
+  // ═══════════════════════════════════════════════════
+  function renderPreview(tree, containerEl) {
+    var html = '';
+    var walk = function(nodes, depth) {
+      for (var i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        var cls = 'piadmin-preview-item depth-' + depth;
+        if (n.IsEnabled === false) cls += ' piadmin-preview-disabled';
+        var pad = depth * 16;
+        var hasUrl = n.NavUrl && n.NavUrl !== '#' && n.NavUrl !== '';
+        var tag = hasUrl ? 'a' : 'div';
+        html += '<' + tag + ' class="' + cls + '" style="padding-left:' + (8 + pad) + 'px;"';
+        if (hasUrl) html += ' href="' + esc(n.NavUrl) + '" target="_blank" rel="noopener"';
+        html += '>';
+        if (n.Icon) html += '<span>' + esc(n.Icon) + '</span>';
+        html += '<span>' + esc(n.Title) + '</span>';
+        if (n.IsNew) html += '<span class="new-dot"></span>';
+        html += '</' + tag + '>';
+        if (n._children && n._children.length && n.IsEnabled !== false) {
+          walk(n._children, depth + 1);
+        }
+      }
+    };
+    walk(tree, 0);
+    containerEl.innerHTML = html || '<div style="color:var(--text-tertiary);padding:20px;text-align:center;">No items</div>';
+  }
+
+  // ═══════════════════════════════════════════════════
+  // AdminApp — Orchestrator
+  // ═══════════════════════════════════════════════════
+  var api = new ApiService(siteUrl);
+  var changeTracker = new ChangeTracker();
+  var treeEl = document.getElementById('piadminTreeBody');
+  var treeContainer = document.getElementById('piadminTree');
+  var tree, editor;
+
+  // Theme detection & toggle (light / dark / high-contrast)
+  var root = document.getElementById('piadminRoot');
+  var themeBtn = document.getElementById('piadminThemeToggle');
+  var themes = ['light', 'dark', 'hc'];
+  var themeIcons = { light: '\u2600', dark: '\u263D', hc: '\u25D1' }; // ☀ ☽ ◑
+
+  function applyTheme(name) {
+    root.classList.remove('piadmin-dark', 'piadmin-hc');
+    if (name === 'dark') root.classList.add('piadmin-dark');
+    else if (name === 'hc') root.classList.add('piadmin-hc');
+    themeBtn.textContent = themeIcons[name] || themeIcons.light;
+    themeBtn.title = 'Theme: ' + name.charAt(0).toUpperCase() + name.slice(1) + ' (click to switch)';
+  }
+
+  function detectTheme() {
+    var theme = 'light';
+    if (window.__themeState__ && window.__themeState__.theme) {
+      var bg = window.__themeState__.theme.bodyBackground || '';
+      if (bg) {
+        var c = bg.replace('#','');
+        if (c.length === 6) {
+          var r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+          if (r*0.299 + g*0.587 + b*0.114 < 128) theme = 'dark';
+        }
+      }
+    }
+    if (theme === 'light' && window.matchMedia) {
+      if (window.matchMedia('(prefers-contrast: more)').matches || window.matchMedia('(forced-colors: active)').matches) theme = 'hc';
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark';
+    }
+    try { var saved = localStorage.getItem('piadmin_theme'); if (saved && themes.indexOf(saved) > -1) theme = saved; } catch(e) {}
+    applyTheme(theme);
+  }
+  detectTheme();
+
+  themeBtn.addEventListener('click', function() {
+    var current = root.classList.contains('piadmin-hc') ? 'hc' : root.classList.contains('piadmin-dark') ? 'dark' : 'light';
+    var next = themes[(themes.indexOf(current) + 1) % themes.length];
+    applyTheme(next);
+    try { localStorage.setItem('piadmin_theme', next); } catch(e) {}
+  });
+
+  // Section tabs
+  var tabs = root.querySelectorAll('.piadmin-tab');
+  var sections = root.querySelectorAll('.piadmin-section');
+  for (var t = 0; t < tabs.length; t++) {
+    tabs[t].addEventListener('click', function() {
+      var sec = this.getAttribute('data-section');
+      for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.toggle('active', tabs[i] === this);
+        tabs[i].setAttribute('aria-selected', tabs[i] === this ? 'true' : 'false');
+      }
+      for (var i = 0; i < sections.length; i++) {
+        sections[i].classList.toggle('active', sections[i].getAttribute('data-section-content') === sec);
+      }
+    });
+  }
+
+  // Initialize tree
+  tree = new TreeManager(treeEl, {
+    onEdit: function(item) { editor.open('edit', item, changeTracker.getPendingItems()); },
+    onDelete: function(item) { confirmDelete(item); },
+    onAddChild: function(parent) { editor.open('create', null, changeTracker.getPendingItems(), parent.Id); },
+    onSelect: function(item) { /* breadcrumb updates automatically */ },
+    onDrop: function(dragId, targetId, position) { handleDrop(dragId, targetId, position); }
+  });
+
+  editor = new ItemEditor({});
+
+  // Load data
+  function loadData() {
+    var loadingEl = document.getElementById('piadminLoading');
+    if (loadingEl) loadingEl.style.display = '';
+    else treeEl.innerHTML = '<div class="piadmin-loading" id="piadminLoading"><div class="piadmin-spinner"></div><span>Loading...</span></div>';
+    api.getItems().then(function(items) {
+      var le = document.getElementById('piadminLoading');
+      if (le) le.style.display = 'none';
+      changeTracker.init(items);
+      tree.loadData(items);
+      document.getElementById('piadminNavCount').textContent = items.length;
+      document.getElementById('piadminItemCount').textContent = items.length + ' items';
+      renderPreview(tree._tree, document.querySelector('.piadmin-preview-nav'));
+      updateDirtyUI();
+
+      // Check for session recovery data
+      var recovery = getSessionRecovery();
+      if (recovery && recovery.items && recovery.items.length > 0) {
+        // Simple check: if recovery data differs from freshly loaded items
+        var serverIds = items.map(function(it) { return it.Id; }).sort().join(',');
+        var recoveryIds = recovery.items.map(function(it) { return it.Id; }).sort().join(',');
+        if (serverIds !== recoveryIds || recovery.items.length !== items.length) {
+          // Show recovery dialog
+          var dialog = document.getElementById('piadminDialog');
+          var ago = Math.round((Date.now() - recovery.timestamp) / 60000);
+          dialog.innerHTML = '<h3>Recover Unsaved Changes?</h3>' +
+            '<p>Found unsaved changes from <strong>' + ago + ' minute' + (ago !== 1 ? 's' : '') + ' ago</strong> ' +
+            '(' + recovery.items.length + ' items). Restore them?</p>' +
+            '<div class="piadmin-dialog-actions">' +
+            '<button class="piadmin-btn" id="piadminRecoveryDiscard">Discard</button>' +
+            '<button class="piadmin-btn-primary" id="piadminRecoveryRestore">Restore</button></div>';
+          document.getElementById('piadminDialogBackdrop').classList.add('visible');
+          document.getElementById('piadminRecoveryDiscard').onclick = function() {
+            document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+            clearSessionRecovery();
+          };
+          document.getElementById('piadminRecoveryRestore').onclick = function() {
+            document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+            // Apply recovered items as pending by comparing vs baseline
+            var recMap = {};
+            for (var r = 0; r < recovery.items.length; r++) recMap[recovery.items[r].Id] = recovery.items[r];
+            var KEYS = DiffEngine.TRACKED_FIELDS;
+            // Detect updates
+            for (var r = 0; r < recovery.items.length; r++) {
+              var ri = recovery.items[r];
+              var bi = changeTracker._baselineMap[ri.Id];
+              if (!bi) continue; // skip creates from recovery (complex)
+              var diff = {};
+              var hasDiff = false;
+              for (var k = 0; k < KEYS.length; k++) {
+                var key = KEYS[k];
+                if (!changeTracker._valuesEqual(key, ri[key], bi[key])) {
+                  diff[key] = ri[key]; hasDiff = true;
+                }
+              }
+              if (hasDiff) changeTracker.recordUpdate(ri.Id, diff);
+            }
+            refreshTreeFromPending();
+            clearSessionRecovery();
+            showToast('Restored ' + recovery.items.length + ' items from session backup', 'info');
+          };
+        } else {
+          clearSessionRecovery();
+        }
+      }
+    }).catch(function(err) {
+      var le = document.getElementById('piadminLoading');
+      if (le) le.style.display = 'none';
+      showToast('Failed to load: ' + err.message, 'error');
+    });
+  }
+
+  // Refresh tree from pending changes (no API call)
+  function refreshTreeFromPending() {
+    tree.loadData(changeTracker.getPendingItems());
+    renderPreview(tree._tree, document.querySelector('.piadmin-preview-nav'));
+    updateDirtyUI();
+  }
+
+  // Update all dirty-state UI elements
+  function updateDirtyUI() {
+    var dirty = changeTracker.isDirty();
+    var count = changeTracker.getChangeCount();
+    var display = dirty ? '' : 'none';
+
+    // Toolbar buttons
+    document.getElementById('piadminSaveAll').style.display = display;
+    document.getElementById('piadminDiscardAll').style.display = display;
+    document.getElementById('piadminUndoBtn').style.display = changeTracker.canUndo() || dirty ? '' : 'none';
+    document.getElementById('piadminRedoBtn').style.display = changeTracker.canRedo() || dirty ? '' : 'none';
+    document.getElementById('piadminEditModeSep').style.display = display;
+    document.getElementById('piadminSaveAll').disabled = !dirty;
+    document.getElementById('piadminUndoBtn').disabled = !changeTracker.canUndo();
+    document.getElementById('piadminRedoBtn').disabled = !changeTracker.canRedo();
+
+    // Dirty badge
+    var badge = document.getElementById('piadminDirtyBadge');
+    badge.style.display = dirty ? 'inline-flex' : 'none';
+    document.getElementById('piadminDirtyCount').textContent = count;
+
+    // Nav tab badge
+    var navCount = document.getElementById('piadminNavCount');
+    navCount.textContent = changeTracker.getPendingItems().length + (dirty ? '*' : '');
+
+    // Item count
+    var itemCountEl = document.getElementById('piadminItemCount');
+    itemCountEl.textContent = changeTracker.getPendingItems().length + ' items' + (dirty ? ' (' + count + ' unsaved)' : '');
+
+    // Changes summary panel
+    var changesSection = document.getElementById('piadminChangesSection');
+    var changesList = document.getElementById('piadminChangesList');
+    var changesCount = document.getElementById('piadminChangesCount');
+    if (dirty) {
+      changesSection.style.display = '';
+      changesCount.textContent = count;
+      var changes = changeTracker.getChangeList();
+      var blMap = changeTracker._baselineMap;
+      var pMap = changeTracker.getPendingMap();
+      var html = '';
+      for (var i = 0; i < changes.length; i++) {
+        var c = changes[i];
+        var iconClass = 'piadmin-change-icon piadmin-change-icon--' + c.type;
+        var icon = c.type === 'create' ? '+' : c.type === 'delete' ? '&times;' : c.type === 'move' ? '&#8618;' : '&#9998;';
+        // Compute field-level diffs for update/move
+        var diffHtml = '';
+        if ((c.type === 'update' || c.type === 'move') && blMap[c.id] && pMap[c.id]) {
+          var diffs = DiffEngine.diffItem(blMap[c.id], pMap[c.id], blMap, pMap);
+          if (diffs.length) diffHtml = DiffEngine.renderFieldDiff(diffs);
+        } else if (c.type === 'delete' && blMap[c.id]) {
+          diffHtml = '<div class="piadmin-diff-row"><span class="piadmin-diff-label" style="color:var(--danger);">Will be permanently deleted on save</span></div>';
+        }
+        html += '<div class="piadmin-change-entry" data-change-id="' + c.id + '">' +
+          '<span class="' + iconClass + '">' + icon + '</span>' +
+          '<span class="piadmin-change-desc" title="' + esc(c.description) + '">' +
+            '<strong>' + esc(c.title) + '</strong> <small>' + esc(c.description) + '</small></span>' +
+          '<button class="piadmin-revert-btn" data-revert-id="' + c.id + '" title="Revert to original">Revert</button>' +
+          (diffHtml ? '<button class="piadmin-change-expand" data-expand-id="' + c.id + '" aria-expanded="false" title="Show details">&#9654;</button>' : '') +
+          '</div>';
+        if (diffHtml) {
+          html += '<div class="piadmin-diff-section" id="piadminDiff_' + c.id + '" style="display:none;">' + diffHtml + '</div>';
+        }
+      }
+      changesList.innerHTML = html;
+    } else {
+      changesSection.style.display = 'none';
+    }
+  }
+
+  // Changes panel click handler: revert, expand, or scroll to item
+  document.getElementById('piadminChangesList').addEventListener('click', function(e) {
+    // Revert button
+    var revertBtn = e.target.closest('.piadmin-revert-btn');
+    if (revertBtn) {
+      e.stopPropagation();
+      var rid = revertBtn.getAttribute('data-revert-id');
+      var title = '';
+      var pm = changeTracker.getPendingMap();
+      var bm = changeTracker._baselineMap;
+      if (pm[rid]) title = pm[rid].Title;
+      else if (bm[rid]) title = bm[rid].Title;
+      changeTracker.revertItem(rid);
+      refreshTreeFromPending();
+      showToast('Reverted "' + title + '" to original', 'info');
+      return;
+    }
+    // Expand/collapse diff
+    var expandBtn = e.target.closest('.piadmin-change-expand');
+    if (expandBtn) {
+      e.stopPropagation();
+      var eid = expandBtn.getAttribute('data-expand-id');
+      var diffEl = document.getElementById('piadminDiff_' + eid);
+      if (diffEl) {
+        var open = diffEl.style.display !== 'none';
+        diffEl.style.display = open ? 'none' : '';
+        expandBtn.setAttribute('aria-expanded', !open);
+      }
+      return;
+    }
+    // Default: scroll to item in tree
+    var entry = e.target.closest('.piadmin-change-entry');
+    if (!entry) return;
+    var id = parseInt(entry.getAttribute('data-change-id'));
+    if (isNaN(id)) return;
+    var row = treeEl.querySelector('.piadmin-tree-row[data-id="' + id + '"]');
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.style.outline = '2px solid var(--accent)';
+      setTimeout(function() { row.style.outline = ''; }, 2000);
+    }
+  });
+
+  // Changes panel toggle
+  document.getElementById('piadminChangesToggle').addEventListener('click', function() {
+    var list = document.getElementById('piadminChangesList');
+    var isOpen = list.style.display !== 'none';
+    list.style.display = isOpen ? 'none' : '';
+    this.querySelector('span').textContent = (isOpen ? '\u25B8' : '\u25BE') + ' Pending Changes (' + document.getElementById('piadminChangesCount').textContent + ')';
+  });
+
+  changeTracker._onChange = function() { /* updateDirtyUI called explicitly after each operation */ };
+
+  loadData();
+
+  // Refresh
+  document.getElementById('piadminRefresh').addEventListener('click', function() {
+    if (changeTracker.isDirty()) {
+      var dialog = document.getElementById('piadminDialog');
+      dialog.innerHTML = '<h3>Refresh Data</h3><p>You have <strong>' + changeTracker.getChangeCount() + ' unsaved changes</strong>. Refreshing will discard them. Continue?</p>' +
+        '<div class="piadmin-dialog-actions"><button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+        '<button class="piadmin-btn-primary piadmin-btn-danger" id="piadminDialogConfirm">Discard &amp; Refresh</button></div>';
+      document.getElementById('piadminDialogBackdrop').classList.add('visible');
+      document.getElementById('piadminDialogCancel').onclick = function() { document.getElementById('piadminDialogBackdrop').classList.remove('visible'); };
+      document.getElementById('piadminDialogConfirm').onclick = function() {
+        document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+        tree._checked = {};
+        loadData();
+        showToast('Data refreshed', 'info');
+      };
+    } else {
+      tree._checked = {};
+      loadData();
+      showToast('Data refreshed', 'info');
+    }
+  });
+  document.getElementById('piadminPreviewRefresh').addEventListener('click', function() {
+    renderPreview(tree._tree, document.querySelector('.piadmin-preview-nav'));
+  });
+
+  // Search
+  var searchTimer = null;
+  document.getElementById('piadminSearch').addEventListener('input', function() {
+    var q = this.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() { tree.filterByText(q); }, 200);
+  });
+  document.getElementById('piadminSearchClear').addEventListener('click', function() {
+    document.getElementById('piadminSearch').value = '';
+    tree.filterByText('');
+  });
+
+  // Expand/Collapse all
+  document.getElementById('piadminExpandAll').addEventListener('click', function() { tree.expandAll(); });
+  document.getElementById('piadminCollapseAll').addEventListener('click', function() { tree.collapseAll(); });
+
+  // Status filter
+  document.getElementById('piadminStatusFilter').addEventListener('change', function() {
+    tree.setStatusFilter(this.value);
+  });
+
+  // Depth filter
+  document.getElementById('piadminDepthFilter').addEventListener('change', function() {
+    tree.setDepthFilter(this.value);
+  });
+
+  // Column sorting
+  (function() {
+    var sortState = { col: '', dir: 'asc' };
+    var indicators = { name: document.getElementById('piadminSortName'),
+      url: document.getElementById('piadminSortUrl'), status: document.getElementById('piadminSortStatus') };
+
+    function updateIndicators() {
+      for (var k in indicators) {
+        if (indicators[k]) indicators[k].textContent = sortState.col === k ? (sortState.dir === 'asc' ? '\u25B2' : '\u25BC') : '';
+      }
+    }
+
+    document.getElementById('piadminTreeHeader').addEventListener('click', function(e) {
+      var col = e.target.closest('[data-sort]');
+      if (!col) return;
+      var name = col.getAttribute('data-sort');
+      if (sortState.col === name) {
+        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.col = name;
+        sortState.dir = 'asc';
+      }
+      updateIndicators();
+      tree.sortBy(sortState.col, sortState.dir);
+    });
+  })();
+
+  // Column resizer
+  (function() {
+    function setupResizer(handleId, cssVar, storageKey) {
+      var handle = document.getElementById(handleId);
+      if (!handle) return;
+      var dragging = false;
+      var startX, startW;
+
+      // Restore saved width
+      try {
+        var saved = localStorage.getItem(storageKey);
+        if (saved) treeContainer.style.setProperty(cssVar, saved + 'px');
+      } catch(e) {}
+
+      handle.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        dragging = true;
+        startX = e.clientX;
+        // Get the column AFTER the handle (the one whose width we control)
+        var col = handle.nextElementSibling;
+        startW = col.offsetWidth;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var diff = e.clientX - startX;
+        // Dragging right = column gets narrower, dragging left = wider
+        var newW = Math.max(80, startW - diff);
+        treeContainer.style.setProperty(cssVar, newW + 'px');
+        try { localStorage.setItem(storageKey, newW); } catch(e2) {}
+      });
+
+      document.addEventListener('mouseup', function() {
+        if (dragging) {
+          dragging = false;
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        }
+      });
+    }
+
+    setupResizer('piadminColResize1', '--col-url', 'piadmin_col_url');
+    setupResizer('piadminColResize2', '--col-status', 'piadmin_col_status');
+  })();
+
+  // Select all checkbox
+  document.getElementById('piadminSelectAll').addEventListener('change', function() {
+    var checked = this.checked;
+    var rows = treeEl.querySelectorAll('.piadmin-tree-check');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].checked = checked;
+      var id = parseInt(rows[i].getAttribute('data-id'));
+      if (id) tree._checked[id] = checked;
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      var searchInput = document.getElementById('piadminSearch');
+      if (searchInput && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
+    if (e.key === 'Escape') {
+      var searchInput = document.getElementById('piadminSearch');
+      if (searchInput && searchInput.value) {
+        searchInput.value = '';
+        tree.filterByText('');
+      }
+    }
+    // Undo: Ctrl+Z
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      if (!document.getElementById('piadminPanel').classList.contains('open') &&
+          !document.getElementById('piadminDialogBackdrop').classList.contains('visible')) {
+        if (changeTracker.canUndo()) {
+          e.preventDefault();
+          changeTracker.undo();
+          refreshTreeFromPending();
+          showToast('Undone', 'info');
+        }
+      }
+    }
+    // Redo: Ctrl+Y or Ctrl+Shift+Z
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      if (!document.getElementById('piadminPanel').classList.contains('open') &&
+          !document.getElementById('piadminDialogBackdrop').classList.contains('visible')) {
+        if (changeTracker.canRedo()) {
+          e.preventDefault();
+          changeTracker.redo();
+          refreshTreeFromPending();
+          showToast('Redone', 'info');
+        }
+      }
+    }
+  });
+
+  // Add root item — pass pending items for parent dropdown
+  document.getElementById('piadminAddRoot').addEventListener('click', function() {
+    editor.open('create', null, changeTracker.getPendingItems());
+  });
+
+  // Panel close
+  document.getElementById('piadminPanelClose').addEventListener('click', function() { editor.close(); });
+  document.getElementById('piadminPanelCancel').addEventListener('click', function() { editor.close(); });
+  document.getElementById('piadminPanelOverlay').addEventListener('click', function() { editor.close(); });
+
+  // Panel save → apply locally (not to API)
+  document.getElementById('piadminPanelSave').addEventListener('click', function() {
+    var vals = editor.getValues();
+    if (!vals) { showToast('Title is required', 'error'); return; }
+
+    if (editor._mode === 'create') {
+      changeTracker.recordCreate(vals);
+      showToast('Item added: ' + vals.Title + ' (unsaved)', 'info');
+    } else {
+      // Only pass truly changed fields to avoid false dirty flags from type coercion
+      var orig = changeTracker.getPendingMap()[editor._item.Id];
+      var diff = {};
+      var hasDiff = false;
+      for (var k in vals) {
+        if (!vals.hasOwnProperty(k)) continue;
+        var ov = orig ? orig[k] : undefined;
+        var nv = vals[k];
+        // Normalize for comparison: treat null/undefined/0/"" as equivalent for non-boolean fields
+        if (typeof nv === 'boolean' || typeof ov === 'boolean') {
+          if (nv !== ov) { diff[k] = nv; hasDiff = true; }
+        } else if ((nv || '') !== (ov || '') && (nv || 0) !== (ov || 0)) {
+          diff[k] = nv; hasDiff = true;
+        } else if (typeof nv === 'string' && typeof ov === 'string' && nv !== ov) {
+          diff[k] = nv; hasDiff = true;
+        } else if (typeof nv === 'number' && typeof ov === 'number' && nv !== ov) {
+          diff[k] = nv; hasDiff = true;
+        }
+      }
+      if (hasDiff) {
+        changeTracker.recordUpdate(editor._item.Id, diff);
+        showToast('Item updated: ' + vals.Title + ' (unsaved)', 'info');
+      } else {
+        showToast('No changes detected', 'info');
+      }
+    }
+    editor.close();
+    refreshTreeFromPending();
+  });
+
+  // Delete confirmation → local only
+  function confirmDelete(item) {
+    var descendants = tree.getDescendantIds(item.Id);
+    var total = 1 + descendants.length;
+    var dialog = document.getElementById('piadminDialog');
+    var msg = descendants.length > 0
+      ? 'Mark <strong>' + esc(item.Title) + '</strong> and its <strong>' + descendants.length + ' child item' + (descendants.length > 1 ? 's' : '') + '</strong> for deletion?'
+      : 'Mark <strong>' + esc(item.Title) + '</strong> for deletion?';
+    msg += '<br><small>Click "Save Changes" to persist, or use Undo to reverse.</small>';
+    dialog.innerHTML = '<h3>Delete Item</h3><p>' + msg + '</p>' +
+      '<div class="piadmin-dialog-actions">' +
+      '<button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+      '<button class="piadmin-btn-primary piadmin-btn-danger" id="piadminDialogConfirm">Delete' + (total > 1 ? ' (' + total + ')' : '') + '</button></div>';
+    document.getElementById('piadminDialogBackdrop').classList.add('visible');
+
+    document.getElementById('piadminDialogCancel').onclick = function() {
+      document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+    };
+
+    document.getElementById('piadminDialogConfirm').onclick = function() {
+      document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+      changeTracker.recordDelete(item.Id);
+      showToast('Marked ' + total + ' item' + (total > 1 ? 's' : '') + ' for deletion (unsaved)', 'info');
+      refreshTreeFromPending();
+    };
+  }
+
+  // Bulk actions
+  document.getElementById('piadminBulkAction').addEventListener('change', function() {
+    document.getElementById('piadminBulkApply').disabled = this.value === '' || tree.getCheckedIds().length === 0;
+  });
+
+  document.getElementById('piadminBulkApply').addEventListener('click', function() {
+    var action = document.getElementById('piadminBulkAction').value;
+    var ids = tree.getCheckedIds();
+    if (!action || ids.length === 0) return;
+
+    if (action === 'enable' || action === 'disable') {
+      var val = action === 'enable';
+      changeTracker.beginCompound('Bulk ' + action + ' ' + ids.length + ' items');
+      ids.forEach(function(id) { changeTracker.recordUpdate(id, { IsEnabled: val }); });
+      changeTracker.endCompound();
+      tree.clearChecks();
+      refreshTreeFromPending();
+      showToast((val ? 'Enabled' : 'Disabled') + ' ' + ids.length + ' items (unsaved)', 'info');
+      document.getElementById('piadminBulkAction').value = '';
+    } else if (action === 'delete') {
+      var dialog = document.getElementById('piadminDialog');
+      // Count total with descendants
+      var allIds = [];
+      ids.forEach(function(id) {
+        allIds.push(id);
+        allIds = allIds.concat(tree.getDescendantIds(id));
+      });
+      allIds = Array.from(new Set(allIds));
+
+      dialog.innerHTML = '<h3>Bulk Delete</h3><p>Mark <strong>' + allIds.length + ' items</strong> for deletion?<br><small>Click "Save Changes" to persist.</small></p>' +
+        '<div class="piadmin-dialog-actions">' +
+        '<button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+        '<button class="piadmin-btn-primary piadmin-btn-danger" id="piadminDialogConfirm">Delete (' + allIds.length + ')</button></div>';
+      document.getElementById('piadminDialogBackdrop').classList.add('visible');
+
+      document.getElementById('piadminDialogCancel').onclick = function() {
+        document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+      };
+      document.getElementById('piadminDialogConfirm').onclick = function() {
+        document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+        changeTracker.beginCompound('Bulk delete ' + ids.length + ' items');
+        ids.forEach(function(id) { changeTracker.recordDelete(id); });
+        changeTracker.endCompound();
+        tree.clearChecks();
+        refreshTreeFromPending();
+        showToast('Marked ' + allIds.length + ' items for deletion (unsaved)', 'info');
+        document.getElementById('piadminBulkAction').value = '';
+      };
+    }
+  });
+
+  // Drag & drop handler → local only
+  function handleDrop(dragId, targetId, position) {
+    var dragItem = changeTracker.getPendingMap()[dragId];
+    var targetItem = changeTracker.getPendingMap()[targetId];
+    if (!dragItem || !targetItem) return;
+
+    var newParentId, newSortOrder;
+
+    if (position === 'child') {
+      newParentId = targetId;
+      var targetChildren = targetItem._children || [];
+      newSortOrder = targetChildren.length > 0 ? targetChildren[targetChildren.length - 1].SortOrder + 10 : 0;
+    } else {
+      newParentId = targetItem.ParentId0 || 0;
+      if (position === 'before') {
+        newSortOrder = targetItem.SortOrder > 0 ? targetItem.SortOrder - 5 : targetItem.SortOrder - 1;
+      } else {
+        newSortOrder = targetItem.SortOrder + 5;
+      }
+    }
+
+    changeTracker.recordMove(dragId, newParentId, newSortOrder);
+    showToast('Moved "' + dragItem.Title + '" (unsaved)', 'info');
+    refreshTreeFromPending();
+  }
+
+  // Breadcrumb navigation
+  document.getElementById('piadminBreadcrumb').addEventListener('click', function(e) {
+    var seg = e.target.closest('.piadmin-breadcrumb-seg');
+    if (!seg) return;
+    var id = parseInt(seg.getAttribute('data-id'));
+    tree._selectItem(id);
+    // Scroll to item
+    var row = treeEl.querySelector('.piadmin-tree-row[data-id="' + id + '"]');
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // ═══════════════════════════════════════════════════
+  // Save All Changes → batch API calls
+  // ═══════════════════════════════════════════════════
+  // ── Execute the actual save (called after review dialog confirmation) ──
+  function executeSave() {
+    var changes = changeTracker.getChangesForSave();
+    var total = changes.creates.length + changes.updates.length + changes.deletes.length;
+    var done = 0;
+
+    // Show progress dialog
+    var dialog = document.getElementById('piadminDialog');
+    dialog.innerHTML = '<h3>Saving Changes</h3>' +
+      '<p>Applying change <span id="piadminSaveProgress">0</span> of <strong>' + total + '</strong>...</p>' +
+      '<div class="piadmin-save-progress"><div class="piadmin-save-progress-bar" id="piadminSaveBar" style="width:0%"></div></div>';
+    document.getElementById('piadminDialogBackdrop').classList.add('visible');
+
+    function updateProgress() {
+      done++;
+      var el = document.getElementById('piadminSaveProgress');
+      if (el) el.textContent = done;
+      var bar = document.getElementById('piadminSaveBar');
+      if (bar) bar.style.width = Math.round(done / total * 100) + '%';
+    }
+
+    // Snapshot baseline to Site Assets before saving
+    var snapshotPromise;
+    try {
+      var snapshotJson = JSON.stringify(changeTracker._baseline, null, 2);
+      snapshotPromise = api.uploadSnapshot(snapshotJson).catch(function(err) {
+        console.warn('Pre-save snapshot failed:', err);
+        showToast('Snapshot backup failed (save will continue)', 'error');
+      });
+    } catch(e) {
+      snapshotPromise = Promise.resolve();
+    }
+
+    snapshotPromise.then(function() {
+      var tempIdMap = {};
+      var chain = Promise.resolve();
+
+      // Phase 1: Creates
+      changes.creates.forEach(function(c) {
+        chain = chain.then(function() {
+          var data = Object.assign({}, c.data);
+          delete data.Id;
+          delete data._children;
+          if (data.ParentId0 && data.ParentId0 < 0 && tempIdMap[data.ParentId0]) {
+            data.ParentId0 = tempIdMap[data.ParentId0];
+          }
+          return api.createItem(data).then(function(created) {
+            tempIdMap[c.tempId] = created.Id;
+            updateProgress();
+          });
+        });
+      });
+
+      // Phase 2: Updates
+      changes.updates.forEach(function(u) {
+        chain = chain.then(function() {
+          var data = Object.assign({}, u.data);
+          if (data.ParentId0 && data.ParentId0 < 0 && tempIdMap[data.ParentId0]) {
+            data.ParentId0 = tempIdMap[data.ParentId0];
+          }
+          return api.updateItem(u.id, data).then(function() { updateProgress(); });
+        });
+      });
+
+      // Phase 3: Deletes
+      changes.deletes.forEach(function(id) {
+        chain = chain.then(function() {
+          return api.deleteItem(id).then(function() { updateProgress(); });
+        });
+      });
+
+      chain.then(function() {
+        document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+        showToast('Saved ' + total + ' change' + (total > 1 ? 's' : ''), 'success');
+        clearSessionRecovery();
+        loadData();
+      }).catch(function(err) {
+        document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+        showToast('Save failed at step ' + done + ': ' + err.message + '. Reloading...', 'error');
+        loadData();
+      });
+    });
+  }
+
+  // ── Save button → show Review Changes dialog first ──
+  document.getElementById('piadminSaveAll').addEventListener('click', function() {
+    if (!changeTracker.isDirty()) return;
+    var changes = changeTracker.getChangeList();
+    var saveChanges = changeTracker.getChangesForSave();
+    var deleteCount = saveChanges.deletes.length;
+    var totalItems = changeTracker._baseline.length;
+    var deleteThreshold = Math.min(10, Math.floor(totalItems * 0.5));
+    var needsChallenge = deleteCount > deleteThreshold;
+
+    var blMap = changeTracker._baselineMap;
+    var pMap = changeTracker.getPendingMap();
+
+    // Build review items HTML
+    var reviewHtml = '';
+    for (var i = 0; i < changes.length; i++) {
+      var c = changes[i];
+      var item = pMap[c.id] || blMap[c.id] || { Id: c.id, Title: c.title };
+      var diffs = [];
+      if ((c.type === 'update' || c.type === 'move') && blMap[c.id] && pMap[c.id]) {
+        diffs = DiffEngine.diffItem(blMap[c.id], pMap[c.id], blMap, pMap);
+      }
+      reviewHtml += DiffEngine.renderReviewItem(item, c.type, diffs);
+    }
+
+    var dialog = document.getElementById('piadminDialog');
+    var html = '<div class="piadmin-review-dialog">' +
+      '<h3>Review Changes</h3>' +
+      '<p>Review <strong>' + changes.length + '</strong> change' + (changes.length > 1 ? 's' : '') +
+      ' before saving to SharePoint:</p>' +
+      '<div class="piadmin-review-body">' + reviewHtml + '</div>';
+
+    if (needsChallenge) {
+      html += '<div class="piadmin-danger-zone">' +
+        '<p style="color:var(--danger);font-weight:600;">&#9888; You are deleting ' + deleteCount +
+        ' of ' + totalItems + ' items (' + Math.round(deleteCount / totalItems * 100) + '%).</p>' +
+        '<p>Type <strong>' + deleteCount + '</strong> below to confirm:</p>' +
+        '<input type="text" class="piadmin-challenge-input" id="piadminDeleteChallenge" placeholder="Type number">' +
+        '</div>';
+    }
+
+    html += '<div class="piadmin-dialog-actions" style="margin-top:12px;">' +
+      '<button class="piadmin-btn" id="piadminReviewCancel">Cancel</button>' +
+      '<button class="piadmin-btn-primary" id="piadminReviewConfirm"' +
+      (needsChallenge ? ' disabled' : '') + '>Confirm &amp; Save</button>' +
+      '</div></div>';
+    dialog.innerHTML = html;
+    document.getElementById('piadminDialogBackdrop').classList.add('visible');
+
+    // Wire revert buttons inside review dialog
+    dialog.addEventListener('click', function reviewClickHandler(e) {
+      var revertBtn = e.target.closest('.piadmin-revert-btn');
+      if (revertBtn) {
+        var rid = revertBtn.getAttribute('data-revert-id');
+        changeTracker.revertItem(rid);
+        refreshTreeFromPending();
+        // Remove the review item from dialog
+        var reviewItem = revertBtn.closest('.piadmin-review-item');
+        if (reviewItem) reviewItem.remove();
+        // If no changes left, close dialog
+        if (!changeTracker.isDirty()) {
+          document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+          dialog.removeEventListener('click', reviewClickHandler);
+          showToast('All changes reverted', 'info');
+        }
+      }
+    });
+
+    // Challenge input validation
+    if (needsChallenge) {
+      document.getElementById('piadminDeleteChallenge').addEventListener('input', function() {
+        var confirmBtn = document.getElementById('piadminReviewConfirm');
+        confirmBtn.disabled = this.value.trim() !== String(deleteCount);
+      });
+    }
+
+    document.getElementById('piadminReviewCancel').onclick = function() {
+      document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+    };
+    document.getElementById('piadminReviewConfirm').onclick = function() {
+      if (this.disabled) return;
+      executeSave();
+    };
+  });
+
+  // ── Discard All Changes ──
+  document.getElementById('piadminDiscardAll').addEventListener('click', function() {
+    var count = changeTracker.getChangeCount();
+    var dialog = document.getElementById('piadminDialog');
+    dialog.innerHTML = '<h3>Discard Changes</h3><p>Discard <strong>' + count + ' unsaved change' + (count > 1 ? 's' : '') + '</strong>? This cannot be undone.</p>' +
+      '<div class="piadmin-dialog-actions"><button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+      '<button class="piadmin-btn-primary piadmin-btn-danger" id="piadminDialogConfirm">Discard All</button></div>';
+    document.getElementById('piadminDialogBackdrop').classList.add('visible');
+    document.getElementById('piadminDialogCancel').onclick = function() { document.getElementById('piadminDialogBackdrop').classList.remove('visible'); };
+    document.getElementById('piadminDialogConfirm').onclick = function() {
+      document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+      changeTracker.reset();
+      refreshTreeFromPending();
+      showToast('Changes discarded', 'info');
+    };
+  });
+
+  // ── Undo / Redo buttons ──
+  document.getElementById('piadminUndoBtn').addEventListener('click', function() {
+    if (changeTracker.canUndo()) {
+      changeTracker.undo();
+      refreshTreeFromPending();
+      showToast('Undone', 'info');
+    }
+  });
+  document.getElementById('piadminRedoBtn').addEventListener('click', function() {
+    if (changeTracker.canRedo()) {
+      changeTracker.redo();
+      refreshTreeFromPending();
+      showToast('Redone', 'info');
+    }
+  });
+
+  // ── beforeunload guard ──
+  // ── beforeunload guard + session backup ──
+  window.addEventListener('beforeunload', function(e) {
+    if (changeTracker.isDirty()) {
+      saveSessionRecovery(changeTracker.getPendingItems());
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // Periodic session backup every 60s while dirty
+  setInterval(function() {
+    if (changeTracker.isDirty()) {
+      saveSessionRecovery(changeTracker.getPendingItems());
+    }
+  }, 60000);
+
+  // Keyboard shortcut: Escape closes panel/dialog
+  root.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (document.getElementById('piadminDialogBackdrop').classList.contains('visible')) {
+        document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+      } else if (document.getElementById('piadminPanel').classList.contains('open')) {
+        editor.close();
+      }
+    }
+  });
+
+  // ═══════════════════════════════════════════════════
+  // Preview Panel Resizer
+  // ═══════════════════════════════════════════════════
+  (function() {
+    var handle = document.getElementById('piadminPreviewResize');
+    var panel = document.getElementById('piadminPreviewPanel');
+    if (!handle || !panel) return;
+    var dragging = false, startX, startW;
+    try { var saved = localStorage.getItem('piadmin_preview_w'); if (saved) panel.style.width = saved + 'px'; } catch(e) {}
+    handle.addEventListener('mousedown', function(e) {
+      e.preventDefault(); dragging = true; startX = e.clientX; startW = panel.offsetWidth;
+      document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!dragging) return;
+      var newW = Math.max(200, Math.min(window.innerWidth * 0.5, startW - (e.clientX - startX)));
+      panel.style.width = newW + 'px';
+      try { localStorage.setItem('piadmin_preview_w', newW); } catch(e2) {}
+    });
+    document.addEventListener('mouseup', function() {
+      if (dragging) { dragging = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; }
+    });
+  })();
+
+  // ═══════════════════════════════════════════════════
+  // NEWS TAB — Card grid with CRUD for PiCanvasNews
+  // ═══════════════════════════════════════════════════
+  (function() {
+    var NEWS_LIST = 'PiCanvasNews';
+    var NEWS_FIELDS = 'Id,Title,NewsUrl,NewsContent,NewsSection,NewsSortOrder,NewsHoverText,NewsPublishedDate,NewsNewDays';
+    var newsItems = [];
+    var newsLoaded = false;
+
+    function loadNews() {
+      var main = document.getElementById('piadminNewsMain');
+      var loading = document.getElementById('piadminNewsLoading');
+      if (loading) loading.style.display = '';
+
+      fetch(siteUrl + "/_api/web/lists/getbytitle('" + NEWS_LIST + "')/items?$select=" + NEWS_FIELDS + "&$orderby=NewsSortOrder,Id&$top=100", {
+        headers: { 'Accept': 'application/json;odata=nometadata' }, credentials: 'same-origin'
+      }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(d) {
+        newsItems = d.value || [];
+        if (loading) loading.style.display = 'none';
+        renderNewsCards();
+        renderNewsPreview();
+        document.getElementById('piadminNewsCount').textContent = newsItems.length + ' items';
+      }).catch(function(err) {
+        if (loading) loading.style.display = 'none';
+        showToast('Failed to load news: ' + err.message, 'error');
+      });
+    }
+
+    function renderNewsCards() {
+      var main = document.getElementById('piadminNewsMain');
+      var topNews = [], goodToKnow = [];
+      for (var i = 0; i < newsItems.length; i++) {
+        if (newsItems[i].NewsSection === 'Good to Know') goodToKnow.push(newsItems[i]);
+        else topNews.push(newsItems[i]);
+      }
+      var html = '';
+      if (topNews.length) {
+        html += '<div class="piadmin-news-group"><div class="piadmin-news-group-title">Top News (' + topNews.length + ')</div>';
+        html += '<div class="piadmin-news-cards" data-section="Top News">';
+        for (var i = 0; i < topNews.length; i++) html += newsCardHtml(topNews[i]);
+        html += '</div></div>';
+      }
+      if (goodToKnow.length) {
+        html += '<div class="piadmin-news-group"><div class="piadmin-news-group-title">Good to Know (' + goodToKnow.length + ')</div>';
+        html += '<div class="piadmin-news-cards" data-section="Good to Know">';
+        for (var i = 0; i < goodToKnow.length; i++) html += newsCardHtml(goodToKnow[i]);
+        html += '</div></div>';
+      }
+      if (!html) html = '<div class="piadmin-tree-empty">No news items found.</div>';
+      // Keep loading element reference, replace only the cards area
+      var existing = main.querySelector('.piadmin-news-content');
+      if (existing) existing.innerHTML = html;
+      else {
+        var container = document.createElement('div');
+        container.className = 'piadmin-news-content';
+        container.innerHTML = html;
+        main.appendChild(container);
+      }
+    }
+
+    function newsCardHtml(item) {
+      var isNew = false;
+      if (item.NewsNewDays && item.NewsPublishedDate) {
+        var pub = new Date(item.NewsPublishedDate);
+        var diffDays = (Date.now() - pub.getTime()) / 86400000;
+        isNew = diffDays <= item.NewsNewDays;
+      }
+      var secBadge = item.NewsSection === 'Good to Know'
+        ? '<span class="piadmin-news-badge-section piadmin-news-badge-gtk">Good to Know</span>'
+        : '<span class="piadmin-news-badge-section piadmin-news-badge-top">Top News</span>';
+      var pubDate = item.NewsPublishedDate ? new Date(item.NewsPublishedDate).toLocaleDateString() : '';
+
+      return '<div class="piadmin-news-card" data-id="' + item.Id + '" draggable="true">' +
+        '<span class="piadmin-news-card-drag" title="Drag to reorder">&#9776;</span>' +
+        '<div class="piadmin-news-card-body">' +
+          '<div class="piadmin-news-card-title">' + esc(item.Title) + '</div>' +
+          '<div class="piadmin-news-card-meta">' +
+            (pubDate ? '<span>' + pubDate + '</span>' : '') +
+            (item.NewsHoverText ? '<span>' + esc(item.NewsHoverText).substring(0, 40) + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="piadmin-news-card-badges">' + secBadge + (isNew ? '<span class="piadmin-news-badge-new">NEW</span>' : '') + '</div>' +
+        '<div class="piadmin-news-card-actions">' +
+          '<button class="piadmin-tree-action" data-action="edit-news" data-id="' + item.Id + '" title="Edit">&#9998;</button>' +
+          '<button class="piadmin-tree-action danger" data-action="delete-news" data-id="' + item.Id + '" title="Delete">&times;</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderNewsPreview() {
+      var preview = document.getElementById('piadminNewsPreview');
+      if (!preview) return;
+      var html = '';
+      for (var i = 0; i < newsItems.length; i++) {
+        var n = newsItems[i];
+        html += '<div class="piadmin-news-preview-card">' +
+          '<div class="piadmin-news-preview-title">' + esc(n.Title) + '</div>' +
+          (n.NewsContent ? '<div class="piadmin-news-preview-snippet">' + esc(n.NewsContent).substring(0, 60) + '</div>' : '') +
+        '</div>';
+      }
+      preview.innerHTML = html || '<div style="color:var(--text-tertiary);text-align:center;">No news items</div>';
+    }
+
+    function openNewsEditor(mode, item) {
+      var val = item || { Title:'', NewsUrl:'', NewsContent:'', NewsSection:'Top News', NewsSortOrder:0, NewsHoverText:'', NewsPublishedDate:'', NewsNewDays:7 };
+      var pubVal = val.NewsPublishedDate ? new Date(val.NewsPublishedDate).toISOString().split('T')[0] : '';
+
+      document.getElementById('piadminPanelTitle').textContent = mode === 'create' ? 'Add News' : 'Edit News';
+      var body = document.getElementById('piadminPanelBody');
+      body.innerHTML =
+        '<div class="piadmin-field"><label>Title *</label><input type="text" id="piadminNewsTitle" value="' + esc(val.Title) + '"></div>' +
+        '<div class="piadmin-field"><label>URL</label><input type="url" id="piadminNewsUrl" value="' + esc(val.NewsUrl || '') + '" placeholder="https://..."></div>' +
+        '<div class="piadmin-field"><label>Content</label><textarea id="piadminNewsContent" rows="3">' + esc(val.NewsContent || '') + '</textarea></div>' +
+        '<div class="piadmin-field"><label>Section</label><select id="piadminNewsSection">' +
+          '<option value="Top News"' + (val.NewsSection !== 'Good to Know' ? ' selected' : '') + '>Top News</option>' +
+          '<option value="Good to Know"' + (val.NewsSection === 'Good to Know' ? ' selected' : '') + '>Good to Know</option></select></div>' +
+        '<div class="piadmin-field"><label>Sort Order</label><input type="number" id="piadminNewsSortOrder" value="' + (val.NewsSortOrder || 0) + '"></div>' +
+        '<div class="piadmin-field"><label>Hover Text</label><input type="text" id="piadminNewsHoverText" value="' + esc(val.NewsHoverText || '') + '"></div>' +
+        '<div class="piadmin-field"><label>Published Date</label><input type="date" id="piadminNewsPubDate" value="' + pubVal + '"></div>' +
+        '<div class="piadmin-field"><label>NEW Badge Days</label><input type="number" id="piadminNewsNewDays" value="' + (val.NewsNewDays || 7) + '">' +
+          '<div class="piadmin-field-hint">Days from published date to show NEW badge</div></div>';
+
+      document.getElementById('piadminPanel').classList.add('open');
+      document.getElementById('piadminPanelOverlay').classList.add('visible');
+
+      // Override save handler temporarily
+      var saveBtn = document.getElementById('piadminPanelSave');
+      var origClick = saveBtn.onclick;
+      saveBtn.onclick = function() {
+        var title = document.getElementById('piadminNewsTitle').value.trim();
+        if (!title) { showToast('Title is required', 'error'); return; }
+        var data = {
+          Title: title,
+          NewsUrl: document.getElementById('piadminNewsUrl').value.trim(),
+          NewsContent: document.getElementById('piadminNewsContent').value,
+          NewsSection: document.getElementById('piadminNewsSection').value,
+          NewsSortOrder: parseInt(document.getElementById('piadminNewsSortOrder').value) || 0,
+          NewsHoverText: document.getElementById('piadminNewsHoverText').value.trim(),
+          NewsPublishedDate: document.getElementById('piadminNewsPubDate').value || null,
+          NewsNewDays: parseInt(document.getElementById('piadminNewsNewDays').value) || 7
+        };
+        saveBtn.disabled = true; saveBtn.textContent = 'Saving...';
+        var promise = mode === 'create'
+          ? api.getDigest().then(function(d) {
+              return fetch(siteUrl + "/_api/web/lists/getbytitle('" + NEWS_LIST + "')/items", {
+                method:'POST', headers:{'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata','X-RequestDigest':d},
+                credentials:'same-origin', body:JSON.stringify(data)
+              });
+            })
+          : api.getDigest().then(function(d) {
+              return fetch(siteUrl + "/_api/web/lists/getbytitle('" + NEWS_LIST + "')/items(" + item.Id + ")", {
+                method:'POST', headers:{'Accept':'application/json;odata=nometadata','Content-Type':'application/json;odata=nometadata',
+                  'X-RequestDigest':d,'X-HTTP-Method':'MERGE','If-Match':'*'},
+                credentials:'same-origin', body:JSON.stringify(data)
+              });
+            });
+        promise.then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); })
+          .then(function() {
+            showToast(mode === 'create' ? 'News created' : 'News updated', 'success');
+            editor.close(); saveBtn.onclick = origClick; loadNews();
+          }).catch(function(err) { showToast('Save failed: ' + err.message, 'error'); })
+          .finally(function() { saveBtn.disabled = false; saveBtn.textContent = 'Save'; });
+      };
+    }
+
+    function deleteNewsItem(item) {
+      var dialog = document.getElementById('piadminDialog');
+      dialog.innerHTML = '<h3>Delete News</h3><p>Delete <strong>' + esc(item.Title) + '</strong>?</p>' +
+        '<div class="piadmin-dialog-actions"><button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+        '<button class="piadmin-btn-primary piadmin-btn-danger" id="piadminDialogConfirm">Delete</button></div>';
+      document.getElementById('piadminDialogBackdrop').classList.add('visible');
+      document.getElementById('piadminDialogCancel').onclick = function() {
+        document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+      };
+      document.getElementById('piadminDialogConfirm').onclick = function() {
+        this.disabled = true; this.textContent = 'Deleting...';
+        api.getDigest().then(function(d) {
+          return fetch(siteUrl + "/_api/web/lists/getbytitle('" + NEWS_LIST + "')/items(" + item.Id + ")", {
+            method:'POST', headers:{'Accept':'application/json;odata=nometadata','X-RequestDigest':d,'X-HTTP-Method':'DELETE','If-Match':'*'},
+            credentials:'same-origin'
+          });
+        }).then(function() {
+          document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+          showToast('Deleted: ' + item.Title, 'success'); loadNews();
+        }).catch(function(err) {
+          document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+          showToast('Delete failed: ' + err.message, 'error');
+        });
+      };
+    }
+
+    // Event delegation for news cards
+    document.getElementById('piadminNewsMain').addEventListener('click', function(e) {
+      var btn = e.target.closest('.piadmin-tree-action');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+      var id = parseInt(btn.getAttribute('data-id'));
+      var item = null;
+      for (var i = 0; i < newsItems.length; i++) { if (newsItems[i].Id === id) { item = newsItems[i]; break; } }
+      if (!item) return;
+      if (action === 'edit-news') openNewsEditor('edit', item);
+      else if (action === 'delete-news') deleteNewsItem(item);
+    });
+
+    document.getElementById('piadminNewsAdd').addEventListener('click', function() { openNewsEditor('create', null); });
+
+    // Lazy load news on first tab switch
+    var newsTab = root.querySelector('.piadmin-tab[data-section="news"]');
+    if (newsTab) newsTab.addEventListener('click', function() { if (!newsLoaded) { newsLoaded = true; loadNews(); } });
+  })();
+
+  // ═══════════════════════════════════════════════════
+  // SHORTCUTS TAB — Admin table of all user shortcuts
+  // ═══════════════════════════════════════════════════
+  (function() {
+    var SC_LIST = 'PiCanvasUserShortcuts';
+    var scItems = [];
+    var scLoaded = false;
+    var scSortCol = '', scSortDir = 'asc';
+
+    function loadShortcuts() {
+      fetch(siteUrl + "/_api/web/lists/getbytitle('" + SC_LIST + "')/items?$select=Id,Title,ShortcutUrl,ShortcutIcon,SortOrder,OpenInNewWindow,Author/Title&$expand=Author&$orderby=Id&$top=500", {
+        headers: { 'Accept': 'application/json;odata=nometadata' }, credentials: 'same-origin'
+      }).then(function(r) {
+        if (!r.ok) {
+          if (r.status === 404) { scItems = []; renderShortcuts(); renderScStats(); return; }
+          throw new Error('HTTP ' + r.status);
+        }
+        return r.json();
+      }).then(function(d) {
+        if (!d) return;
+        scItems = d.value || [];
+        renderShortcuts();
+        renderScStats();
+        document.getElementById('piadminShortcutsCount').textContent = scItems.length + ' shortcuts';
+      }).catch(function(err) {
+        showToast('Failed to load shortcuts: ' + err.message, 'error');
+        document.getElementById('piadminShortcutsBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-tertiary);">Could not load shortcuts. The list may not exist yet.</td></tr>';
+      });
+    }
+
+    function renderScStats() {
+      var stats = document.getElementById('piadminShortcutsStats');
+      var users = {};
+      for (var i = 0; i < scItems.length; i++) {
+        var author = scItems[i].Author ? scItems[i].Author.Title : 'Unknown';
+        users[author] = (users[author] || 0) + 1;
+      }
+      var uniqueUsers = Object.keys(users).length;
+      stats.innerHTML =
+        '<div class="piadmin-stat-card"><span class="piadmin-stat-value">' + scItems.length + '</span><span class="piadmin-stat-label">Total Shortcuts</span></div>' +
+        '<div class="piadmin-stat-card"><span class="piadmin-stat-value">' + uniqueUsers + '</span><span class="piadmin-stat-label">Unique Users</span></div>';
+    }
+
+    function renderShortcuts(filter) {
+      var tbody = document.getElementById('piadminShortcutsBody');
+      var filtered = scItems;
+      if (filter) {
+        var q = filter.toLowerCase();
+        filtered = scItems.filter(function(s) {
+          return (s.Title && s.Title.toLowerCase().indexOf(q) > -1) ||
+            (s.ShortcutUrl && s.ShortcutUrl.toLowerCase().indexOf(q) > -1) ||
+            (s.Author && s.Author.Title && s.Author.Title.toLowerCase().indexOf(q) > -1);
+        });
+      }
+      if (scSortCol) {
+        var dir = scSortDir === 'desc' ? -1 : 1;
+        filtered.sort(function(a, b) {
+          var va, vb;
+          if (scSortCol === 'title') { va = (a.Title || '').toLowerCase(); vb = (b.Title || '').toLowerCase(); }
+          else if (scSortCol === 'url') { va = (a.ShortcutUrl || '').toLowerCase(); vb = (b.ShortcutUrl || '').toLowerCase(); }
+          else if (scSortCol === 'user') { va = (a.Author ? a.Author.Title : '').toLowerCase(); vb = (b.Author ? b.Author.Title : '').toLowerCase(); }
+          else if (scSortCol === 'created') { va = a.Id; vb = b.Id; }
+          else return 0;
+          return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
+        });
+      }
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-tertiary);">' +
+          (filter ? 'No shortcuts match the search' : 'No user shortcuts found') + '</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < filtered.length; i++) {
+        var s = filtered[i];
+        html += '<tr>' +
+          '<td class="sc-icon">' + esc(s.ShortcutIcon || '\u2605') + '</td>' +
+          '<td>' + esc(s.Title) + '</td>' +
+          '<td class="sc-url" title="' + esc(s.ShortcutUrl) + '">' + esc(truncUrl(s.ShortcutUrl)) + '</td>' +
+          '<td class="sc-user">' + esc(s.Author ? s.Author.Title : 'Unknown') + '</td>' +
+          '<td>' + s.Id + '</td>' +
+        '</tr>';
+      }
+      tbody.innerHTML = html;
+    }
+
+    // Search
+    document.getElementById('piadminShortcutsSearch').addEventListener('input', function() {
+      renderShortcuts(this.value);
+    });
+
+    // Column sorting
+    document.getElementById('piadminShortcutsTable').querySelector('thead').addEventListener('click', function(e) {
+      var th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      var col = th.getAttribute('data-sort');
+      if (scSortCol === col) scSortDir = scSortDir === 'asc' ? 'desc' : 'asc';
+      else { scSortCol = col; scSortDir = 'asc'; }
+      // Update indicators
+      var ths = this.querySelectorAll('th[data-sort]');
+      for (var i = 0; i < ths.length; i++) {
+        var ind = ths[i].querySelector('.piadmin-sort-indicator');
+        if (ind) ind.textContent = ths[i].getAttribute('data-sort') === scSortCol ? (scSortDir === 'asc' ? '\u25B2' : '\u25BC') : '';
+      }
+      renderShortcuts(document.getElementById('piadminShortcutsSearch').value);
+    });
+
+    // Lazy load on tab click
+    var scTab = root.querySelector('.piadmin-tab[data-section="shortcuts"]');
+    if (scTab) scTab.addEventListener('click', function() { if (!scLoaded) { scLoaded = true; loadShortcuts(); } });
+  })();
+
+  // ═══════════════════════════════════════════════════
+  // SETTINGS TAB — Config cards + export/import
+  // ═══════════════════════════════════════════════════
+  (function() {
+    var settingsLoaded = false;
+
+    function renderSettings() {
+      var grid = document.getElementById('piadminSettingsGrid');
+      grid.innerHTML =
+        // Data Management card
+        '<div class="piadmin-settings-card">' +
+          '<div class="piadmin-settings-card-header"><span class="icon">&#128190;</span> Data Management</div>' +
+          '<div class="piadmin-settings-card-body">' +
+            '<div class="piadmin-settings-actions">' +
+              '<button class="piadmin-btn" id="piadminExportNav">&#11015; Export Navigation JSON</button>' +
+              '<button class="piadmin-btn" id="piadminImportNav">&#11014; Import Navigation JSON</button>' +
+              '<input type="file" id="piadminImportFile" accept=".json" style="display:none">' +
+            '</div>' +
+            '<div class="piadmin-settings-actions">' +
+              '<button class="piadmin-btn" id="piadminExportNews">&#11015; Export News JSON</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        // Site Info card
+        '<div class="piadmin-settings-card">' +
+          '<div class="piadmin-settings-card-header"><span class="icon">&#127760;</span> Site Information</div>' +
+          '<div class="piadmin-settings-card-body">' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">Site URL</span><span class="piadmin-settings-value" style="word-break:break-all;">' + esc(siteUrl) + '</span></div>' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">Nav List</span><span class="piadmin-settings-value">PiCanvasNavigation</span></div>' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">News List</span><span class="piadmin-settings-value">PiCanvasNews</span></div>' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">Shortcuts List</span><span class="piadmin-settings-value">PiCanvasUserShortcuts</span></div>' +
+          '</div>' +
+        '</div>' +
+
+        // Display Preferences card
+        '<div class="piadmin-settings-card">' +
+          '<div class="piadmin-settings-card-header"><span class="icon">&#127912;</span> Admin Preferences</div>' +
+          '<div class="piadmin-settings-card-body">' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">Theme</span><span class="piadmin-settings-value" id="piadminSettingsTheme"></span></div>' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">Column widths</span>' +
+              '<button class="piadmin-btn" id="piadminResetColumns" style="height:24px;font-size:11px;">Reset to Defaults</button></div>' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">Expanded state</span>' +
+              '<button class="piadmin-btn" id="piadminClearExpanded" style="height:24px;font-size:11px;">Clear Saved State</button></div>' +
+          '</div>' +
+        '</div>' +
+
+        // Version History card
+        '<div class="piadmin-settings-card">' +
+          '<div class="piadmin-settings-card-header"><span class="icon">&#128247;</span> Version History</div>' +
+          '<div class="piadmin-settings-card-body">' +
+            '<p style="font-size:11px;color:var(--text-tertiary);margin:0 0 8px;">Snapshots are auto-saved to Site Assets before each save. SharePoint keeps version history.</p>' +
+            '<div class="piadmin-settings-actions" style="margin-bottom:8px;">' +
+              '<button class="piadmin-btn" id="piadminSnapshotNow">&#128247; Create Snapshot Now</button>' +
+            '</div>' +
+            '<div id="piadminSnapshotList"><em style="font-size:11px;color:var(--text-tertiary);">Loading version history...</em></div>' +
+          '</div>' +
+        '</div>' +
+
+        // Danger Zone card
+        '<div class="piadmin-settings-card" style="border-color:var(--danger);">' +
+          '<div class="piadmin-settings-card-header" style="color:var(--danger);"><span class="icon">&#9888;</span> Danger Zone</div>' +
+          '<div class="piadmin-settings-card-body">' +
+            '<div class="piadmin-settings-row"><span class="piadmin-settings-label">Reset all navigation items to default SortOrder (0,1,2...)</span>' +
+              '<button class="piadmin-btn piadmin-btn-danger" id="piadminResetSort" style="height:24px;font-size:11px;">Renumber</button></div>' +
+          '</div>' +
+        '</div>';
+
+      // Update theme display
+      var themeEl = document.getElementById('piadminSettingsTheme');
+      if (themeEl) {
+        var current = root.classList.contains('piadmin-hc') ? 'High Contrast' : root.classList.contains('piadmin-dark') ? 'Dark' : 'Light';
+        themeEl.textContent = current;
+      }
+
+      // Export Navigation
+      document.getElementById('piadminExportNav').addEventListener('click', function() {
+        api.getItems().then(function(items) {
+          var blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'PiCanvasNavigation_' + new Date().toISOString().split('T')[0] + '.json';
+          a.click();
+          showToast('Navigation exported (' + items.length + ' items)', 'success');
+        }).catch(function(err) { showToast('Export failed: ' + err.message, 'error'); });
+      });
+
+      // Export News
+      document.getElementById('piadminExportNews').addEventListener('click', function() {
+        fetch(siteUrl + "/_api/web/lists/getbytitle('PiCanvasNews')/items?$select=Id,Title,NewsUrl,NewsContent,NewsSection,NewsSortOrder,NewsHoverText,NewsPublishedDate,NewsNewDays&$orderby=NewsSortOrder,Id&$top=100", {
+          headers: { 'Accept': 'application/json;odata=nometadata' }, credentials: 'same-origin'
+        }).then(function(r) { return r.json(); }).then(function(d) {
+          var items = d.value || [];
+          var blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'PiCanvasNews_' + new Date().toISOString().split('T')[0] + '.json';
+          a.click();
+          showToast('News exported (' + items.length + ' items)', 'success');
+        }).catch(function(err) { showToast('Export failed: ' + err.message, 'error'); });
+      });
+
+      // Import Navigation
+      document.getElementById('piadminImportNav').addEventListener('click', function() {
+        document.getElementById('piadminImportFile').click();
+      });
+      document.getElementById('piadminImportFile').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          try {
+            var items = JSON.parse(ev.target.result);
+            if (!Array.isArray(items)) throw new Error('Expected JSON array');
+            var dialog = document.getElementById('piadminDialog');
+            dialog.innerHTML = '<h3>Import Navigation</h3><p>Import <strong>' + items.length + '</strong> items? Existing items with the same ID will be updated, new items will be created.</p>' +
+              '<div class="piadmin-dialog-actions"><button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+              '<button class="piadmin-btn-primary" id="piadminDialogConfirm">Import</button></div>';
+            document.getElementById('piadminDialogBackdrop').classList.add('visible');
+            document.getElementById('piadminDialogCancel').onclick = function() {
+              document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+            };
+            document.getElementById('piadminDialogConfirm').onclick = function() {
+              this.disabled = true; this.textContent = 'Importing...';
+              var chain = Promise.resolve();
+              var created = 0;
+              items.forEach(function(item) {
+                var data = { Title: item.Title, NavUrl: item.NavUrl, ParentId0: item.ParentId0 || 0,
+                  SortOrder: item.SortOrder || 0, IsNew: !!item.IsNew, Icon: item.Icon || '',
+                  IsEnabled: item.IsEnabled !== false, OpenInNewWindow: item.OpenInNewWindow !== false,
+                  Audience: item.Audience || '' };
+                chain = chain.then(function() { return api.createItem(data).then(function() { created++; }); });
+              });
+              chain.then(function() {
+                document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+                showToast('Imported ' + created + ' items', 'success');
+                loadData();
+              }).catch(function(err) {
+                document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+                showToast('Import failed: ' + err.message, 'error');
+              });
+            };
+          } catch(err) { showToast('Invalid JSON: ' + err.message, 'error'); }
+        };
+        reader.readAsText(file);
+        this.value = ''; // reset file input
+      });
+
+      // Reset columns
+      document.getElementById('piadminResetColumns').addEventListener('click', function() {
+        try { localStorage.removeItem('piadmin_col_url'); localStorage.removeItem('piadmin_col_status'); localStorage.removeItem('piadmin_preview_w'); } catch(e) {}
+        var tc = document.getElementById('piadminTree');
+        if (tc) { tc.style.removeProperty('--col-url'); tc.style.removeProperty('--col-status'); }
+        var pp = document.getElementById('piadminPreviewPanel');
+        if (pp) pp.style.width = '';
+        showToast('Column widths reset', 'info');
+      });
+
+      // Clear expanded
+      document.getElementById('piadminClearExpanded').addEventListener('click', function() {
+        try { sessionStorage.removeItem('piadmin_expanded'); } catch(e) {}
+        if (tree) { tree._expanded = {}; tree.render(); }
+        showToast('Expanded state cleared', 'info');
+      });
+
+      // ── Version History: load snapshot versions from Site Assets ──
+      function loadSnapshotVersions() {
+        var listEl = document.getElementById('piadminSnapshotList');
+        if (!listEl) return;
+        api.getSnapshotVersions().then(function(versions) {
+          if (!versions.length) {
+            listEl.innerHTML = '<em style="font-size:11px;color:var(--text-tertiary);">No snapshots yet. Snapshots are created automatically before each save.</em>';
+            return;
+          }
+          var html = '<table class="piadmin-snapshot-table"><thead><tr>' +
+            '<th>Version</th><th>Date</th><th>By</th><th></th></tr></thead><tbody>';
+          for (var i = 0; i < versions.length; i++) {
+            var v = versions[i];
+            var created = v.Created ? new Date(v.Created).toLocaleString() : '';
+            var by = v.CreatedBy ? (v.CreatedBy.Title || '') : '';
+            html += '<tr>' +
+              '<td>' + esc(v.VersionLabel || '') + '</td>' +
+              '<td>' + esc(created) + '</td>' +
+              '<td>' + esc(by) + '</td>' +
+              '<td style="text-align:right;">' +
+                '<button class="piadmin-btn" data-snapshot-action="preview" data-version-id="' + v.VersionId + '" style="height:22px;font-size:10px;margin-right:4px;">Preview</button>' +
+                '<button class="piadmin-btn" data-snapshot-action="restore" data-version-id="' + v.VersionId + '" data-version-label="' + esc(v.VersionLabel || '') + '" style="height:22px;font-size:10px;">Restore</button>' +
+              '</td></tr>';
+          }
+          html += '</tbody></table>';
+          listEl.innerHTML = html;
+        }).catch(function(err) {
+          listEl.innerHTML = '<em style="font-size:11px;color:var(--text-tertiary);">Could not load version history: ' + esc(err.message) + '</em>';
+        });
+      }
+      loadSnapshotVersions();
+
+      // Snapshot Now button
+      document.getElementById('piadminSnapshotNow').addEventListener('click', function() {
+        this.disabled = true; this.textContent = 'Saving...';
+        var btn = this;
+        api.getItems().then(function(items) {
+          return api.uploadSnapshot(JSON.stringify(items, null, 2));
+        }).then(function() {
+          btn.disabled = false; btn.innerHTML = '&#128247; Create Snapshot Now';
+          showToast('Snapshot saved to Site Assets', 'success');
+          loadSnapshotVersions();
+        }).catch(function(err) {
+          btn.disabled = false; btn.innerHTML = '&#128247; Create Snapshot Now';
+          showToast('Snapshot failed: ' + err.message, 'error');
+        });
+      });
+
+      // Version history click handlers (preview & restore)
+      document.getElementById('piadminSnapshotList').addEventListener('click', function(e) {
+        var btn = e.target.closest('button[data-snapshot-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-snapshot-action');
+        var versionId = btn.getAttribute('data-version-id');
+
+        if (action === 'preview') {
+          btn.disabled = true; btn.textContent = 'Loading...';
+          api.getSnapshotVersionContent(versionId).then(function(items) {
+            btn.disabled = false; btn.textContent = 'Preview';
+            if (!Array.isArray(items)) { showToast('Invalid snapshot data', 'error'); return; }
+            // Show preview in dialog
+            var dialog = document.getElementById('piadminDialog');
+            var html = '<h3>Snapshot Preview (' + items.length + ' items)</h3>' +
+              '<div style="max-height:60vh;overflow-y:auto;font-size:11px;">';
+            // Build simple tree display
+            var map = {}, roots = [];
+            for (var i = 0; i < items.length; i++) map[items[i].Id] = items[i];
+            for (var i = 0; i < items.length; i++) {
+              var it = items[i];
+              if (!it.ParentId0 || it.ParentId0 === 0 || !map[it.ParentId0]) roots.push(it);
+            }
+            function renderSnapshotTree(nodes, depth) {
+              var out = '';
+              for (var n = 0; n < nodes.length; n++) {
+                var node = nodes[n];
+                var indent = '';
+                for (var d = 0; d < depth; d++) indent += '&nbsp;&nbsp;&nbsp;&nbsp;';
+                var enabled = node.IsEnabled !== false ? '' : ' style="opacity:.4;text-decoration:line-through;"';
+                out += '<div' + enabled + '>' + indent + (node.Icon ? esc(node.Icon) + ' ' : '') +
+                  '<strong>' + esc(node.Title) + '</strong>' +
+                  (node.NavUrl && node.NavUrl !== '#' ? ' <small style="color:var(--text-tertiary);">' + esc(node.NavUrl) + '</small>' : '') +
+                  '</div>';
+                // Find children
+                var children = [];
+                for (var c = 0; c < items.length; c++) {
+                  if (items[c].ParentId0 === node.Id) children.push(items[c]);
+                }
+                children.sort(function(a, b) { return (a.SortOrder || 0) - (b.SortOrder || 0); });
+                out += renderSnapshotTree(children, depth + 1);
+              }
+              return out;
+            }
+            roots.sort(function(a, b) { return (a.SortOrder || 0) - (b.SortOrder || 0); });
+            html += renderSnapshotTree(roots, 0);
+            html += '</div><div class="piadmin-dialog-actions" style="margin-top:12px;">' +
+              '<button class="piadmin-btn" id="piadminDialogCancel">Close</button></div>';
+            dialog.innerHTML = html;
+            document.getElementById('piadminDialogBackdrop').classList.add('visible');
+            document.getElementById('piadminDialogCancel').onclick = function() {
+              document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+            };
+          }).catch(function(err) {
+            btn.disabled = false; btn.textContent = 'Preview';
+            showToast('Could not load snapshot: ' + err.message, 'error');
+          });
+        }
+
+        if (action === 'restore') {
+          var versionLabel = btn.getAttribute('data-version-label') || versionId;
+          var dialog = document.getElementById('piadminDialog');
+          dialog.innerHTML = '<h3>Restore Snapshot</h3>' +
+            '<p>This will <strong>replace all current navigation items</strong> with the snapshot from version <strong>' + esc(versionLabel) + '</strong>.</p>' +
+            '<p style="color:var(--danger);font-size:12px;">A new snapshot of the current state will be created first as a safety net.</p>' +
+            '<p>Type <strong>RESTORE</strong> to confirm:</p>' +
+            '<input type="text" class="piadmin-challenge-input" id="piadminRestoreChallenge" placeholder="Type RESTORE" style="width:120px;">' +
+            '<div class="piadmin-dialog-actions" style="margin-top:12px;">' +
+            '<button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+            '<button class="piadmin-btn-primary piadmin-btn-danger" id="piadminDialogConfirm" disabled>Restore</button></div>';
+          document.getElementById('piadminDialogBackdrop').classList.add('visible');
+          document.getElementById('piadminRestoreChallenge').addEventListener('input', function() {
+            document.getElementById('piadminDialogConfirm').disabled = this.value.trim() !== 'RESTORE';
+          });
+          document.getElementById('piadminDialogCancel').onclick = function() {
+            document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+          };
+          document.getElementById('piadminDialogConfirm').onclick = function() {
+            if (this.disabled) return;
+            this.disabled = true; this.textContent = 'Restoring...';
+            // 1. Create safety snapshot of current state
+            // 2. Fetch snapshot version content
+            // 3. Delete all current items, create all snapshot items
+            api.getItems().then(function(currentItems) {
+              return api.uploadSnapshot(JSON.stringify(currentItems, null, 2)).catch(function() {})
+                .then(function() { return api.getSnapshotVersionContent(versionId); })
+                .then(function(snapshotItems) {
+                  if (!Array.isArray(snapshotItems)) throw new Error('Invalid snapshot data');
+                  var total = currentItems.length + snapshotItems.length;
+                  var done = 0;
+                  dialog.innerHTML = '<h3>Restoring Snapshot</h3>' +
+                    '<p>Step <span id="piadminRestoreProgress">0</span> of <strong>' + total + '</strong>...</p>' +
+                    '<div class="piadmin-save-progress"><div class="piadmin-save-progress-bar" id="piadminRestoreBar" style="width:0%"></div></div>';
+                  function updateRestoreProgress() {
+                    done++;
+                    var el = document.getElementById('piadminRestoreProgress');
+                    if (el) el.textContent = done;
+                    var bar = document.getElementById('piadminRestoreBar');
+                    if (bar) bar.style.width = Math.round(done / total * 100) + '%';
+                  }
+                  // Delete all current items
+                  var chain = Promise.resolve();
+                  currentItems.forEach(function(item) {
+                    chain = chain.then(function() {
+                      return api.deleteItem(item.Id).then(updateRestoreProgress);
+                    });
+                  });
+                  // Create all snapshot items (sorted: parents first)
+                  snapshotItems.sort(function(a, b) {
+                    var aDepth = a.ParentId0 && a.ParentId0 !== 0 ? 1 : 0;
+                    var bDepth = b.ParentId0 && b.ParentId0 !== 0 ? 1 : 0;
+                    return aDepth - bDepth;
+                  });
+                  var idMap = {};
+                  snapshotItems.forEach(function(item) {
+                    chain = chain.then(function() {
+                      var data = {
+                        Title: item.Title, NavUrl: item.NavUrl || '#',
+                        ParentId0: item.ParentId0 && idMap[item.ParentId0] ? idMap[item.ParentId0] : (item.ParentId0 || 0),
+                        SortOrder: item.SortOrder || 0, IsNew: !!item.IsNew,
+                        Icon: item.Icon || '', IsEnabled: item.IsEnabled !== false,
+                        OpenInNewWindow: item.OpenInNewWindow !== false,
+                        Audience: item.Audience || ''
+                      };
+                      return api.createItem(data).then(function(created) {
+                        idMap[item.Id] = created.Id;
+                        updateRestoreProgress();
+                      });
+                    });
+                  });
+                  return chain;
+                });
+            }).then(function() {
+              document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+              showToast('Snapshot restored successfully', 'success');
+              loadData();
+            }).catch(function(err) {
+              document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+              showToast('Restore failed: ' + err.message + '. Reloading...', 'error');
+              loadData();
+            });
+          };
+        }
+      });
+
+      // Renumber sort order
+      document.getElementById('piadminResetSort').addEventListener('click', function() {
+        var dialog = document.getElementById('piadminDialog');
+        dialog.innerHTML = '<h3>Renumber Sort Order</h3><p>This will set SortOrder to 0, 1, 2... for all items grouped by parent. Continue?</p>' +
+          '<div class="piadmin-dialog-actions"><button class="piadmin-btn" id="piadminDialogCancel">Cancel</button>' +
+          '<button class="piadmin-btn-primary piadmin-btn-danger" id="piadminDialogConfirm">Renumber</button></div>';
+        document.getElementById('piadminDialogBackdrop').classList.add('visible');
+        document.getElementById('piadminDialogCancel').onclick = function() {
+          document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+        };
+        document.getElementById('piadminDialogConfirm').onclick = function() {
+          this.disabled = true; this.textContent = 'Working...';
+          api.getItems().then(function(items) {
+            var groups = {};
+            items.forEach(function(item) {
+              var pid = item.ParentId0 || 0;
+              if (!groups[pid]) groups[pid] = [];
+              groups[pid].push(item);
+            });
+            var chain = Promise.resolve();
+            var count = 0;
+            Object.keys(groups).forEach(function(pid) {
+              groups[pid].forEach(function(item, idx) {
+                if (item.SortOrder !== idx) {
+                  chain = chain.then(function() { return api.updateItem(item.Id, { SortOrder: idx }).then(function() { count++; }); });
+                }
+              });
+            });
+            return chain.then(function() { return count; });
+          }).then(function(count) {
+            document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+            showToast('Renumbered ' + count + ' items', 'success');
+            loadData();
+          }).catch(function(err) {
+            document.getElementById('piadminDialogBackdrop').classList.remove('visible');
+            showToast('Renumber failed: ' + err.message, 'error');
+          });
+        };
+      });
+    }
+
+    // Lazy load
+    var settingsTab = root.querySelector('.piadmin-tab[data-section="settings"]');
+    if (settingsTab) settingsTab.addEventListener('click', function() { if (!settingsLoaded) { settingsLoaded = true; renderSettings(); } });
+  })();
+
+})();
+</script>

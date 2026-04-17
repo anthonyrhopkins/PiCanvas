@@ -62,43 +62,66 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 .aahub-root a { color: inherit; text-decoration: none; }
 
 /* ── Site Header (Logo + Title) ── */
-.aahub-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
-  background: linear-gradient(180deg, rgba(18,23,28,0.98) 0%, rgba(18,23,28,0.95) 100%);
-  border-bottom: 1px solid rgba(0,112,242,0.08);
+/* ── Site Banner (logo + title + nav) ── */
+.aahub-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 110px; /* logo | content | balance */
+  grid-template-rows: auto auto;
+  background: linear-gradient(180deg, rgba(18,23,28,0.98) 0%, rgba(29,35,42,0.95) 100%);
+  border-bottom: 1px solid rgba(0,112,242,0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
-.aahub-header-logo {
-  height: 48px;
-  width: auto;
-  flex-shrink: 0;
+.aahub-banner-logo {
+  grid-row: 1 / 3;
+  grid-column: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.aahub-banner-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   filter: drop-shadow(0 2px 8px rgba(0,112,242,0.2));
 }
+.aahub-header {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 8px 16px 2px;
+}
 .aahub-header-title {
-  font-size: 1.35em;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 15px;
+  font-weight: 700;
   color: #fff;
-  white-space: nowrap;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  letter-spacing: 0.3px;
+}
+@media (max-width: 768px) {
+  .aahub-banner { grid-template-columns: 1fr; }
+  .aahub-banner-logo { display: none; }
 }
 
 /* ── Navigation Bar ── */
 .aahub-nav {
-  position: sticky;
-  top: 0;
+  grid-column: 2;
+  grid-row: 2;
   z-index: 100;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: stretch;
-  background: linear-gradient(180deg, rgba(18,23,28,0.97) 0%, rgba(29,35,42,0.95) 100%);
-  border-bottom: 1px solid rgba(0,112,242,0.15);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: none;
   padding: 0;
   min-height: 44px;
+  min-width: 0;
   font-size: 13px; /* Fixed size — immune to --fs accessibility slider */
 }
 
@@ -110,6 +133,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 12px;
+  min-width: 0;
 }
 
 /* ── Nav Item (parent of dropdown) ── */
@@ -117,6 +141,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   position: relative;
   display: flex;
   align-items: stretch;
+  flex-shrink: 0;
 }
 
 .aahub-nav-item > a {
@@ -146,9 +171,9 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 
 /* ── Gear / Shortcuts dropdown (click-toggle, not hover) ── */
-.aahub-nav-item.home .aahub-shortcut-dropdown { min-width: 260px; max-height: 400px; overflow-y: auto; }
-.aahub-nav-item.home:hover .aahub-shortcut-dropdown { opacity: 0; visibility: hidden; }
-.aahub-nav-item.home.shortcut-open .aahub-shortcut-dropdown { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; }
+.aahub-nav-item.home .aahub-shortcut-dropdown { min-width: 260px; max-height: 400px; overflow-y: auto; pointer-events: none; }
+.aahub-nav-item.home:hover .aahub-shortcut-dropdown { opacity: 0; visibility: hidden; pointer-events: none; }
+.aahub-nav-item.home.shortcut-open .aahub-shortcut-dropdown { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; pointer-events: auto !important; }
 .aahub-shortcut-item {
   display: flex; align-items: center; gap: 10px; padding: 10px 20px;
   font-size: 1em; color: #B8C4D0; text-decoration: none;
@@ -895,15 +920,13 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   --muted: #6a7a8a;
   --focus-ring: #1a6dd2;
 }
-.theme-light .aahub-header {
+.theme-light .aahub-banner {
   background: linear-gradient(180deg, rgba(232,236,240,0.98) 0%, rgba(220,226,234,0.95) 100%);
-  border-bottom-color: rgba(0,80,180,0.1);
 }
 .theme-light .aahub-header-title { color: #1a3a5c; text-shadow: none; }
-.theme-light .aahub-header-logo { filter: none; }
+.theme-light .aahub-banner-logo { filter: none; }
 .theme-light .aahub-nav {
-  background: linear-gradient(180deg, rgba(215,222,230,0.97) 0%, rgba(205,214,224,0.95) 100%);
-  border-bottom-color: rgba(0,80,180,0.15);
+  background: none;
 }
 .theme-light .aahub-nav-item > a { color: #2e3e4e; }
 .theme-light .aahub-nav-item > a:hover,
@@ -989,15 +1012,13 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   --muted: #aaa;
   --focus-ring: #ff0;
 }
-.theme-hc .aahub-header {
+.theme-hc .aahub-banner {
   background: #000;
-  border-bottom: 2px solid #fff;
 }
 .theme-hc .aahub-header-title { color: #ff0; text-shadow: none; }
-.theme-hc .aahub-header-logo { filter: none; }
+.theme-hc .aahub-banner-logo { filter: none; }
 .theme-hc .aahub-nav {
-  background: #000;
-  border-bottom: 2px solid #fff;
+  background: none;
 }
 .theme-hc .aahub-nav-item > a { color: #fff; }
 .theme-hc .aahub-nav-item > a:hover,
@@ -1311,14 +1332,13 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
 
 <div class="aahub-root">
 
-  <!-- ═══ Site Header ═══ -->
-  <header class="aahub-header">
-    <img class="aahub-header-logo" src="https://sap.sharepoint.com/teams/AAHUB/SiteAssets/__siteIcon__.png" alt="Architecture Advisory Hub logo">
-    <span class="aahub-header-title"><strong>Welcome to the Architecture Advisory Hub</strong> &mdash; Your Central Resource for Architecture Advisory</span>
-  </header>
-
-  <!-- ═══ Navigation Bar ═══ -->
-  <nav class="aahub-nav">
+  <!-- ═══ Site Banner (logo + title + nav) ═══ -->
+  <div class="aahub-banner">
+    <div class="aahub-banner-logo"><img src="https://sap.sharepoint.com/teams/AAHUB/SiteAssets/__siteIcon__.png" alt="Architecture Advisory Hub logo"></div>
+    <header class="aahub-header">
+      <span class="aahub-header-title">Architecture Advisory Hub</span>
+    </header>
+    <nav class="aahub-nav">
     <button class="aahub-mobile-btn" aria-label="Toggle menu" aria-expanded="false">&#9776;</button>
     <div class="aahub-nav-inner">
 
@@ -1760,7 +1780,8 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
       </div>
 
     </div>
-  </nav>
+    </nav>
+  </div><!-- /aahub-banner -->
 
   <!-- ═══ Hero Body ═══ -->
   <div class="aahub-hero">
@@ -1861,10 +1882,8 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
         </div>
       </div>
 
-      <!-- Footer -->
-      <div class="aahub-footer">
-        <strong>Welcome to the Architecture Advisory Hub</strong> &mdash; Your Central Resource for Architecture Advisory
-      </div>
+      <!-- Footer (text moved to header) -->
+      <div class="aahub-footer"></div>
 
       <!-- ═══ Accessibility Toolbar ═══ -->
       <div class="aahub-a11y-bar" role="toolbar" aria-label="Display settings">
@@ -1960,9 +1979,9 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
     var overflowItems = []; // items currently in "More"
 
     function priorityNav() {
+      console.log('[AAHUB-NAV] priorityNav v3 called, items=' + allItems.length + ', innerWidth=' + window.innerWidth);
       // Skip on mobile — all items shown in hamburger stack
       if (window.innerWidth <= 768) {
-        // Restore any overflowed items back to main bar
         while (overflowItems.length) {
           var item = overflowItems.pop();
           navInner.insertBefore(item, moreBtn);
@@ -1973,7 +1992,7 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
         return;
       }
 
-      // Restore all items to main bar first
+      // 1. Restore all items to main bar, hide More
       while (overflowItems.length) {
         var item = overflowItems.pop();
         navInner.insertBefore(item, moreBtn);
@@ -1982,35 +2001,55 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
       moreBtn.style.display = 'none';
       moreDropdown.innerHTML = '';
 
-      var availableWidth = navInner.clientWidth;
-      var moreWidth = 80; // estimated width of "More ▾" button
-
-      // Measure cumulative widths
+      // 2. Sum all item widths to check if everything fits
+      var containerWidth = navInner.clientWidth;
       var totalWidth = 0;
+      var widths = [];
+      for (var k = 0; k < allItems.length; k++) {
+        var w = allItems[k].offsetWidth;
+        widths.push(w);
+        totalWidth += w;
+      }
+      console.log('[AAHUB-NAV] containerWidth=' + containerWidth + ', totalWidth=' + totalWidth + ', widths=[' + widths.join(',') + ']');
+      if (totalWidth <= containerWidth) {
+        console.log('[AAHUB-NAV] All fits, no More needed');
+        return;
+      }
+
+      // 3. Items overflow — show More button to measure its ACTUAL width
+      moreBtn.style.display = '';
+      var moreWidth = moreBtn.offsetWidth;
+
+      // 4. Available space = container width minus the More button
+      var availableWidth = containerWidth - moreWidth;
+      console.log('[AAHUB-NAV] Overflow! moreWidth=' + moreWidth + ', availableWidth=' + availableWidth);
+
+      // 5. Find where overflow starts
+      var usedWidth = 0;
       var overflowStart = -1;
       for (var i = 0; i < allItems.length; i++) {
-        totalWidth += allItems[i].offsetWidth;
-        if (totalWidth + moreWidth > availableWidth && i > 0) { // i>0 keeps Home visible
+        usedWidth += allItems[i].offsetWidth;
+        if (usedWidth > availableWidth && i > 0) { // i>0 keeps Home visible
           overflowStart = i;
           break;
         }
       }
 
-      if (overflowStart < 0) return; // everything fits
+      if (overflowStart < 0) {
+        // Rounding edge case — everything fits with More, hide it
+        moreBtn.style.display = 'none';
+        return;
+      }
 
-      // Move overflowing items into More dropdown
+      // 6. Move overflowing items into More dropdown
       for (var j = allItems.length - 1; j >= overflowStart; j--) {
         allItems[j].style.display = 'none';
         overflowItems.push(allItems[j]);
-
-        // Clone into More dropdown
         var clone = allItems[j].cloneNode(true);
         clone.style.display = '';
         clone.classList.remove('align-right');
         moreDropdown.insertBefore(clone, moreDropdown.firstChild);
       }
-
-      moreBtn.style.display = '';
     }
 
     // Toggle More dropdown on click
@@ -2373,57 +2412,35 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
 
   var userShortcuts = [];
 
-  // --- Gear click handler: event delegation for robustness ---
-  root.addEventListener('click', function(e) {
-    var target = e.target;
-    // Walk up to find the gear nav-item or its anchor
+  // --- Gear click handler: direct + delegation ---
+  function attachGearHandler() {
     var gearItem = root.querySelector('.aahub-nav-item.home');
-    if (!gearItem) return;
-
-    // Check if click was inside the gear item
-    if (gearItem.contains(target)) {
-      // Only toggle on the top-level anchor (gear icon), not dropdown content
-      var gearLink = gearItem.querySelector(':scope > a');
-      if (gearLink && (target === gearLink || gearLink.contains(target))) {
+    var gearLink = gearItem ? gearItem.querySelector('a') : null;
+    if (gearLink && !gearLink._gearBound) {
+      gearLink._gearBound = true;
+      gearLink.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         gearItem.classList.toggle('shortcut-open');
-      }
-    } else {
-      // Click outside — close the dropdown
+        console.log('[AAHUB] Gear toggled, shortcut-open=' + gearItem.classList.contains('shortcut-open'));
+      });
+      console.log('[AAHUB] Gear click handler attached');
+    }
+  }
+  attachGearHandler();
+  // Re-attach after dynamic nav rebuilds (picanvas:nav-ready may replace DOM)
+  root.addEventListener('picanvas:nav-ready', function() { setTimeout(attachGearHandler, 50); });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function(e) {
+    var gearItem = root.querySelector('.aahub-nav-item.home');
+    if (gearItem && !gearItem.contains(e.target)) {
       gearItem.classList.remove('shortcut-open');
     }
   });
 
-  // --- Gear action: Edit Page ---
-  var editPageLink = root.querySelector('.aahub-gear-edit-page');
-  if (editPageLink) {
-    editPageLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      var currentUrl = window.location.href.split('?')[0].split('#')[0];
-      window.location.href = currentUrl + '?Mode=Edit';
-    });
-  }
-
-  // --- Gear action: Badge Toggle ---
+  // --- Badge pref helper (must be declared before handlers that use it) ---
   var gearBadgeToggle = root.querySelector('.aahub-gear-badge-toggle');
-  if (gearBadgeToggle) {
-    gearBadgeToggle.addEventListener('click', function(e) {
-      e.preventDefault();
-      var isShowing = !root.classList.contains('hide-badges');
-      applyBadgePref(!isShowing);
-      // Persist via prefs-update
-      root.dispatchEvent(new CustomEvent('picanvas:prefs-update', {
-        detail: { action: 'display-update', payload: { key: 'showBadges', value: !isShowing } },
-        bubbles: false
-      }));
-      // Close gear dropdown
-      var gearItem = root.querySelector('.aahub-nav-item.home');
-      if (gearItem) gearItem.classList.remove('shortcut-open');
-    });
-  }
-
-  // --- Badge pref helper (shared by a11y toolbar and gear dropdown) ---
   var badgeToggle = root.querySelector('.a11y-badge-toggle');
   function applyBadgePref(show) {
     if (show) {
@@ -2442,6 +2459,37 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
       if (gearBadgeToggle) gearBadgeToggle.textContent = '\u2726 Show NEW Badges';
     }
     try { localStorage.setItem('aahub-show-badges', show ? '1' : '0'); } catch(e) {}
+  }
+
+  // --- Gear action: Edit Page ---
+  var editPageLink = root.querySelector('.aahub-gear-edit-page');
+  if (editPageLink && !editPageLink._bound) {
+    editPageLink._bound = true;
+    editPageLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      var currentUrl = window.location.href.split('?')[0].split('#')[0];
+      window.location.href = currentUrl + '?Mode=Edit';
+    });
+  }
+
+  // --- Gear action: Badge Toggle ---
+  if (gearBadgeToggle && !gearBadgeToggle._bound) {
+    gearBadgeToggle._bound = true;
+    gearBadgeToggle.addEventListener('click', function(e) {
+      e.preventDefault();
+      var isShowing = !root.classList.contains('hide-badges');
+      var newVal = !isShowing;
+      // Update local prefs immediately so async roundtrip doesn't override
+      if (userPrefs && userPrefs.display) userPrefs.display.showBadges = newVal;
+      applyBadgePref(newVal);
+      root.dispatchEvent(new CustomEvent('picanvas:prefs-update', {
+        detail: { action: 'display-update', payload: { key: 'showBadges', value: newVal } },
+        bubbles: false
+      }));
+      var gi = root.querySelector('.aahub-nav-item.home');
+      if (gi) gi.classList.remove('shortcut-open');
+    });
+    console.log('[AAHUB] Badge toggle handler attached');
   }
 
   // --- Render shortcuts inside the gear dropdown ---
@@ -2524,10 +2572,12 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
 
   // --- "Edit Shortcuts" link opens modal ---
   var editLink = root.querySelector('.aahub-shortcut-edit-link');
-  if (editLink) {
+  if (editLink && !editLink._bound) {
+    editLink._bound = true;
     editLink.addEventListener('click', function(e) {
       e.preventDefault();
-      if (homeItem) homeItem.classList.remove('shortcut-open');
+      var gi = root.querySelector('.aahub-nav-item.home');
+      if (gi) gi.classList.remove('shortcut-open');
       openShortcutEditor();
     });
   }
@@ -2792,6 +2842,161 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
     titleInput.focus();
   }
 
+  // ═══════════════════════════════════════════════════
+  // PERSONALIZATION PANEL — 3-tab modal
+  // ═══════════════════════════════════════════════════
+
+  var personalizeLink = root.querySelector('.aahub-gear-personalize');
+  if (personalizeLink && !personalizeLink._bound) {
+    personalizeLink._bound = true;
+    personalizeLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      var gi = root.querySelector('.aahub-nav-item.home');
+      if (gi) gi.classList.remove('shortcut-open');
+      openPersonalizationPanel();
+    });
+  }
+
+  function openPersonalizationPanel() {
+    var existing = document.querySelector('.aahub-pp-overlay');
+    if (existing) existing.parentNode.removeChild(existing);
+    var overlay = document.createElement('div'); overlay.className = 'aahub-pp-overlay';
+    var bkdrop = document.createElement('div'); bkdrop.className = 'aahub-pp-backdrop'; overlay.appendChild(bkdrop);
+    var dlg = document.createElement('div'); dlg.className = 'aahub-pp-dialog'; overlay.appendChild(dlg);
+
+    var hdr = document.createElement('div'); hdr.className = 'aahub-pp-header';
+    var h3 = document.createElement('h3'); h3.textContent = '\u2699 Personalize'; hdr.appendChild(h3);
+    var clsBtn = document.createElement('button'); clsBtn.className = 'aahub-pp-close'; clsBtn.innerHTML = '&times;'; hdr.appendChild(clsBtn);
+    dlg.appendChild(hdr);
+
+    var tabBar = document.createElement('div'); tabBar.className = 'aahub-pp-tabs';
+    var tabNames = ['Shortcuts', 'Navigation', 'Display']; var ppTabs = []; var ppPanels = [];
+    for (var t = 0; t < tabNames.length; t++) {
+      (function(idx, name) {
+        var tab = document.createElement('button'); tab.className = 'aahub-pp-tab' + (idx === 0 ? ' active' : ''); tab.textContent = name;
+        tab.addEventListener('click', function() { for (var x = 0; x < ppTabs.length; x++) { ppTabs[x].classList.toggle('active', x === idx); ppPanels[x].classList.toggle('active', x === idx); } });
+        tabBar.appendChild(tab); ppTabs.push(tab);
+      })(t, tabNames[t]);
+    }
+    dlg.appendChild(tabBar);
+
+    // ── Shortcuts Panel ──
+    var scPanel = document.createElement('div'); scPanel.className = 'aahub-pp-panel active'; ppPanels.push(scPanel);
+    var scList = document.createElement('div'); scList.className = 'aahub-sc-list'; scPanel.appendChild(scList);
+    var addSec = document.createElement('div'); addSec.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);';
+    var addTtl = document.createElement('div'); addTtl.style.cssText = 'font-size:12px;font-weight:600;color:#8496A7;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;'; addTtl.textContent = 'Add New Shortcut'; addSec.appendChild(addTtl);
+    function mkF(lb, ph, ml) { var r = document.createElement('div'); r.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;'; var l = document.createElement('label'); l.style.cssText = 'font-size:12px;color:#8496A7;width:42px;flex-shrink:0;text-align:right;'; l.textContent = lb; r.appendChild(l); var inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = ph; inp.style.cssText = 'flex:1;padding:8px 12px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.04);color:#D5DADF;font-size:13px;font-family:inherit;'; if (ml) inp.maxLength = ml; r.appendChild(inp); addSec.appendChild(r); return inp; }
+    var scTI = mkF('Title', 'e.g. Finance Dashboard'); var scUI = mkF('URL', 'https://...'); var scII = mkF('Icon', '\u2605', 2); scII.style.maxWidth = '60px'; scII.style.textAlign = 'center'; scII.style.fontSize = '16px';
+    var scErr = document.createElement('div'); scErr.style.cssText = 'font-size:12px;color:#ff6b6b;display:none;margin-top:4px;'; addSec.appendChild(scErr);
+    var scAB = document.createElement('button'); scAB.textContent = '+ Add Shortcut'; scAB.disabled = true; scAB.style.cssText = 'margin-top:10px;padding:8px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#0070f2;color:#fff;opacity:0.4;'; addSec.appendChild(scAB); scPanel.appendChild(addSec);
+    function vSc() { var ok = scTI.value.trim() && scUI.value.trim(); scAB.disabled = !ok; scAB.style.opacity = ok ? '1' : '0.4'; scErr.style.display = 'none'; }
+    scTI.addEventListener('input', vSc); scUI.addEventListener('input', vSc);
+    scAB.addEventListener('click', function() { var u = scUI.value.trim(); if (!/^(https?:\/\/|mailto:)/i.test(u)) { scErr.textContent = 'URL must start with http://, https://, or mailto:'; scErr.style.display = 'block'; return; } root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'shortcut-add', payload: { title: scTI.value.trim(), url: u, icon: scII.value.trim() || '\u2605', openInNewWindow: true } }, bubbles: false })); scTI.value = ''; scUI.value = ''; scII.value = ''; scAB.disabled = true; scAB.style.opacity = '0.4'; });
+    scUI.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !scAB.disabled) scAB.click(); });
+
+    function renderSc() {
+      while (scList.firstChild) scList.removeChild(scList.firstChild);
+      var scs = userPrefs ? userPrefs.shortcuts : [];
+      if (!scs || !scs.length) { var em = document.createElement('div'); em.style.cssText = 'padding:24px;text-align:center;color:#5a6d7e;font-style:italic;font-size:13px;'; em.textContent = 'No shortcuts yet. Add one below!'; scList.appendChild(em); return; }
+      for (var i = 0; i < scs.length; i++) {
+        (function(sc, idx) {
+          var row = document.createElement('div'); row.className = 'aahub-sc-row';
+          var ic = document.createElement('span'); ic.className = 'sc-icon'; ic.textContent = sc.icon || '\u2605'; row.appendChild(ic);
+          var inf = document.createElement('div'); inf.className = 'sc-info'; var tt = document.createElement('span'); tt.className = 'sc-title'; tt.textContent = sc.title; inf.appendChild(tt); var ur = document.createElement('span'); ur.className = 'sc-url'; ur.textContent = sc.url; inf.appendChild(ur); row.appendChild(inf);
+          var acts = document.createElement('div'); acts.className = 'sc-actions';
+          var up = document.createElement('button'); up.textContent = '\u2191'; up.title = 'Move up'; if (idx === 0) up.style.visibility = 'hidden';
+          up.addEventListener('click', function() { var ids = scs.map(function(s) { return s.id; }); ids.splice(idx, 1); ids.splice(idx - 1, 0, sc.id); root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'shortcut-reorder', payload: { orderedIds: ids } }, bubbles: false })); }); acts.appendChild(up);
+          var dn = document.createElement('button'); dn.textContent = '\u2193'; dn.title = 'Move down'; if (idx === scs.length - 1) dn.style.visibility = 'hidden';
+          dn.addEventListener('click', function() { var ids = scs.map(function(s) { return s.id; }); ids.splice(idx, 1); ids.splice(idx + 1, 0, sc.id); root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'shortcut-reorder', payload: { orderedIds: ids } }, bubbles: false })); }); acts.appendChild(dn);
+          var del = document.createElement('button'); del.className = 'sc-del'; del.textContent = '\u2715'; del.title = 'Delete';
+          del.addEventListener('click', function() { root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'shortcut-delete', payload: { id: sc.id } }, bubbles: false })); }); acts.appendChild(del);
+          row.appendChild(acts); scList.appendChild(row);
+        })(scs[i], i);
+      }
+    }
+    renderSc();
+
+    // ── Navigation Panel ──
+    var navPnl = document.createElement('div'); navPnl.className = 'aahub-pp-panel'; ppPanels.push(navPnl);
+    function renderNav() {
+      while (navPnl.firstChild) navPnl.removeChild(navPnl.firstChild);
+      if (!rawNavNodes || !rawNavNodes.length) { var em = document.createElement('div'); em.style.cssText = 'padding:24px;text-align:center;color:#5a6d7e;font-style:italic;font-size:13px;'; em.textContent = 'Navigation data not loaded yet.'; navPnl.appendChild(em); return; }
+      var hint = document.createElement('div'); hint.style.cssText = 'font-size:12px;color:#5a6d7e;margin-bottom:12px;'; hint.textContent = 'Uncheck items to hide them. Use arrows to reorder.'; navPnl.appendChild(hint);
+      var hIds = userPrefs ? userPrefs.hiddenNavItems : [];
+      var vis = applyNavPreferences(rawNavNodes);
+      var hid = []; for (var h = 0; h < rawNavNodes.length; h++) { if (hIds.indexOf(rawNavNodes[h].Id) !== -1) hid.push(rawNavNodes[h]); }
+      var all = vis.concat(hid);
+      for (var i = 0; i < all.length; i++) {
+        (function(node, idx) {
+          var isHid = hIds.indexOf(node.Id) !== -1;
+          var row = document.createElement('div'); row.className = 'aahub-pp-nav-row' + (isHid ? ' pp-hidden' : '');
+          var lbl = document.createElement('label'); var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !isHid;
+          cb.addEventListener('change', function() { root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'nav-toggle', payload: { navId: node.Id, visible: cb.checked } }, bubbles: false })); });
+          lbl.appendChild(cb); var sp = document.createElement('span'); sp.textContent = node.Title; lbl.appendChild(sp); row.appendChild(lbl);
+          if (!isHid) {
+            var acts = document.createElement('div'); acts.className = 'pp-actions';
+            var up = document.createElement('button'); up.textContent = '\u2191'; up.title = 'Move up'; if (idx === 0) up.style.visibility = 'hidden';
+            up.addEventListener('click', function() { var ids = vis.map(function(n) { return n.Id; }); var pos = ids.indexOf(node.Id); if (pos > 0) { ids.splice(pos, 1); ids.splice(pos - 1, 0, node.Id); } root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'nav-reorder', payload: { orderedIds: ids } }, bubbles: false })); }); acts.appendChild(up);
+            var dn = document.createElement('button'); dn.textContent = '\u2193'; dn.title = 'Move down'; if (idx === vis.length - 1) dn.style.visibility = 'hidden';
+            dn.addEventListener('click', function() { var ids = vis.map(function(n) { return n.Id; }); var pos = ids.indexOf(node.Id); if (pos < ids.length - 1) { ids.splice(pos, 1); ids.splice(pos + 1, 0, node.Id); } root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'nav-reorder', payload: { orderedIds: ids } }, bubbles: false })); }); acts.appendChild(dn);
+            row.appendChild(acts);
+          }
+          navPnl.appendChild(row);
+        })(all[i], i);
+      }
+    }
+    renderNav();
+
+    // ── Display Panel ──
+    var dspPnl = document.createElement('div'); dspPnl.className = 'aahub-pp-panel'; ppPanels.push(dspPnl);
+    function renderDsp() {
+      while (dspPnl.firstChild) dspPnl.removeChild(dspPnl.firstChild);
+      var dp = userPrefs ? userPrefs.display : { showBadges: true, theme: 'dark', fontSize: 13 };
+      var tr = document.createElement('div'); tr.className = 'aahub-pp-display-row';
+      var tl = document.createElement('span'); tl.className = 'pp-label'; tl.textContent = 'Theme'; tr.appendChild(tl);
+      var tc = document.createElement('div'); tc.className = 'pp-controls';
+      [['dark','Dark'],['light','Light'],['hc','Hi-Con']].forEach(function(pair) { var b = document.createElement('button'); b.textContent = pair[1]; if (dp.theme === pair[0]) b.className = 'pp-active'; b.addEventListener('click', function() { if (typeof setTheme === 'function') setTheme(pair[0]); try { localStorage.setItem('aahub-theme', pair[0]); } catch(e) {} root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'display-update', payload: { key: 'theme', value: pair[0] } }, bubbles: false })); renderDsp(); }); tc.appendChild(b); });
+      tr.appendChild(tc); dspPnl.appendChild(tr);
+      var fr = document.createElement('div'); fr.className = 'aahub-pp-display-row';
+      var fl = document.createElement('span'); fl.className = 'pp-label'; fl.textContent = 'Font Size'; fr.appendChild(fl);
+      var fc = document.createElement('div'); fc.className = 'pp-controls';
+      var fsl = document.createElement('input'); fsl.type = 'range'; fsl.min = '10'; fsl.max = '20'; fsl.step = '1'; fsl.value = String(dp.fontSize || 13);
+      var fsv = document.createElement('span'); fsv.className = 'pp-fs-val'; fsv.textContent = String(dp.fontSize || 13);
+      fsl.addEventListener('input', function() { fsv.textContent = fsl.value; if (typeof applyFs === 'function') applyFs(fsl.value); try { localStorage.setItem('aahub-fs', fsl.value); } catch(e) {} });
+      fsl.addEventListener('change', function() { root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'display-update', payload: { key: 'fontSize', value: parseInt(fsl.value, 10) } }, bubbles: false })); });
+      fc.appendChild(fsl); fc.appendChild(fsv); fr.appendChild(fc); dspPnl.appendChild(fr);
+      var br = document.createElement('div'); br.className = 'aahub-pp-display-row';
+      var bl = document.createElement('span'); bl.className = 'pp-label'; bl.textContent = 'NEW Badges'; br.appendChild(bl);
+      var bc = document.createElement('div'); bc.className = 'pp-controls';
+      var bcb = document.createElement('input'); bcb.type = 'checkbox'; bcb.checked = dp.showBadges !== false; bcb.style.cssText = 'accent-color:#4DB1FF;width:16px;height:16px;cursor:pointer;';
+      var btx = document.createElement('span'); btx.style.cssText = 'font-size:13px;cursor:pointer;'; btx.textContent = 'Show NEW badges';
+      bcb.addEventListener('change', function() { applyBadgePref(bcb.checked); root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'display-update', payload: { key: 'showBadges', value: bcb.checked } }, bubbles: false })); });
+      btx.addEventListener('click', function() { bcb.checked = !bcb.checked; bcb.dispatchEvent(new Event('change')); });
+      bc.appendChild(bcb); bc.appendChild(btx); br.appendChild(bc); dspPnl.appendChild(br);
+    }
+    renderDsp();
+
+    for (var p = 0; p < ppPanels.length; p++) dlg.appendChild(ppPanels[p]);
+
+    var foot = document.createElement('div'); foot.className = 'aahub-pp-footer';
+    var rstB = document.createElement('button'); rstB.className = 'aahub-pp-btn-reset'; rstB.textContent = 'Reset to Defaults';
+    rstB.addEventListener('click', function() { if (window.confirm('Reset all personalization to defaults?')) { root.dispatchEvent(new CustomEvent('picanvas:prefs-update', { detail: { action: 'reset', payload: {} }, bubbles: false })); setTimeout(closePP, 300); } });
+    foot.appendChild(rstB);
+    var doneB = document.createElement('button'); doneB.className = 'aahub-pp-btn-done'; doneB.textContent = 'Done'; foot.appendChild(doneB);
+    dlg.appendChild(foot);
+    document.body.appendChild(overlay);
+
+    function closePP() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+    bkdrop.addEventListener('click', closePP); clsBtn.addEventListener('click', closePP); doneB.addEventListener('click', closePP);
+    function onEsc(e) { if (e.key === 'Escape') { closePP(); document.removeEventListener('keydown', onEsc); } }
+    document.addEventListener('keydown', onEsc);
+
+    var ppRefresh = function() { renderSc(); renderNav(); renderDsp(); };
+    root.addEventListener('picanvas:userprefs-ready', ppRefresh);
+    var ppObs = new MutationObserver(function() { if (!document.body.contains(overlay)) { root.removeEventListener('picanvas:userprefs-ready', ppRefresh); ppObs.disconnect(); } });
+    ppObs.observe(document.body, { childList: true });
+  }
+
   // --- Receive full user preferences from PiCanvas ---
   function handlePrefsReady(prefs) {
     userPrefs = prefs;
@@ -2856,13 +3061,15 @@ img.aahub-nav-icon { object-fit: contain; border-radius: 2px; }
   });
 
   // --- A11y toolbar badge toggle click + restore saved preference ---
-  if (badgeToggle) {
+  if (badgeToggle && !badgeToggle._bound) {
+    badgeToggle._bound = true;
     badgeToggle.addEventListener('click', function() {
       var isShowing = !root.classList.contains('hide-badges');
-      applyBadgePref(!isShowing);
-      // Persist via prefs-update
+      var newVal = !isShowing;
+      if (userPrefs && userPrefs.display) userPrefs.display.showBadges = newVal;
+      applyBadgePref(newVal);
       root.dispatchEvent(new CustomEvent('picanvas:prefs-update', {
-        detail: { action: 'display-update', payload: { key: 'showBadges', value: !isShowing } },
+        detail: { action: 'display-update', payload: { key: 'showBadges', value: newVal } },
         bubbles: false
       }));
     });

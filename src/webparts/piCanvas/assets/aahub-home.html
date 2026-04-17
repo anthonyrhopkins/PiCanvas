@@ -436,7 +436,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 }
 .aahub-card li { margin-bottom: 1px; }
 
-.aahub-card li a {
+.aahub-card li > a {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -446,20 +446,61 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
   border-radius: 8px;
   transition: background 0.15s, color 0.15s, padding-left 0.15s;
 }
-.aahub-card li a:hover {
+.aahub-card li > a:hover {
   background: rgba(147,197,253,0.06);
   color: #bfdbfe;
   padding-left: 20px;
 }
-.aahub-card li a::before {
-  content: '\203A';
-  font-size: 16px;
-  font-weight: 700;
-  opacity: 0.3;
-  flex-shrink: 0;
+.aahub-card li > a::before {
+  content: none;
+}
   transition: opacity 0.15s;
 }
-.aahub-card li a:hover::before { opacity: 0.7; }
+.aahub-card li > a:hover::before { opacity: 0.7; }
+
+/* Rich content items from PiCanvasNews list */
+.aahub-news-rich {
+  padding: 10px 14px;
+  color: #8bb8e8;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.aahub-news-label {
+  display: block;
+  padding: 10px 14px 2px 14px;
+  color: #8bb8e8;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+a.aahub-news-label {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.aahub-news-label:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}
+.aahub-news-label + .aahub-news-rich {
+  padding-top: 2px;
+}
+.aahub-news-rich * {
+  background: none !important;
+  background-color: transparent !important;
+  font-family: inherit !important;
+}
+.aahub-news-rich a {
+  color: #4DB1FF !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(77,177,255,0.3);
+  transition: color 0.15s, text-decoration-color 0.15s;
+  display: inline !important;
+  padding: 0 !important;
+}
+.aahub-news-rich a::before { content: none !important; }
+.aahub-news-rich a:hover {
+  color: #bfdbfe !important;
+  text-decoration-color: rgba(191,219,254,0.6);
+}
 
 /* ── Footer Banner ── */
 .aahub-footer {
@@ -929,7 +970,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
     <div class="aahub-hero-content">
 
       <!-- Top News -->
-      <div class="aahub-card">
+      <div class="aahub-card" id="aahub-top-news">
         <h2>Top News</h2>
         <ul>
           <li><a href="https://sap.sharepoint.com/teams/AAHUB/SitePages/pb_apm2026.aspx?env=Embedded" target="_blank" rel="noopener noreferrer">APM 2026 Account Planning Recap</a></li>
@@ -940,7 +981,7 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
       </div>
 
       <!-- Good to Know -->
-      <div class="aahub-card">
+      <div class="aahub-card" id="aahub-good-to-know">
         <h2>Good to Know</h2>
         <ul>
           <li><a href="https://sap.sharepoint.com/teams/AAHUB/SitePages/aaplaybook.aspx?env=Embedded" target="_blank" rel="noopener noreferrer">AA Playbook &mdash; Updated!</a></li>
@@ -958,5 +999,110 @@ html:has(.aahub-root) .propertyPaneCopilotPane * {
 
     </div>
   </div>
+
+<script>
+// --- Dynamic News from PiCanvasNews SP list ---
+(function() {
+  var root = document.querySelector('.aahub-root') || document;
+
+  var siteUrl = '';
+  if (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) {
+    siteUrl = window._spPageContextInfo.webAbsoluteUrl;
+  } else {
+    var m = window.location.href.match(/^(https?:\/\/[^/]+\/(?:teams|sites)\/[^/]+)/i);
+    if (m) siteUrl = m[1];
+  }
+  if (!siteUrl) { console.log('[AAHUB] No site URL detected, keeping static news'); return; }
+
+  var apiUrl = siteUrl + "/_api/web/lists/getbytitle('PiCanvasNews')/items"
+    + '?$select=Title,NewsUrl,NewsContent,NewsSection,NewsSortOrder,NewsHoverText'
+    + '&$orderby=NewsSortOrder,Id&$top=100';
+
+  var digest = document.getElementById('__REQUESTDIGEST');
+  var headers = { 'Accept': 'application/json;odata=nometadata' };
+  if (digest) headers['X-RequestDigest'] = digest.value;
+
+  fetch(apiUrl, { method: 'GET', headers: headers, credentials: 'same-origin' })
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function(data) {
+      var items = data.value || [];
+      if (!items.length) { console.log('[AAHUB] PiCanvasNews list empty, keeping static news'); return; }
+
+      var topNews = [];
+      var goodToKnow = [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].NewsSection === 'Top News') topNews.push(items[i]);
+        else if (items[i].NewsSection === 'Good to Know') goodToKnow.push(items[i]);
+      }
+
+      function renderSection(containerId, newsItems) {
+        var container = root.querySelector('#' + containerId);
+        if (!container) return;
+        var ul = container.querySelector('ul');
+        if (!ul || !newsItems.length) return;
+        while (ul.firstChild) ul.removeChild(ul.firstChild);
+        for (var j = 0; j < newsItems.length; j++) {
+          var item = newsItems[j];
+          var li = document.createElement('li');
+          if (item.NewsHoverText) li.title = item.NewsHoverText;
+          if (item.NewsContent) {
+            // Rich HTML content — always takes priority when present
+            // Title as clickable link if NewsUrl exists, otherwise plain label
+            if (item.NewsUrl) {
+              var label = document.createElement('a');
+              label.className = 'aahub-news-label';
+              label.textContent = item.Title;
+              label.href = item.NewsUrl;
+              label.target = '_blank';
+              label.rel = 'noopener noreferrer';
+            } else {
+              var label = document.createElement('span');
+              label.className = 'aahub-news-label';
+              label.textContent = item.Title;
+            }
+            li.appendChild(label);
+            var wrapper = document.createElement('div');
+            wrapper.className = 'aahub-news-rich';
+            wrapper.innerHTML = item.NewsContent;
+            var styled = wrapper.querySelectorAll('[style]');
+            for (var k = 0; k < styled.length; k++) styled[k].removeAttribute('style');
+            var links = wrapper.querySelectorAll('a');
+            for (var k = 0; k < links.length; k++) {
+              links[k].target = '_blank';
+              links[k].rel = 'noopener noreferrer';
+            }
+            li.appendChild(wrapper);
+          } else if (item.NewsUrl) {
+            // Simple link item — Title as clickable link
+            var a = document.createElement('a');
+            a.textContent = item.Title;
+            a.href = item.NewsUrl;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            li.appendChild(a);
+          } else {
+            // Fallback — plain text title
+            var span = document.createElement('span');
+            span.className = 'aahub-news-rich';
+            span.textContent = item.Title;
+            li.appendChild(span);
+          }
+
+          ul.appendChild(li);
+        }
+      }
+
+      renderSection('aahub-top-news', topNews);
+      renderSection('aahub-good-to-know', goodToKnow);
+      console.log('[AAHUB] Dynamic news loaded: ' + topNews.length + ' Top News, ' + goodToKnow.length + ' Good to Know');
+    })
+    .catch(function(err) {
+      console.log('[AAHUB] PiCanvasNews fetch failed, keeping static news:', err.message);
+    });
+})();
+</script>
 
 </div>

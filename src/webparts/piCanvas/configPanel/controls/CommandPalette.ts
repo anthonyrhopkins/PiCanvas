@@ -320,7 +320,8 @@ export function buildCommandItems(opts: {
     { id: 'colors', label: 'Colors', desc: 'Color pickers and theme presets' },
     { id: 'typography', label: 'Typography', desc: 'Font size, spacing, effects' },
     { id: 'templates', label: 'Templates', desc: 'Apply and manage templates' },
-    { id: 'advanced', label: 'Advanced', desc: 'Lock defaults, selectors, reset' }
+    { id: 'advanced', label: 'Advanced', desc: 'Lock defaults, selectors, reset' },
+    { id: 'editbutton', label: 'Edit Button', desc: 'Floating edit button appearance' }
   ];
 
   sections.forEach(s => {
@@ -369,7 +370,15 @@ export function buildCommandItems(opts: {
     { key: 'labelImageHeight', label: 'Label Image Size', section: 'Appearance', keywords: ['image', 'icon', 'size', 'height', 'label'] },
     { key: 'lockUnlockTtlMinutes', label: 'Unlock Duration', section: 'Advanced', keywords: ['lock', 'unlock', 'ttl', 'duration', 'timeout'] },
     { key: 'sectionClass', label: 'Section CSS Selector', section: 'Advanced', keywords: ['section', 'css', 'selector', 'class'] },
-    { key: 'webpartClass', label: 'WebPart CSS Selector', section: 'Advanced', keywords: ['webpart', 'css', 'selector', 'class'] }
+    { key: 'webpartClass', label: 'WebPart CSS Selector', section: 'Advanced', keywords: ['webpart', 'css', 'selector', 'class'] },
+    { key: 'editButtonEnabled', label: 'Edit Button Visibility', section: 'Edit Button', keywords: ['edit', 'button', 'show', 'hide', 'enabled', 'visible'] },
+    { key: 'editButtonPosition', label: 'Edit Button Position', section: 'Edit Button', keywords: ['edit', 'button', 'position', 'corner', 'top', 'bottom', 'left', 'right'] },
+    { key: 'editButtonStyle', label: 'Edit Button Style', section: 'Edit Button', keywords: ['edit', 'button', 'style', 'icon', 'dot', 'text', 'label'] },
+    { key: 'editButtonSize', label: 'Edit Button Size', section: 'Edit Button', keywords: ['edit', 'button', 'size', 'small', 'medium', 'large'] },
+    { key: 'editButtonOpacity', label: 'Edit Button Opacity', section: 'Edit Button', keywords: ['edit', 'button', 'opacity', 'transparency', 'fade'] },
+    { key: 'editButtonBgColor', label: 'Edit Button Background', section: 'Edit Button', keywords: ['edit', 'button', 'background', 'color', 'bg'] },
+    { key: 'editButtonIconColor', label: 'Edit Button Icon Color', section: 'Edit Button', keywords: ['edit', 'button', 'icon', 'text', 'color', 'pencil'] },
+    { key: 'editButtonLabel', label: 'Edit Button Label', section: 'Edit Button', keywords: ['edit', 'button', 'label', 'text', 'name'] }
   ];
 
   settings.forEach(s => {
@@ -385,7 +394,8 @@ export function buildCommandItems(opts: {
       execute: () => {
         const sectionMap: Record<string, string> = {
           'Appearance': 'appearance', 'Colors': 'colors',
-          'Typography': 'typography', 'Advanced': 'advanced', 'Tabs': 'tabs'
+          'Typography': 'typography', 'Advanced': 'advanced', 'Tabs': 'tabs',
+          'Edit Button': 'editbutton'
         };
         opts.navigateTo(sectionMap[s.section] || 'appearance');
       }

@@ -19,6 +19,9 @@ export interface IPiCanvasLoaderApplicationCustomizerProperties {
 export default class PiCanvasLoaderApplicationCustomizer
   extends BaseApplicationCustomizer<IPiCanvasLoaderApplicationCustomizerProperties> {
 
+  /** Track last page URL so we can detect actual page changes */
+  private _lastPageUrl: string = '';
+
   public onInit(): Promise<void> {
     Log.info(LOG_SOURCE, 'Application Customizer initializing...');
 
@@ -26,10 +29,37 @@ export default class PiCanvasLoaderApplicationCustomizer
     this.injectGlobalBannerStyles();
 
     // Inject hiding styles immediately on init (before render cycle)
+    this._lastPageUrl = this.normalizePageUrl(window.location.pathname);
     this.injectHidingStyles();
+
+    // Re-inject hiding styles on every client-side page navigation.
+    // onInit() only runs once for the lifetime of the SPA — without this,
+    // navigating between pages leaves stale hiding CSS targeting the wrong
+    // webpart IDs, causing content from page A to bleed into page B.
+    this.context.application.navigatedEvent.add(this, this._onNavigated);
 
     Log.info(LOG_SOURCE, 'Initialization complete');
     return Promise.resolve();
+  }
+
+  private _onNavigated(): void {
+    const currentUrl = this.normalizePageUrl(window.location.pathname);
+
+    // Only re-inject if we actually changed pages
+    if (currentUrl === this._lastPageUrl) {
+      return;
+    }
+
+    Log.info(LOG_SOURCE, `Page navigated: ${this._lastPageUrl} → ${currentUrl}`);
+    this._lastPageUrl = currentUrl;
+
+    // Remove stale body classes from the previous page's PiCanvas instance.
+    // The new page's PiCanvas webpart will re-add them if needed.
+    document.body.classList.remove('picanvas-hiding-active');
+    document.body.classList.remove('picanvas-banner-fullwidth');
+
+    // Re-inject hiding styles for the new page's connected webparts
+    this.injectHidingStyles();
   }
 
   /**
@@ -119,6 +149,7 @@ export default class PiCanvasLoaderApplicationCustomizer
 
       if (!storedData) {
         Log.verbose(LOG_SOURCE, 'No connected webparts found in localStorage');
+        this.clearHidingStyles();
         return;
       }
 
@@ -135,6 +166,7 @@ export default class PiCanvasLoaderApplicationCustomizer
       if (!webpartIds || webpartIds.length === 0) {
         Log.verbose(LOG_SOURCE, `No connected webparts for page: ${currentPageUrl}`);
         Log.verbose(LOG_SOURCE, `Available pages: ${Object.keys(allConnections).join(', ')}`);
+        this.clearHidingStyles();
         return;
       }
 
@@ -170,7 +202,9 @@ export default class PiCanvasLoaderApplicationCustomizer
       // Use !important and multiple properties to ensure webparts are hidden
       // IMPORTANT: Styles only apply when body has 'picanvas-hiding-active' class
       // This class is added by PiCanvas webpart in Read mode, removed in Edit mode
-      const conditionalSelectors = selectors.map(sel => `body.picanvas-hiding-active ${sel}`);
+      // SCOPE: Only target elements inside #spPageCanvasContent (the main page canvas).
+      // SharePoint Agents/Copilot panel renders OUTSIDE the canvas and must not be affected.
+      const conditionalSelectors = selectors.map(sel => `body.picanvas-hiding-active #spPageCanvasContent ${sel}`);
       // Create override selectors for elements inside tabs (should NOT be hidden)
       // Use higher specificity: body + picanvas-hiding-active + picanvas-tab-content to override the hiding
       const overrideSelectors = selectors.map(sel => `body.picanvas-hiding-active .picanvas-tab-content ${sel}`);
@@ -216,6 +250,18 @@ export default class PiCanvasLoaderApplicationCustomizer
       // Don't throw - just log the error and continue
       // If hiding fails, the page still works, just with a flash of content
       Log.error(LOG_SOURCE, error as Error);
+    }
+  }
+
+  /**
+   * Remove any existing hiding styles from a previous page.
+   * Called when navigating to a page with no PiCanvas connections.
+   */
+  private clearHidingStyles(): void {
+    const styleElement = document.getElementById(HIDING_STYLE_ID);
+    if (styleElement) {
+      styleElement.remove();
+      Log.info(LOG_SOURCE, 'Cleared stale pre-hide styles');
     }
   }
 

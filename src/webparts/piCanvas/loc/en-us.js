@@ -222,6 +222,8 @@ define([], function () {
     // Table of Contents strings (v3.6)
     "ContentTypeToc": "Table of Contents",
     "ContentTypeProfileReport": "Profile Report",
+    "ContentTypeGitHub": "GitHub Repository",
+    "GitHubRepoUrlLabel": "GitHub Repository URL",
     "TocInfoText": "Scans the SharePoint page for headings and generates a navigable table of contents.",
     "TocSearchTextLabel": "Scan Text Web Parts",
     "TocSearchMarkdownLabel": "Scan Markdown Web Parts",

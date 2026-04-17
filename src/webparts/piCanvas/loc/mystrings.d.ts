@@ -221,6 +221,8 @@ declare interface IPiCanvasWebPartStrings {
   // Table of Contents strings (v3.6)
   ContentTypeToc: string;
   ContentTypeProfileReport: string;
+  ContentTypeGitHub: string;
+  GitHubRepoUrlLabel: string;
   TocInfoText: string;
   TocSearchTextLabel: string;
   TocSearchMarkdownLabel: string;

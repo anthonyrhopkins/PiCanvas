@@ -10,6 +10,10 @@ import { WebPartContext } from '@microsoft/sp-webpart-base';
 import { ICompanyProfile, ICompanyEntry, IMetadataFileEntry } from './ContentRenderer';
 // Note: ICompanyIntel is still exported by ContentRenderer for use by the renderer itself
 import { REPORT_TYPE_REGISTRY, resolveReportPath, IReportTypeDefinition } from '../data/ReportTypeRegistry';
+import {
+  ILibrarySource, IDiscoveredFile, ILabelHint, IDiscoveryColumnConfig,
+  DEFAULT_LABEL_HINTS, fileNameToLabel, detectFormat, isIgnoredFile
+} from '../data/DiscoveryTypes';
 
 // Re-export so callers can import from either location
 export type { ICompanyEntry } from './ContentRenderer';
@@ -241,20 +245,34 @@ export class ProfileReportService {
    * Load a single company's full profile on demand.
    * Called by WebPart when user clicks a company tab.
    */
-  public async fetchCompanyProfile(libraryName: string, entry: ICompanyEntry, metadataConfig?: IMetadataDiscoveryConfig, pathOverrides?: Record<string, string>): Promise<ICompanyProfile> {
-    return this.loadCompanyProfile(libraryName, entry, metadataConfig, pathOverrides);
+  public async fetchCompanyProfile(
+    libraryName: string,
+    entry: ICompanyEntry,
+    metadataConfig?: IMetadataDiscoveryConfig,
+    pathOverrides?: Record<string, string>,
+    librarySources?: ILibrarySource[],
+    labelHints?: Record<string, ILabelHint>,
+    columnConfig?: IDiscoveryColumnConfig
+  ): Promise<ICompanyProfile> {
+    return this.loadCompanyProfile(libraryName, entry, metadataConfig, pathOverrides, librarySources, labelHints, columnConfig);
   }
 
   /**
    * Load a single company's full profile.
    * Uses PiRadarID-based file paths when available (list-based entries),
    * otherwise falls back to domain-based lookup (legacy folder entries).
+   *
+   * If `librarySources` is provided, uses discovery mode: scans `{domain}/` folders
+   * and populates `profile.discoveredFiles` instead of fetching from the registry.
    */
   public async loadCompanyProfile(
     libraryName: string,
     entry: ICompanyEntry,
     metadataConfig?: IMetadataDiscoveryConfig,
-    pathOverrides?: Record<string, string>
+    pathOverrides?: Record<string, string>,
+    librarySources?: ILibrarySource[],
+    labelHints?: Record<string, ILabelHint>,
+    columnConfig?: IDiscoveryColumnConfig
   ): Promise<ICompanyProfile> {
     if (this.detectWorkbenchEnvironment()) {
       return { companyKey: entry.domain, companyName: entry.companyName, domain: entry.domain };
@@ -286,13 +304,72 @@ export class ProfileReportService {
       employees: entry.employees,
     };
 
+    // === Discovery mode: scan folders and return discovered files ===
+    if (librarySources && librarySources.length > 0) {
+      try {
+        const discoveredFiles = await this.discoverCompanyFiles(librarySources, companyDomain, labelHints, columnConfig);
+        if (discoveredFiles.length > 0) {
+          profile.discoveredFiles = discoveredFiles;
+
+          // Special handling: if condensed.json is among discovered files, fetch and parse it
+          // for metrics and companyName (same as registry mode)
+          const jsonFile = discoveredFiles.find(f => f.name === 'condensed.json');
+          if (jsonFile) {
+            try {
+              const jsonContent = await this.fetchFileContentCrossSite(jsonFile.siteUrl, jsonFile.serverRelativeUrl);
+              profile.profileJson = JSON.parse(jsonContent);
+              if (profile.profileJson && typeof profile.profileJson === 'object') {
+                if (profile.profileJson.company_name) {
+                  profile.companyName = String(profile.profileJson.company_name);
+                } else if (profile.profileJson.companyName) {
+                  profile.companyName = String(profile.profileJson.companyName);
+                }
+                if (profile.profileJson.generated) {
+                  profile.generated = new Date(profile.profileJson.generated);
+                }
+                const metrics = profile.profileJson.metrics;
+                if (metrics && typeof metrics === 'object') {
+                  profile.metrics = {
+                    events: typeof metrics.events === 'number' ? metrics.events : 0,
+                    entities: typeof metrics.entities === 'number' ? metrics.entities : 0,
+                    relationships: typeof metrics.relationships === 'number' ? metrics.relationships : 0,
+                    financials: typeof metrics.financials === 'number' ? metrics.financials : 0,
+                    earnings: typeof metrics.earnings === 'number' ? metrics.earnings : 0,
+                  };
+                }
+              }
+            } catch (jsonError) {
+              console.warn(`ProfileReportService: Failed to parse condensed.json for ${companyDomain}`, jsonError);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`ProfileReportService: Discovery scan failed for ${companyDomain}, falling through to registry`, error);
+      }
+
+      // If discovery found files, still fetch metadata files then return
+      if (profile.discoveredFiles && profile.discoveredFiles.length > 0) {
+        if (metadataConfig) {
+          try {
+            const metaFiles = await this.fetchMetadataFiles(sanitized, companyDomain, metadataConfig);
+            if (metaFiles.length > 0) {
+              profile.metadataFiles = metaFiles;
+            }
+          } catch (error) {
+            console.warn(`ProfileReportService: Metadata file lookup failed for ${companyDomain}`, error);
+          }
+        }
+        return profile;
+      }
+    }
+
+    // === Registry mode (fallback): fetch all report types in parallel ===
     const pathCtx = {
       domain: companyDomain,
       piRadarId: entry.piRadarId,
       shortName,
     };
 
-    // Fetch all report types from the registry in parallel
     const fetchResults = await Promise.allSettled(
       REPORT_TYPE_REGISTRY.map(async (rt) => {
         const content = await this.fetchReportContent(libPath, rt, pathCtx, pathOverrides?.[rt.id]);
@@ -305,7 +382,6 @@ export class ProfileReportService {
       const { id, content } = result.value;
 
       if (id === 'profileJson') {
-        // Special handling: parse JSON and extract metadata
         try {
           profile.profileJson = JSON.parse(content);
           if (profile.profileJson && typeof profile.profileJson === 'object') {
@@ -332,7 +408,6 @@ export class ProfileReportService {
           console.warn(`ProfileReportService: Invalid JSON for ${companyDomain}`, jsonError);
         }
       } else {
-        // Assign string content to the matching profile property
         (profile as any)[id] = content;
       }
     }
@@ -584,6 +659,207 @@ export class ProfileReportService {
 
     this._folderCache.set(cacheKey, files);
     return files;
+  }
+
+  // ========== Discovery-based file scanning ==========
+
+  /**
+   * Resolve a site URL for cross-site calls.
+   * Empty string = current site.
+   */
+  private resolveSiteUrl(siteUrl: string): string {
+    if (siteUrl) return siteUrl.replace(/\/+$/, '');
+    return this.context.pageContext.web.absoluteUrl;
+  }
+
+  /**
+   * Resolve a library's server-relative path, supporting cross-site URLs.
+   */
+  private resolveLibPath(siteUrl: string, libraryName: string): string {
+    if (libraryName.startsWith('/')) return libraryName;
+    try {
+      const url = new URL(siteUrl || this.context.pageContext.web.absoluteUrl);
+      return `${url.pathname.replace(/\/+$/, '')}/${libraryName}`;
+    } catch {
+      return `${this.context.pageContext.web.serverRelativeUrl.replace(/\/+$/, '')}/${libraryName}`;
+    }
+  }
+
+  /**
+   * Discover all files in `{library}/{domain}/` across multiple library sources.
+   * Returns a deduplicated, sorted list of discovered files.
+   * If columnConfig is provided, fetches SP metadata columns (report type, display columns).
+   */
+  public async discoverCompanyFiles(
+    sources: ILibrarySource[],
+    domain: string,
+    labelHints?: Record<string, ILabelHint>,
+    columnConfig?: IDiscoveryColumnConfig
+  ): Promise<IDiscoveredFile[]> {
+    if (this.detectWorkbenchEnvironment()) return [];
+
+    const hints = labelHints ?? DEFAULT_LABEL_HINTS;
+    const seenNames = new Set<string>();
+    const allFiles: IDiscoveredFile[] = [];
+
+    // Collect all SP columns we need to fetch
+    const metadataColumns: string[] = [];
+    if (columnConfig?.fileTypeColumn) metadataColumns.push(columnConfig.fileTypeColumn);
+    if (columnConfig?.displayColumns) metadataColumns.push(...columnConfig.displayColumns);
+
+    // Scan each library source in parallel
+    const results = await Promise.allSettled(
+      sources.map(async (source) => {
+        const siteUrl = this.resolveSiteUrl(source.siteUrl);
+        const libPath = this.resolveLibPath(source.siteUrl, source.libraryName);
+        const folderPath = `${libPath}/${domain}`;
+
+        const files = await this.listFolderFilesCrossSite(siteUrl, folderPath, metadataColumns);
+        return { files, siteUrl, sourceLabel: source.label || source.libraryName };
+      })
+    );
+
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue;
+      const { files, siteUrl, sourceLabel } = result.value;
+
+      for (const f of files) {
+        if (isIgnoredFile(f.Name)) continue;
+        if (seenNames.has(f.Name)) continue; // first source wins
+        seenNames.add(f.Name);
+
+        const ext = f.Name.split('.').pop()?.toLowerCase() || '';
+        const hint = hints[f.Name];
+
+        // Determine label: SP column value > filename hint > auto-generated
+        const reportType = columnConfig?.fileTypeColumn
+          ? (f.ListItemFields?.[columnConfig.fileTypeColumn] || '') as string
+          : '';
+        const label = reportType || fileNameToLabel(f.Name, hints);
+
+        // Collect display column values
+        let metadata: Record<string, string> | undefined;
+        if (columnConfig?.displayColumns && columnConfig.displayColumns.length > 0 && f.ListItemFields) {
+          metadata = {};
+          for (const col of columnConfig.displayColumns) {
+            const val = f.ListItemFields[col];
+            if (val !== undefined && val !== null && val !== '') {
+              metadata[col] = String(val);
+            }
+          }
+          if (Object.keys(metadata).length === 0) metadata = undefined;
+        }
+
+        allFiles.push({
+          name: f.Name,
+          serverRelativeUrl: f.ServerRelativeUrl,
+          siteUrl,
+          extension: ext,
+          label,
+          format: detectFormat(ext),
+          size: f.Length || 0,
+          modified: f.TimeLastModified || '',
+          sourceLabel,
+          order: hint ? hint.order : 999,
+          reportType: reportType || undefined,
+          metadata,
+        });
+      }
+    }
+
+    // Sort by hint order, then alphabetically
+    allFiles.sort((a, b) => {
+      if (a.order !== b.order) return a.order - b.order;
+      return a.label.localeCompare(b.label);
+    });
+
+    return allFiles;
+  }
+
+  /** Return type for folder file listing, optionally including SP metadata fields */
+  private static readonly FOLDER_FILE_BASE_SELECT = 'Name,ServerRelativeUrl,Length,TimeLastModified';
+
+  /**
+   * List files in a folder, supporting cross-site calls within the same tenant.
+   * When metadataColumns is provided, attempts to expand ListItemAllFields.
+   * Falls back to basic file listing (no metadata) if expansion fails
+   * (e.g., list view threshold on large libraries).
+   */
+  private async listFolderFilesCrossSite(
+    siteUrl: string,
+    folderServerRelativePath: string,
+    metadataColumns?: string[]
+  ): Promise<Array<{ Name: string; ServerRelativeUrl: string; Length: number; TimeLastModified: string; ListItemFields?: Record<string, unknown> }>> {
+    const encodedPath = encodeURIComponent(folderServerRelativePath);
+    const needsMetadata = metadataColumns && metadataColumns.length > 0;
+
+    // Try with metadata expansion first (if requested)
+    if (needsMetadata) {
+      try {
+        const colSelects = metadataColumns.map(c => `ListItemAllFields/${c}`).join(',');
+        const metaUrl = `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('${encodedPath}')/Files` +
+          `?$select=${ProfileReportService.FOLDER_FILE_BASE_SELECT},${colSelects}&$expand=ListItemAllFields&$top=5000`;
+        const response = await this.context.spHttpClient.get(
+          metaUrl, SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json;odata=nometadata' } }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          return (data.value || []).map((f: any) => ({
+            Name: f.Name || '',
+            ServerRelativeUrl: f.ServerRelativeUrl || '',
+            Length: parseInt(f.Length, 10) || 0,
+            TimeLastModified: f.TimeLastModified || '',
+            ListItemFields: f.ListItemAllFields || undefined,
+          }));
+        }
+        // Metadata query failed (throttled/500) — fall through to basic listing
+        console.warn(`ProfileReportService: Metadata-expanded query failed (${response.status}), falling back to basic listing`);
+      } catch {
+        console.warn('ProfileReportService: Metadata-expanded query threw, falling back to basic listing');
+      }
+    }
+
+    // Basic file listing (no metadata) — always works
+    const basicUrl = `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('${encodedPath}')/Files` +
+      `?$select=${ProfileReportService.FOLDER_FILE_BASE_SELECT}&$top=5000`;
+    try {
+      const response = await this.context.spHttpClient.get(
+        basicUrl, SPHttpClient.configurations.v1,
+        { headers: { 'Accept': 'application/json;odata=nometadata' } }
+      );
+      if (!response.ok) return [];
+      const data = await response.json();
+      return (data.value || []).map((f: any) => ({
+        Name: f.Name || '',
+        ServerRelativeUrl: f.ServerRelativeUrl || '',
+        Length: parseInt(f.Length, 10) || 0,
+        TimeLastModified: f.TimeLastModified || '',
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Fetch file content from a potentially cross-site SharePoint URL.
+   */
+  public async fetchFileContentCrossSite(siteUrl: string, serverRelativeUrl: string): Promise<string> {
+    if (this.detectWorkbenchEnvironment()) return '';
+
+    const resolvedSiteUrl = this.resolveSiteUrl(siteUrl);
+    const apiUrl = `${resolvedSiteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value`;
+
+    const response = await this.context.spHttpClient.get(
+      apiUrl,
+      SPHttpClient.configurations.v1
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.text();
   }
 
   /**

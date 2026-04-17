@@ -14,6 +14,7 @@ import { TemplatesSection, ITemplateInfo } from './sections/TemplatesSection';
 import { AdvancedSection } from './sections/AdvancedSection';
 import { NavigationSection } from './sections/NavigationSection';
 import { ChromeSection } from './sections/ChromeSection';
+import { EditButtonSection } from './sections/EditButtonSection';
 import { HelpSection } from './sections/HelpSection';
 import { HistorySection, IHistoryEntry } from './sections/HistorySection';
 
@@ -77,7 +78,8 @@ const SIDEBAR_ITEMS: ISidebarItem[] = [
   { id: 'typography', icon: '&#128208;', label: 'Typography' },
   { id: 'templates', icon: '&#128203;', label: 'Templates' },
   { id: 'advanced', icon: '&#9881;', label: 'Advanced' },
-  { id: 'chrome', icon: '&#128065;', label: 'Page Chrome' },
+  { id: 'chrome', icon: '&#128065;', label: 'Show / Hide' },
+  { id: 'editbutton', icon: '&#9998;', label: 'Edit Button' },
   { id: 'navigation', icon: '&#128279;', label: 'Navigation' },
   { id: 'history', icon: '&#128340;', label: 'History' },
   { id: 'help', icon: '&#10067;', label: 'Help & Docs' }
@@ -99,6 +101,7 @@ export class ConfigurationPanel {
   private _advanced: AdvancedSection | null = null;
   private _navigation: NavigationSection | null = null;
   private _chrome: ChromeSection | null = null;
+  private _editButton: EditButtonSection | null = null;
   private _history: HistorySection | null = null;
   private _help: HelpSection | null = null;
   private _preview: LivePreview | null = null;
@@ -483,7 +486,10 @@ export class ConfigurationPanel {
       'lockDefaultMessageError', 'lockDefaultMessageMissing',
       'lockDefaultMessageSuccess', 'lockUnlockTtlMinutes',
       'enableSiteNavigation', 'hideSpHorizontalNav', 'hideSpSuiteHeader', 'hideSpAppBar',
-      'hideSpSearch', 'hideSpBranding', 'chromeConfigOverridesContent'
+      'hideSpSearch', 'hideSpBranding', 'chromeConfigOverridesContent',
+      'chromeCustomLogoEnabled', 'chromeCustomLogoUrl',
+      'editButtonEnabled', 'editButtonPosition', 'editButtonStyle', 'editButtonSize',
+      'editButtonOpacity', 'editButtonBgColor', 'editButtonIconColor', 'editButtonLabel'
     ];
 
     styleKeys.forEach(key => {
@@ -613,6 +619,17 @@ export class ConfigurationPanel {
       this._chrome.render(chromeContainer);
     }
 
+    // Edit Button
+    const editButtonContainer = this._overlay.querySelector('[data-section-content="editbutton"]') as HTMLElement;
+    if (editButtonContainer) {
+      this._editButton = new EditButtonSection({
+        getProperty: opts.getProperty,
+        setProperty: trackedSet,
+        onChanged
+      });
+      this._editButton.render(editButtonContainer);
+    }
+
     // Navigation
     const navContainer = this._overlay.querySelector('[data-section-content="navigation"]') as HTMLElement;
     if (navContainer) {
@@ -665,6 +682,7 @@ export class ConfigurationPanel {
     if (this._advanced) { this._advanced.dispose(); this._advanced = null; }
     if (this._navigation) { this._navigation.dispose(); this._navigation = null; }
     if (this._chrome) { this._chrome.dispose(); this._chrome = null; }
+    if (this._editButton) { this._editButton.dispose(); this._editButton = null; }
     if (this._history) { this._history.dispose(); this._history = null; }
     if (this._help) { this._help.dispose(); this._help = null; }
     if (this._preview) { this._preview.dispose(); this._preview = null; }

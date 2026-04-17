@@ -1867,11 +1867,18 @@
   height: auto;
 }
 
-/* When explicit height is set, let SVG fill it */
-.picanvas-mermaid-container[style*="height"] .mermaid svg {
+/* When explicit sizing is set, let SVG scale to fill container */
+.picanvas-mermaid-container[style] .mermaid {
+  width: 100%;
   height: 100%;
-  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.picanvas-mermaid-container[style] .mermaid svg {
   max-width: none;
+  max-height: 100%;
 }
 
 .picanvas-mermaid-container.picanvas-mermaid-rendered {
@@ -4416,4 +4423,45 @@
 /* Method HTML iframe — responsive */
 @media (max-width: 768px) {
   .picanvas-profilereport .method-html-frame { min-height: 300px; }
+}
+
+/* Discovery mode — lazy placeholder */
+.picanvas-profilereport .discovery-lazy-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 24px;
+  color: var(--pr-text-muted, #888);
+  font-size: 13px;
+}
+
+.picanvas-profilereport .discovery-pending-text {
+  opacity: 0.7;
+}
+
+/* Discovery mode — metadata bar above content */
+.picanvas-profilereport .discovery-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--pr-border-main, #e1dfdd);
+  background: var(--pr-surface-subtle, rgba(0,0,0,0.02));
+  font-size: 12px;
+  color: var(--pr-text-secondary, #605e5c);
+}
+
+.picanvas-profilereport .discovery-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.picanvas-profilereport .discovery-meta-label {
+  font-weight: 600;
+  color: var(--pr-text-muted, #888);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.3px;
 }

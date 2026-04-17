@@ -1,0 +1,428 @@
+<style>
+  :root {
+    --navy:   #003865;
+    --navy2:  #00254a;
+    --blue:   #0064D9;
+    --teal:   #00B4D8;
+    --green:  #188918;
+    --green2: #0f6b0f;
+    --amber:  #C47A00;
+    --light:  #EDF1F7;
+    --white:  #FFFFFF;
+    --text:   #0F1E30;
+    --muted:  #64748B;
+    --border: #D1DFEf;
+    --card:   #FFFFFF;
+    --red:    #C0392B;
+  }
+  .m365calc * { box-sizing: border-box; margin: 0; padding: 0; }
+  .m365calc {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    background: var(--light);
+    color: var(--text);
+    padding: 28px 32px;
+  }
+  .m365calc .dash { max-width: 1240px; margin: 0 auto; }
+
+  /* ── HEADER ─────────────────────────────────── */
+  .m365calc .hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
+  .m365calc .hdr h1 { font-size: 22px; font-weight: 700; color: var(--text); }
+  .m365calc .hdr .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .m365calc .pill { background: var(--navy); color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 11.5px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+
+  /* ── SLIDER HERO CARD ────────────────────────── */
+  .m365calc .hero {
+    background: linear-gradient(135deg, var(--navy2) 0%, var(--navy) 60%, #0a4f8a 100%);
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    margin-bottom: 20px;
+    color: #fff;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 32px;
+    align-items: center;
+  }
+  .m365calc .hero-left .eyebrow { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 6px; }
+  .m365calc .archive-display { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; }
+  .m365calc .archive-num { font-size: 64px; font-weight: 700; line-height: 1; color: #fff; transition: color .2s; }
+  .m365calc .archive-unit { font-size: 20px; color: rgba(255,255,255,.55); font-weight: 400; }
+
+  /* custom slider */
+  .m365calc .slider-wrap { position: relative; }
+  .m365calc input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 7px; border-radius: 4px;
+    background: rgba(255,255,255,.18); outline: none; cursor: pointer;
+    transition: background .1s;
+  }
+  .m365calc input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #fff; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+    border: 3px solid rgba(0,100,217,.4);
+    transition: transform .15s;
+  }
+  .m365calc input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .m365calc input[type=range]::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #fff; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+    border: 3px solid rgba(0,100,217,.4);
+  }
+  .m365calc .slider-ticks { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10.5px; color: rgba(255,255,255,.38); }
+
+  /* mini reference pills on slider */
+  .m365calc .ref-markers { position: relative; height: 22px; margin-top: -2px; }
+  .m365calc .ref-pin {
+    position: absolute; transform: translateX(-50%);
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+    color: rgba(255,255,255,.7); font-size: 9.5px; padding: 2px 7px;
+    border-radius: 10px; white-space: nowrap; cursor: pointer;
+    transition: background .2s;
+  }
+  .m365calc .ref-pin:hover { background: rgba(255,255,255,.28); }
+
+  /* mini stat boxes */
+  .m365calc .hero-right { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .m365calc .mini-stat {
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px; padding: 16px 18px; text-align: center;
+    backdrop-filter: blur(4px);
+  }
+  .m365calc .mini-stat .ms-label { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 6px; }
+  .m365calc .mini-stat .ms-val { font-size: 28px; font-weight: 700; color: #fff; line-height: 1; }
+  .m365calc .mini-stat .ms-sub { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 4px; }
+
+  /* ── KPI GRID ────────────────────────────────── */
+  .m365calc .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .m365calc .kpi {
+    background: var(--card); border-radius: 12px; padding: 20px 20px 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 12px rgba(0,56,101,.07);
+    position: relative; overflow: hidden;
+  }
+  .m365calc .kpi::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--kc, var(--navy)); border-radius: 12px 12px 0 0;
+  }
+  .m365calc .kpi .k-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .m365calc .kpi .k-val { font-size: 34px; font-weight: 700; line-height: 1.05; color: var(--kc, var(--navy)); transition: all .25s ease; }
+  .m365calc .kpi .k-sub { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .m365calc .kpi .k-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 600; margin-top: 8px; }
+  .m365calc .pop { animation: m365calc-pop .3s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes m365calc-pop { 0%{transform:scale(.92);opacity:.6} 100%{transform:scale(1);opacity:1} }
+
+  /* ── BOTTOM GRID ─────────────────────────────── */
+  .m365calc .bottom-grid { display: grid; grid-template-columns: 1.85fr 1fr; gap: 16px; }
+  .m365calc .card { background: var(--card); border-radius: 12px; padding: 22px; border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,56,101,.07); }
+  .m365calc .card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .m365calc .card-sub { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+
+  /* ── SUMMARY TABLE ───────────────────────────── */
+  .m365calc .sum-table { width: 100%; border-collapse: collapse; }
+  .m365calc .sum-table tr { border-bottom: 1px solid #EDF1F7; }
+  .m365calc .sum-table tr:last-child { border-bottom: none; }
+  .m365calc .sum-table td { padding: 8px 4px; font-size: 12px; }
+  .m365calc .sum-table td:first-child { color: var(--muted); font-size: 11px; }
+  .m365calc .sum-table td:last-child { font-weight: 600; text-align: right; color: var(--text); }
+  .m365calc .sum-table tr.hi td:last-child { color: var(--navy); font-size: 13.5px; }
+  .m365calc .sum-table tr.hi2 td:last-child { color: var(--green); font-size: 13.5px; }
+
+  /* ── COMPARISON BAR ──────────────────────────── */
+  .m365calc .cmp-bar-section { margin-top: 18px; padding-top: 18px; border-top: 1px solid #EDF1F7; }
+  .m365calc .cmp-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 10px; }
+  .m365calc .cmp-row { margin-bottom: 10px; }
+  .m365calc .cmp-row-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+  .m365calc .cmp-row-label span:first-child { color: var(--muted); }
+  .m365calc .cmp-row-label span:last-child { font-weight: 600; font-size: 12px; }
+  .m365calc .cmp-track { background: #EDF1F7; border-radius: 4px; height: 10px; overflow: hidden; }
+  .m365calc .cmp-fill { height: 100%; border-radius: 4px; transition: width .4s cubic-bezier(.4,0,.2,1); }
+
+  /* ── FOOTER ──────────────────────────────────── */
+  .m365calc .footer { background: var(--navy); border-radius: 10px; padding: 10px 20px; margin-top: 16px; font-size: 10px; color: rgba(107,172,212,.85); text-align: center; }
+</style>
+
+<div class="m365calc">
+<div class="dash">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div>
+      <h1>M365 Archive &nbsp;&middot;&nbsp; Cost Avoidance Calculator</h1>
+      <div class="sub">Drag the slider to model any archive size &nbsp;&middot;&nbsp; All figures update live &nbsp;&middot;&nbsp; CS &amp; SAM analysis</div>
+    </div>
+    <div class="pill">April 2026</div>
+  </div>
+
+  <!-- HERO SLIDER CARD -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="eyebrow">Archive Storage Size</div>
+      <div class="archive-display">
+        <div class="archive-num" id="archiveNum">175</div>
+        <div class="archive-unit">terabytes</div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="m365calc-slider" min="30" max="500" value="175" step="5">
+        <div class="ref-markers">
+          <div class="ref-pin" style="left:14.8%" data-val="100" title="Scenario 1">100 TB</div>
+          <div class="ref-pin" style="left:46.9%" data-val="250" title="Scenario 2">250 TB</div>
+        </div>
+        <div class="slider-ticks">
+          <span>30 TB</span><span>150 TB</span><span>250 TB</span><span>370 TB</span><span>500 TB</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="mini-stat">
+        <div class="ms-label">Monthly Avoidance</div>
+        <div class="ms-val" id="hMonthly">$22,221</div>
+        <div class="ms-sub">per month</div>
+      </div>
+      <div class="mini-stat">
+        <div class="ms-label">Annual Avoidance</div>
+        <div class="ms-val" id="hAnnual">$267K</div>
+        <div class="ms-sub">year-end total</div>
+      </div>
+      <div class="mini-stat">
+        <div class="ms-label">Monthly Archive Cost</div>
+        <div class="ms-val" id="hCost">$7,885</div>
+        <div class="ms-sub">to use M365 Archive</div>
+      </div>
+      <div class="mini-stat">
+        <div class="ms-label">Without M365 Archive</div>
+        <div class="ms-val" id="hWithout">$30,106</div>
+        <div class="ms-sub">monthly active storage</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi" style="--kc: #188918">
+      <div class="k-label">Monthly Cost Avoidance</div>
+      <div class="k-val" id="kMonthly">$22,221</div>
+      <div class="k-sub">Avoided by using M365 Archive over active SharePoint storage</div>
+      <span class="k-badge" id="kRateBadge" style="background:#E8F5E9;color:#188918">73.8% avoided</span>
+    </div>
+    <div class="kpi" style="--kc: #003865">
+      <div class="k-label">Annual Cost Avoidance</div>
+      <div class="k-val" id="kAnnual">$266,652</div>
+      <div class="k-sub">Cumulative 12-month cost avoidance projection</div>
+      <span class="k-badge" style="background:#EDF1F7;color:#003865">Year-end total</span>
+    </div>
+    <div class="kpi" style="--kc: #0064D9">
+      <div class="k-label">Monthly Archive Cost</div>
+      <div class="k-val" id="kCost">$7,885</div>
+      <div class="k-sub" id="kCostSub">vs $30,106 if kept as active SharePoint</div>
+      <span class="k-badge" style="background:#EDF4FB;color:#0064D9">@ $0.05/GB/mo</span>
+    </div>
+    <div class="kpi" style="--kc: #C47A00">
+      <div class="k-label">Cost Avoidance Rate</div>
+      <div class="k-val" id="kRate">73.8%</div>
+      <div class="k-sub">Of active storage cost avoided by archiving</div>
+      <span class="k-badge" id="kRateBadge2" style="background:#FFF8E1;color:#C47A00">Calibrated to Microsoft data</span>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom-grid">
+
+    <!-- CHART -->
+    <div class="card">
+      <div class="card-title">Cumulative Cost Avoidance — 12 Month Projection</div>
+      <div class="card-sub">Monthly avoidance compounds as each avoided cost stacks. Dashed line shows what you'd pay without M365 Archive.</div>
+      <canvas id="m365calc-chart" height="195"></canvas>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="card">
+      <div class="card-title">Scenario Summary</div>
+      <div class="card-sub">Live figures at <strong id="sumTB">175 TB</strong> archive size</div>
+      <table class="sum-table">
+        <tr><td>Archive Size</td>           <td id="sArchive">175 TB</td></tr>
+        <tr><td>Active Tenant Quota</td>     <td>2,570 TB</td></tr>
+        <tr><td>Current Active Usage</td>    <td>2,542 TB</td></tr>
+        <tr><td>Monthly Archive Cost</td>    <td id="sCost">$7,885</td></tr>
+        <tr><td>Monthly Without M365</td>    <td id="sWithout">$30,106</td></tr>
+        <tr class="hi2"><td>Monthly Avoidance</td>   <td id="sMonthly">$22,221</td></tr>
+        <tr class="hi"><td>Annual Avoidance</td>    <td id="sAnnual">$266,652</td></tr>
+        <tr><td>Annual Without M365</td>     <td id="sAnnualW">$361,272</td></tr>
+        <tr><td>Avoidance Rate</td>          <td id="sRate">73.8%</td></tr>
+        <tr><td>Archive: $0.05/GB/mo</td>    <td>Active: $0.20/GB/mo</td></tr>
+      </table>
+
+      <!-- Inline comparison bars -->
+      <div class="cmp-bar-section">
+        <div class="cmp-label">Monthly Cost Breakdown</div>
+        <div class="cmp-row">
+          <div class="cmp-row-label"><span>Without M365 Archive</span><span id="cmpWithout">$30,106</span></div>
+          <div class="cmp-track"><div class="cmp-fill" id="cmpBarWithout" style="width:100%;background:#CBD5E1"></div></div>
+        </div>
+        <div class="cmp-row">
+          <div class="cmp-row-label"><span>Archive Cost (with M365)</span><span id="cmpWith">$7,885</span></div>
+          <div class="cmp-track"><div class="cmp-fill" id="cmpBarWith" style="width:26%;background:#003865"></div></div>
+        </div>
+        <div class="cmp-row">
+          <div class="cmp-row-label"><span style="color:#188918;font-weight:600">Cost Avoidance</span><span id="cmpAvoid" style="color:#188918">$22,221</span></div>
+          <div class="cmp-track"><div class="cmp-fill" id="cmpBarAvoid" style="width:73.8%;background:linear-gradient(to right,#188918,#34d058)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Microsoft 365 Archive &nbsp;&middot;&nbsp; CS Internal Analysis &nbsp;&middot;&nbsp; Cost avoidance vs. standard SharePoint active storage at $0.20/GB/month
+  </div>
+</div>
+</div>
+
+<script>
+// Chart.js is exposed on window.Chart by PiCanvas bundle — no CDN needed.
+var ACTIVE_TB   = 2542;
+var QUOTA_TB    = 2570;
+var ACTIVE_RATE = 0.20;
+var ARCH_SLOPE  = (11878 - 3891) / ((250 - 100) * 1024);
+var ARCH_INTCPT = 3891 - ARCH_SLOPE * (100 * 1024);
+
+function calc(tb) {
+  var gb          = tb * 1024;
+  var costWith    = Math.max(0, gb * ARCH_SLOPE + ARCH_INTCPT);
+  var costWithout = Math.max(0, (tb + ACTIVE_TB - QUOTA_TB) * 1024 * ACTIVE_RATE);
+  var avoidance   = Math.max(0, costWithout - costWith);
+  var rate        = costWithout > 0 ? avoidance / costWithout * 100 : 0;
+  return {
+    tb: tb, costWith: Math.round(costWith), costWithout: Math.round(costWithout),
+    avoidance: Math.round(avoidance), rate: rate,
+    annualAvoid:   Math.round(avoidance   * 12),
+    annualWith:    Math.round(costWith    * 12),
+    annualWithout: Math.round(costWithout * 12)
+  };
+}
+
+var $k  = function(n) { return n >= 1e6 ? '$'+(n/1e6).toFixed(2)+'M' : n >= 1000 ? '$'+(n/1000).toFixed(0)+'K' : '$'+n.toLocaleString(); };
+var $f  = function(n) { return '$' + Math.round(n).toLocaleString('en-US'); };
+var pct = function(n) { return n.toFixed(1) + '%'; };
+
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var ctx = document.getElementById('m365calc-chart').getContext('2d');
+var chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      {
+        label: 'Cumulative Cost Avoidance',
+        data: [],
+        borderColor: '#003865',
+        backgroundColor: 'rgba(0,56,101,0.09)',
+        fill: true, tension: 0.42, borderWidth: 2.5,
+        pointRadius: 4, pointBackgroundColor: '#003865',
+        pointBorderColor: '#fff', pointBorderWidth: 2
+      },
+      {
+        label: 'Without M365 Archive',
+        data: [],
+        borderColor: '#94A3B8',
+        borderDash: [6, 4],
+        backgroundColor: 'transparent',
+        fill: false, tension: 0.42, borderWidth: 1.8,
+        pointRadius: 3, pointBackgroundColor: '#94A3B8',
+        pointBorderColor: '#fff', pointBorderWidth: 1.5
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    animation: { duration: 350, easing: 'easeInOutQuart' },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { font: { size: 11 }, color: '#64748B', padding: 18, boxWidth: 14, usePointStyle: true, pointStyleWidth: 10 }
+      },
+      tooltip: {
+        backgroundColor: '#0F1E30',
+        titleFont: { size: 12, weight: '600' },
+        bodyFont: { size: 11 },
+        padding: 12, cornerRadius: 8,
+        callbacks: {
+          label: function(ctx) { return '  ' + ctx.dataset.label + ':  $' + Math.round(ctx.parsed.y).toLocaleString(); }
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10.5 }, color: '#94A3B8' }, border: { display: false } },
+      y: {
+        grid: { color: '#EDF1F7', lineWidth: 1 },
+        border: { display: false, dash: [4,4] },
+        ticks: {
+          font: { size: 9.5 }, color: '#94A3B8',
+          callback: function(v) { return '$' + (v >= 1000 ? (v/1000).toFixed(0)+'K' : v); }
+        }
+      }
+    }
+  }
+});
+
+function update(tb) {
+  var d = calc(tb);
+
+  document.getElementById('archiveNum').textContent = tb;
+  document.getElementById('hMonthly').textContent  = $f(d.avoidance);
+  document.getElementById('hAnnual').textContent   = $k(d.annualAvoid);
+  document.getElementById('hCost').textContent     = $f(d.costWith);
+  document.getElementById('hWithout').textContent  = $f(d.costWithout);
+
+  ['kMonthly','kAnnual','kCost','kRate'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  });
+  document.getElementById('kMonthly').textContent  = $f(d.avoidance);
+  document.getElementById('kAnnual').textContent   = $f(d.annualAvoid);
+  document.getElementById('kCost').textContent     = $f(d.costWith);
+  document.getElementById('kRate').textContent     = pct(d.rate);
+  document.getElementById('kRateBadge').textContent = pct(d.rate) + ' avoided';
+  document.getElementById('kCostSub').textContent  = 'vs ' + $f(d.costWithout) + ' if kept as active SharePoint';
+
+  document.getElementById('sumTB').textContent     = tb + ' TB';
+  document.getElementById('sArchive').textContent  = tb + ' TB';
+  document.getElementById('sCost').textContent     = $f(d.costWith);
+  document.getElementById('sWithout').textContent  = $f(d.costWithout);
+  document.getElementById('sMonthly').textContent  = $f(d.avoidance);
+  document.getElementById('sAnnual').textContent   = $f(d.annualAvoid);
+  document.getElementById('sAnnualW').textContent  = $f(d.annualWithout);
+  document.getElementById('sRate').textContent     = pct(d.rate);
+
+  document.getElementById('cmpWithout').textContent = $f(d.costWithout);
+  document.getElementById('cmpWith').textContent    = $f(d.costWith);
+  document.getElementById('cmpAvoid').textContent   = $f(d.avoidance);
+  var pctWith  = d.costWithout > 0 ? (d.costWith    / d.costWithout * 100) : 0;
+  var pctAvoid = d.costWithout > 0 ? (d.avoidance   / d.costWithout * 100) : 0;
+  document.getElementById('cmpBarWith').style.width   = pctWith  + '%';
+  document.getElementById('cmpBarAvoid').style.width  = pctAvoid + '%';
+
+  chart.data.datasets[0].data = MONTHS.map(function(_,i) { return d.avoidance   * (i+1); });
+  chart.data.datasets[1].data = MONTHS.map(function(_,i) { return d.costWithout * (i+1); });
+  chart.update();
+
+  var s = document.getElementById('m365calc-slider');
+  var pctS = (tb - +s.min) / (+s.max - +s.min) * 100;
+  s.style.background = 'linear-gradient(to right, rgba(255,255,255,.72) ' + pctS + '%, rgba(255,255,255,.18) ' + pctS + '%)';
+}
+
+function setSlider(val) {
+  document.getElementById('m365calc-slider').value = val;
+  update(val);
+}
+
+document.getElementById('m365calc-slider').addEventListener('input', function(e) { update(+e.target.value); });
+
+// Wire up reference pins
+document.querySelectorAll('.m365calc .ref-pin[data-val]').forEach(function(pin) {
+  pin.addEventListener('click', function() { setSlider(+pin.getAttribute('data-val')); });
+});
+
+update(175);
+</script>

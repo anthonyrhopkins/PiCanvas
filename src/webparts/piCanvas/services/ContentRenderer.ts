@@ -7,11 +7,14 @@
 import { marked } from 'marked';
 import mermaid from 'mermaid';
 import * as echarts from 'echarts';
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const DOMPurify = require('dompurify');
 import { IProfileReportTheme, BUILTIN_THEMES } from '../models/ProfileReportThemes';
-import { REPORT_TYPE_REGISTRY } from '../data/ReportTypeRegistry';
+import { REPORT_TYPE_REGISTRY, buildFilenameToIdMap } from '../data/ReportTypeRegistry';
 import type { ILibrarySource, IDiscoveredFile, ILabelHint, IDiscoveryColumnConfig } from '../data/DiscoveryTypes';
+import { IEditButtonConfig, DEFAULT_EDIT_BUTTON_CONFIG, buildEditButtonStyle, buildEditButtonInnerHtml } from './EditButtonConfig';
 
 // ── Security: DOMPurify post-sanitization hooks ──
 // These run on EVERY DOMPurify.sanitize() call across PiCanvas, automatically
@@ -339,6 +342,20 @@ export class ContentRenderer {
       });
       this.mermaidInitialized = true;
     }
+  }
+
+  /**
+   * Expose the bundled echarts instance for inline HTML asset scripts.
+   */
+  public static getEcharts(): typeof echarts {
+    return echarts;
+  }
+
+  /**
+   * Expose the bundled Chart.js constructor for inline HTML asset scripts.
+   */
+  public static getChartJs(): typeof Chart {
+    return Chart;
   }
 
   /**
@@ -1092,7 +1109,7 @@ export class ContentRenderer {
    * Call this after the element is in the DOM
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public static executeJavaScriptElement(element: HTMLElement, graphFetch?: (...args: any[]) => any, graphScopes?: () => Promise<string[]>): void {
+  public static executeJavaScriptElement(element: HTMLElement, graphFetch?: (...args: any[]) => any, graphScopes?: () => Promise<string[]>, editButtonConfig?: IEditButtonConfig): void {
     const code = element.getAttribute('data-js-code');
     const jsId = element.getAttribute('data-js-id');
 
@@ -1156,7 +1173,7 @@ export class ContentRenderer {
       document.body.appendChild(element);
 
       // Inject edit button for users with edit permissions
-      this.injectEditButton(element, 'fullScreen');
+      this.injectEditButton(element, 'fullScreen', editButtonConfig);
       console.log('[PiCanvas] Full Screen mode - moved JS container to body (covers everything)');
     } else if (displayMode === 'fullSection' && element.parentElement !== document.body) {
       // Full Section mode: move to body to escape SharePoint container constraints
@@ -1169,7 +1186,7 @@ export class ContentRenderer {
       document.body.appendChild(element);
 
       // Inject edit button for users with edit permissions
-      this.injectEditButton(element, 'fullSection');
+      this.injectEditButton(element, 'fullSection', editButtonConfig);
       console.log('[PiCanvas] Full Section mode - moved to body, positioned below header (navigation visible)');
     } else {
       console.log('[PiCanvas] Contained mode - default styling');
@@ -1187,17 +1204,14 @@ export class ContentRenderer {
       // Create sandboxed helpers
       const container = outputDiv;
 
-      // render() helper - sets innerHTML with DOMPurify sanitization
+      // render() helper - sets innerHTML directly.
+      // JavaScript sandbox code is authored by the site editor (trusted context),
+      // so we preserve <style> blocks and inline styles without DOMPurify mangling.
+      // Security: <script> tags are already stripped by jQuery .html() and the
+      // sandbox itself runs via new Function(), so re-sanitizing here only breaks
+      // legitimate CSS (gradients, animations, backdrop-filter, etc.).
       const render = (html: string): void => {
-        const sanitized = DOMPurify.sanitize(html, {
-          USE_PROFILES: { html: true },
-          ADD_TAGS: ['style'],
-          ADD_ATTR: ['target', 'rel', 'style'],
-          ALLOW_DATA_ATTR: true,
-          FORBID_TAGS: ['script'],
-          FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur']
-        });
-        container.innerHTML = sanitized;
+        container.innerHTML = html;
       };
 
       // create() helper - creates elements safely
@@ -1318,10 +1332,17 @@ export class ContentRenderer {
 
   /**
    * Inject an edit button for Full Screen / Full Section mode
-   * Shows an edit pencil icon in the top-right corner that links to page edit mode
-   * @param displayMode - 'fullScreen' positions at viewport top, 'fullSection' positions below SP header
+   * Shows an edit pencil icon that links to page edit mode
+   * @param container - The element to append the button to
+   * @param displayMode - 'fullScreen' or 'fullSection' (affects top-position offset)
+   * @param config - Optional edit button configuration; defaults to DEFAULT_EDIT_BUTTON_CONFIG
    */
-  public static injectEditButton(container: HTMLElement, displayMode: 'fullScreen' | 'fullSection' = 'fullScreen'): void {
+  public static injectEditButton(container: HTMLElement, displayMode: 'fullScreen' | 'fullSection' = 'fullScreen', config?: IEditButtonConfig): void {
+    const cfg = config || DEFAULT_EDIT_BUTTON_CONFIG;
+
+    // Bail out if edit button is disabled
+    if (!cfg.enabled) return;
+
     // Check if edit button already exists
     if (container.querySelector('.picanvas-edit-button')) {
       return;
@@ -1330,54 +1351,51 @@ export class ContentRenderer {
     // Create the edit button
     const editButton = document.createElement('a');
     editButton.className = 'picanvas-edit-button';
-    editButton.title = 'Edit Page';
+    editButton.title = cfg.label;
 
     // Build edit URL - add ?Mode=Edit to current URL
     const currentUrl = window.location.href.split('?')[0];
     editButton.href = `${currentUrl}?Mode=Edit`;
 
-    // Position depends on display mode:
-    // - fullScreen: top of viewport (12px)
-    // - fullSection: below SharePoint header (156px = 146px header + 10px padding)
-    const topPosition = displayMode === 'fullSection' ? '156px' : '12px';
+    // Intercept click to checkout page before navigating (SharePoint requires checkout for edit mode)
+    editButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      const editUrl = editButton.href;
+      const pageRelUrl = new URL(editUrl).pathname;
+      // Derive site URL from page path (everything before /SitePages/ or /_layouts/)
+      const siteMatch = pageRelUrl.match(/^(.*?\/(?:sites|teams)\/[^/]+)/i);
+      const siteUrl = siteMatch ? siteMatch[1] : '';
+      if (!siteUrl) { window.location.href = editUrl; return; }
+      fetch(`${siteUrl}/_api/contextinfo`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json;odata=nometadata' },
+        credentials: 'same-origin'
+      })
+        .then(r => r.json())
+        .then(d => fetch(`${siteUrl}/_api/web/GetFileByServerRelativeUrl('${pageRelUrl}')/CheckOut()`, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json;odata=nometadata', 'X-RequestDigest': d.FormDigestValue },
+          credentials: 'same-origin'
+        }))
+        .then(() => { window.location.href = editUrl; })
+        .catch(() => { window.location.href = editUrl; }); // fallback: navigate even if checkout fails
+    });
 
-    // Style the button
-    editButton.style.cssText = `
-      position: fixed !important;
-      top: ${topPosition} !important;
-      right: 12px !important;
-      width: 40px !important;
-      height: 40px !important;
-      background: rgba(255, 255, 255, 0.9) !important;
-      border: 1px solid #ccc !important;
-      border-radius: 8px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      cursor: pointer !important;
-      z-index: 999999 !important;
-      text-decoration: none !important;
-      transition: background 0.2s, transform 0.2s !important;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-    `;
+    // Style the button using shared config builder
+    editButton.style.cssText = buildEditButtonStyle(cfg, displayMode);
 
     // Add hover effect
     editButton.addEventListener('mouseenter', () => {
-      editButton.style.background = 'rgba(255, 255, 255, 1)';
+      editButton.style.opacity = '1';
       editButton.style.transform = 'scale(1.05)';
     });
     editButton.addEventListener('mouseleave', () => {
-      editButton.style.background = 'rgba(255, 255, 255, 0.9)';
+      editButton.style.opacity = String(cfg.opacity);
       editButton.style.transform = 'scale(1)';
     });
 
-    // Add pencil icon (SVG)
-    editButton.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-      </svg>
-    `;
+    // Set inner HTML using shared config builder
+    editButton.innerHTML = buildEditButtonInnerHtml(cfg);
 
     // Add to container
     container.appendChild(editButton);
@@ -2298,10 +2316,19 @@ export class ContentRenderer {
 
     // === Discovery mode: tabs from discovered files, content lazy-loaded ===
     if (profile.discoveredFiles && profile.discoveredFiles.length > 0) {
+      const enabledTypes = config.enabledReportTypes || {};
+      const filenameMap = buildFilenameToIdMap();
+
       for (const file of profile.discoveredFiles) {
-        const flagText = file.reportType
-          ? file.format.toUpperCase()
-          : file.format.toUpperCase();
+        // Match discovered file to a registry entry via filename
+        const registryId = filenameMap.get(file.name);
+
+        // If file maps to a registry entry, respect the Show/Hide toggle
+        if (registryId && enabledTypes[registryId] === false) continue;
+        // If file doesn't map to any registry entry, hide it (strict filtering)
+        if (!registryId) continue;
+
+        const flagText = file.format.toUpperCase();
         methodTabs.push({
           key: `disc-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`,
           label: file.label,

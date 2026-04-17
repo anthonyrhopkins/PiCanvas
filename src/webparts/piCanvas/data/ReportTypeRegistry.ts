@@ -128,8 +128,11 @@ export const REPORT_TYPE_REGISTRY: readonly IReportTypeDefinition[] = [
     format: 'md',
     category: 'profile',
     defaultEnabled: true,
-    pathTemplate: '{domain}/executive-brief.md',
-    fallbackPaths: ['company-profile/executive-brief/{domain}.md'],
+    pathTemplate: '{domain}/growth-profile-{domain}.md',
+    fallbackPaths: [
+      '{domain}/executive-brief.md',
+      'company-profile/executive-brief/{domain}.md',
+    ],
     order: 10,
   },
   {
@@ -293,4 +296,20 @@ export function registryToLabelHints(): Record<string, { label: string; order: n
     }
   }
   return hints;
+}
+
+/**
+ * Build a map from filename → registry ID for discovery mode filtering.
+ * Allows discovered files to be matched against Show/Hide toggles.
+ */
+export function buildFilenameToIdMap(): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const rt of REPORT_TYPE_REGISTRY) {
+    const parts = rt.pathTemplate.split('/');
+    const filename = parts[parts.length - 1];
+    if (filename && !filename.includes('{')) {
+      map.set(filename, rt.id);
+    }
+  }
+  return map;
 }

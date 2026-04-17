@@ -481,7 +481,8 @@ export class TabBuilderSection {
         this._controls.push(toggle);
       });
     } else if (contentType === 'file') {
-      this._renderTextField(accordion.body, tabIndex, 'FileUrl', 'File URL', '/sites/yoursite/SiteAssets/content.html');
+      this._renderTextField(accordion.body, tabIndex, 'FileUrl', 'File URL', '/sites/.../SiteAssets/file.html or sharing link');
+      this._renderListBindings(accordion.body, tabIndex);
     } else if (contentType === 'javascript') {
       this._renderTextArea(accordion.body, tabIndex, 'CustomContent', 'JavaScript Code',
         "container.innerHTML = '<h1>Hello!</h1>';");
@@ -1392,7 +1393,7 @@ export class TabBuilderSection {
     wrapper.innerHTML = `
       <label class="picanvas-config-field-label">File URL</label>
       <div style="display:flex;gap:8px;align-items:center">
-        <input type="text" class="picanvas-config-text-input" style="flex:1" value="${this._escapeAttr((opts.getProperty(`tab${tabIndex}FileUrl`) as string) || '')}" placeholder="/sites/yoursite/SiteAssets/content.html" />
+        <input type="text" class="picanvas-config-text-input" style="flex:1" value="${this._escapeAttr((opts.getProperty(`tab${tabIndex}FileUrl`) as string) || '')}" placeholder="/sites/.../SiteAssets/file.html or sharing link" />
         <button type="button" style="padding:6px 14px;border:1px solid rgba(0,0,0,0.2);border-radius:4px;background:#f3f2f1;cursor:pointer;white-space:nowrap;font-size:13px">Browse</button>
       </div>
     `;
@@ -1424,6 +1425,58 @@ export class TabBuilderSection {
     const textarea = wrapper.querySelector('textarea') as HTMLTextAreaElement;
     textarea.addEventListener('change', () => {
       opts.setProperty(`tab${tabIndex}${suffix}`, textarea.value);
+      opts.onChanged();
+    });
+    container.appendChild(wrapper);
+  }
+
+  /**
+   * Render the List Bindings editor for File content type.
+   * Storage: tab{N}FileListBindings as a JSON array of { key, listTitle }.
+   * UI: textarea with line-per-binding format `key=ListTitle` for simplicity.
+   */
+  private _renderListBindings(container: HTMLElement, tabIndex: number): void {
+    const opts = this._options;
+    const propName = `tab${tabIndex}FileListBindings`;
+    const raw = (opts.getProperty(propName) as string) || '';
+
+    // Convert stored JSON → line-per-binding text for the textarea
+    let textValue = '';
+    try {
+      const parsed = raw ? JSON.parse(raw) : [];
+      textValue = Array.isArray(parsed)
+        ? parsed.map((b: { key?: string; listTitle?: string }) => `${b.key || ''}=${b.listTitle || ''}`).join('\n')
+        : '';
+    } catch {
+      textValue = raw; // Show raw if malformed, so user can repair
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '12px';
+    wrapper.innerHTML = `
+      <label class="picanvas-config-field-label">List Bindings</label>
+      <div style="font-size:11px;color:#666;margin-bottom:6px;line-height:1.4">
+        One binding per line: <code>key=ListTitle</code>. The HTML file receives data via
+        <code>picanvas:lists-ready</code> and can dispatch
+        <code>picanvas:list-add|update|delete</code> events. SharePoint list permissions apply.
+      </div>
+      <textarea class="picanvas-config-textarea" style="font-family:monospace;font-size:12px" rows="4"
+        placeholder="signoffs=DashboardSignOffs&#10;kpis=DashboardKPIs">${this._escapeHtml(textValue)}</textarea>
+    `;
+    const textarea = wrapper.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.addEventListener('change', () => {
+      const lines = textarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+      const bindings = lines
+        .map(line => {
+          const eq = line.indexOf('=');
+          if (eq < 0) return null;
+          const key = line.slice(0, eq).trim();
+          const listTitle = line.slice(eq + 1).trim();
+          if (!key || !listTitle) return null;
+          return { key, listTitle };
+        })
+        .filter(b => b !== null);
+      opts.setProperty(propName, bindings.length > 0 ? JSON.stringify(bindings) : '');
       opts.onChanged();
     });
     container.appendChild(wrapper);

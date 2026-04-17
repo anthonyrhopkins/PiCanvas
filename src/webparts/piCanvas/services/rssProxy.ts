@@ -11,20 +11,21 @@
 // Ordered by reliability - corsproxy.io is most reliable for Microsoft feeds
 const PUBLIC_PROXIES = [
     {
-        name: 'corsproxy.io',
-        buildUrl: (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        headers: {} as Record<string, string>
-    },
-    {
         name: 'rss2json',
         // rss2json.com - free tier allows 10,000 requests/day, returns JSON
+        // Most reliable proxy — works with Google News, Microsoft, Reddit
         buildUrl: (url: string) => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`,
         headers: {} as Record<string, string>,
         isJson: true
     },
     {
-        name: 'thingproxy',
-        buildUrl: (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
+        name: 'corsproxy.io',
+        buildUrl: (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        headers: {} as Record<string, string>
+    },
+    {
+        name: 'allorigins',
+        buildUrl: (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
         headers: {} as Record<string, string>
     }
 ];
@@ -39,7 +40,10 @@ const CORS_BLOCKED_DOMAINS = [
     'blogs.microsoft.com',
     'devblogs.microsoft.com',
     'microsoft.com',
-    'sharepoint.com'
+    'sharepoint.com',
+    'news.google.com',
+    'google.com',
+    'reddit.com'
 ];
 
 /**

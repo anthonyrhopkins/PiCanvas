@@ -64,6 +64,9 @@ tests/
 # macOS resource forks
 ._*
 
+# Local Playwright scratch scripts (contain personal Edge profile paths)
+picanvas-editmode*.mjs
+
 # Environment files
 .env
 .env.local

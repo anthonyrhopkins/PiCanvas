@@ -52,6 +52,17 @@ import { ITemplateListItem } from './models/TemplateModels';
 // Content renderer for custom content types (markdown, html, mermaid, embed, rss, toc, profilereport)
 import { ContentRenderer, IRssDisplayConfig, IProfileReportDisplayConfig } from './services/ContentRenderer';
 
+// Edit button shared config
+import { getEditButtonConfig, buildEditButtonStyle, buildEditButtonInnerHtml } from './services/EditButtonConfig';
+
+// Navigation renderer
+import { NavigationService, NavSource } from './services/NavigationService';
+import { NavRenderer, INavRenderConfig } from './services/NavRenderer';
+import { ListNavigationService } from './services/ListNavigationService';
+import { ListBindingService, IListBinding } from './services/ListBindingService';
+import { UserShortcutsService } from './services/UserShortcutsService';
+import { UserPreferencesService, IUserPreferences } from './services/UserPreferencesService';
+
 // Profile Report service
 import { ProfileReportService, ICompanyEntry } from './services/ProfileReportService';
 
@@ -153,6 +164,16 @@ export interface IPiCanvasWebPartProps {
 
   // Embed security
   embedCustomDomains?: string;  // Comma-separated custom embed domains (e.g. "myapp.example.com, internal.corp.net")
+
+  // Edit button configuration
+  editButtonEnabled?: boolean;
+  editButtonPosition?: string;
+  editButtonStyle?: string;
+  editButtonSize?: string;
+  editButtonOpacity?: number;
+  editButtonBgColor?: string;
+  editButtonIconColor?: string;
+  editButtonLabel?: string;
 
   // Lock defaults (v3.0+)
   lockDefaultTemplateEnabled?: boolean;
@@ -428,6 +449,15 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   private _graphFetch: ((endpoint: string, options?: any) => Promise<any>) | undefined;
   private _graphScopes: (() => Promise<string[]>) | undefined;
 
+  // Site navigation
+  private _navigationService: NavigationService | null = null;
+  private _listNavigationService: ListNavigationService | null = null;
+  private _listBindingService: ListBindingService | null = null;
+  private _userShortcutsService: UserShortcutsService | null = null;
+  private _userPreferencesService: UserPreferencesService | null = null;
+  private _navCleanupFn: (() => void) | null = null;
+  private _lastNavSource: NavSource | null = null;
+
   /**
    * Scan an HTML string for <style> blocks containing SP chrome selectors
    * and strip those rules, replacing them with a comment.
@@ -681,7 +711,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         rules.push(`#O365_SearchBoxContainer_container { display: none !important; }`);
       }
       if (hideBranding) {
-        rules.push(`#O365_SuiteBranding_container { display: none !important; }`);
+        // Skip hiding the branding container if a custom logo will replace it
+        const customLogoActive = this.properties['chromeCustomLogoEnabled'] === true
+          && !!(this.properties['chromeCustomLogoUrl'] as string || '').trim();
+        if (!customLogoActive) {
+          rules.push(`#O365_SuiteBranding_container { display: none !important; }`);
+        }
         rules.push(`#O365_DocTitle_container { display: none !important; }`);
       }
       if (hideSearch || hideBranding) {
@@ -690,7 +725,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       if (this.properties.hideSpSuiteHeader === true) {
         // "Waffle-clean" mode: fixed compact header with waffle, profile, gear.
-        rules.push(`#SuiteNavWrapper { z-index: 100001 !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100vw !important; }`);
+        rules.push(`#SuiteNavWrapper { z-index: 1000001 !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100vw !important; }`);
         rules.push(`#SuiteNavWrapper, #SuiteNavWrapper * { pointer-events: auto !important; }`);
         rules.push(`#SuiteNavWrapper button, #SuiteNavWrapper a, #SuiteNavWrapper [role="button"] { visibility: visible !important; pointer-events: auto !important; }`);
         // Compensate for the fixed header — push content down so it isn't hidden behind it
@@ -734,7 +769,13 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       idsToHide.push('O365_SearchBoxContainer_container');
     }
     if (hideBranding) {
-      idsToHide.push('O365_SuiteBranding_container', 'O365_DocTitle_container');
+      // Skip hiding branding container if a custom logo will replace it
+      const customLogoActive = this.properties['chromeCustomLogoEnabled'] === true
+        && !!(this.properties['chromeCustomLogoUrl'] as string || '').trim();
+      if (!customLogoActive) {
+        idsToHide.push('O365_SuiteBranding_container');
+      }
+      idsToHide.push('O365_DocTitle_container');
     }
     if (idsToHide.length === 0) return;
 
@@ -793,36 +834,48 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       return;
     }
 
+    const config = getEditButtonConfig((k) => this.properties[k] as string | number | boolean | undefined);
+
+    // Bail out if edit button is disabled
+    if (!config.enabled) {
+      const stale = document.getElementById(btnId);
+      if (stale) stale.remove();
+      return;
+    }
+
     // Don't duplicate
     if (document.getElementById(btnId)) return;
 
     const editButton = document.createElement('a');
     editButton.id = btnId;
     editButton.className = 'picanvas-edit-button picanvas-chrome-edit-button';
-    editButton.title = 'Edit Page';
+    editButton.title = config.label;
 
     const currentUrl = window.location.href.split('?')[0].split('#')[0];
     editButton.href = `${currentUrl}?Mode=Edit`;
 
-    editButton.style.cssText = `
-      position: fixed !important;
-      bottom: 24px !important;
-      right: 24px !important;
-      width: 44px !important;
-      height: 44px !important;
-      background: rgba(255, 255, 255, 0.92) !important;
-      border: 1px solid rgba(0,0,0,0.08) !important;
-      border-radius: 50% !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      cursor: pointer !important;
-      z-index: 999999 !important;
-      text-decoration: none !important;
-      transition: background 0.2s, transform 0.2s, box-shadow 0.2s !important;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15) !important;
-      opacity: 0.7 !important;
-    `;
+    // Intercept click to checkout page before navigating (SharePoint requires checkout for edit mode)
+    editButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      const editUrl = editButton.href;
+      const pageRelUrl = new URL(editUrl).pathname;
+      const siteUrl = this.context.pageContext.web.serverRelativeUrl;
+      fetch(`${siteUrl}/_api/contextinfo`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json;odata=nometadata' },
+        credentials: 'same-origin'
+      })
+        .then(r => r.json())
+        .then(d => fetch(`${siteUrl}/_api/web/GetFileByServerRelativeUrl('${pageRelUrl}')/CheckOut()`, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json;odata=nometadata', 'X-RequestDigest': d.FormDigestValue },
+          credentials: 'same-origin'
+        }))
+        .then(() => { window.location.href = editUrl; })
+        .catch(() => { window.location.href = editUrl; }); // fallback: navigate even if checkout fails
+    });
+
+    editButton.style.cssText = buildEditButtonStyle(config);
 
     editButton.addEventListener('mouseenter', () => {
       editButton.style.opacity = '1';
@@ -830,17 +883,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       editButton.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)';
     });
     editButton.addEventListener('mouseleave', () => {
-      editButton.style.opacity = '0.7';
+      editButton.style.opacity = String(config.opacity);
       editButton.style.transform = 'scale(1)';
       editButton.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
     });
 
-    editButton.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-      </svg>
-    `;
+    editButton.innerHTML = buildEditButtonInnerHtml(config);
 
     document.body.appendChild(editButton);
   }
@@ -851,6 +899,107 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   private removeChromeEditButton(): void {
     const btn = document.getElementById(`picanvas-chrome-edit-${this.instanceId}`);
     if (btn) btn.remove();
+  }
+
+  /**
+   * Replace the tenant logo in the O365 suite header with a custom image.
+   * Uses polling (like forceHideChromeElements) to survive SP React re-renders.
+   * Only active in Read mode when chromeCustomLogoEnabled is true and a URL is set.
+   */
+  private injectCustomLogo(): void {
+    const isEditMode = this.displayMode !== DisplayMode.Read
+      || window.location.search.includes('Mode=Edit')
+      || window.location.search.includes('mode=edit');
+    const enabled = !isEditMode && this.properties['chromeCustomLogoEnabled'] === true;
+    const logoUrl = (this.properties['chromeCustomLogoUrl'] as string || '').trim();
+    const picanvasAttr = 'data-picanvas-custom-logo';
+
+    if (!enabled || !logoUrl) {
+      this.removeCustomLogo();
+      return;
+    }
+
+    const applyLogo = (): void => {
+      const brandingContainer = document.getElementById('O365_SuiteBranding_container');
+      if (!brandingContainer) return;
+
+      // If hideSpBranding is on, force the container visible for the custom logo
+      const hideBranding = this.properties.hideSpBranding === true ||
+        (this.properties.hideSpSuiteHeader === true && this.properties.hideSpBranding !== false);
+      if (hideBranding) {
+        brandingContainer.removeAttribute('data-picanvas-hidden');
+        brandingContainer.setAttribute('style',
+          'display:flex!important;visibility:visible!important;width:auto!important;' +
+          'height:auto!important;overflow:visible!important;opacity:1!important;' +
+          'pointer-events:auto!important;position:relative!important;clip:auto!important;' +
+          'align-items:center;');
+      }
+
+      // Check if we already injected our logo
+      let customImg = brandingContainer.querySelector(`[${picanvasAttr}]`) as HTMLImageElement;
+      if (customImg) {
+        if (customImg.src !== logoUrl) customImg.src = logoUrl;
+        this._hideOriginalBrandingChildren(brandingContainer, picanvasAttr);
+        return;
+      }
+
+      // Hide all original children
+      this._hideOriginalBrandingChildren(brandingContainer, picanvasAttr);
+
+      // Create and inject the custom logo image
+      customImg = document.createElement('img');
+      customImg.setAttribute(picanvasAttr, 'true');
+      customImg.src = logoUrl;
+      customImg.alt = 'Site Logo';
+      customImg.style.cssText = 'height:24px;max-width:120px;object-fit:contain;display:block;cursor:pointer;';
+      customImg.onerror = () => { customImg.style.display = 'none'; };
+      brandingContainer.insertBefore(customImg, brandingContainer.firstChild);
+    };
+
+    applyLogo();
+    requestAnimationFrame(applyLogo);
+
+    // Poll every 500ms for 15 seconds (same pattern as forceHideChromeElements)
+    const intervalKey = `_customLogoInterval_${this.instanceId}`;
+    if ((this as Record<string, unknown>)[intervalKey]) {
+      window.clearInterval((this as Record<string, unknown>)[intervalKey] as number);
+    }
+    let elapsed = 0;
+    const interval = window.setInterval(() => {
+      applyLogo();
+      elapsed += 500;
+      if (elapsed >= 15000) {
+        window.clearInterval(interval);
+        (this as Record<string, unknown>)[intervalKey] = undefined;
+      }
+    }, 500);
+    (this as Record<string, unknown>)[intervalKey] = interval;
+  }
+
+  /** Hide original children inside the branding container, preserving our custom logo. */
+  private _hideOriginalBrandingChildren(container: HTMLElement, picanvasAttr: string): void {
+    Array.from(container.children).forEach(child => {
+      if (!(child as HTMLElement).hasAttribute(picanvasAttr)) {
+        (child as HTMLElement).style.display = 'none';
+      }
+    });
+  }
+
+  /** Remove the custom logo and restore original branding elements. */
+  private removeCustomLogo(): void {
+    const intervalKey = `_customLogoInterval_${this.instanceId}`;
+    if ((this as Record<string, unknown>)[intervalKey]) {
+      window.clearInterval((this as Record<string, unknown>)[intervalKey] as number);
+      (this as Record<string, unknown>)[intervalKey] = undefined;
+    }
+    const picanvasAttr = 'data-picanvas-custom-logo';
+    const brandingContainer = document.getElementById('O365_SuiteBranding_container');
+    if (!brandingContainer) return;
+    const customImg = brandingContainer.querySelector(`[${picanvasAttr}]`);
+    if (customImg) customImg.remove();
+    Array.from(brandingContainer.children).forEach(child => {
+      (child as HTMLElement).style.removeProperty('display');
+    });
   }
 
   /**
@@ -977,6 +1126,16 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     // IMMEDIATELY hide connected webparts before they render visibly
     // This prevents the "flash" of webparts at their original position
     this.injectEarlyHidingStyles();
+
+    // Prevent stale SPFx debug session after "Discard changes" strips query params.
+    // SPFx stores { manifestsFileUrl } in sessionStorage under 'spfx-debug'. When
+    // SharePoint redirects to the clean URL, SPFx still tries to load from localhost
+    // and shows "Error loading debug manifests". Clearing the key on unload prevents this.
+    if (window.location.search.indexOf('debugManifestsFile') > -1) {
+      window.addEventListener('beforeunload', () => {
+        try { sessionStorage.removeItem('spfx-debug'); } catch { /* safe */ }
+      });
+    }
 
     // SP chrome hiding is deferred to _renderInternal() where displayMode is reliable
 
@@ -2359,7 +2518,20 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       // Lock body scroll to prevent scroll bleed-through behind the overlay
       document.body.style.overflow = 'hidden';
 
-      ContentRenderer.injectEditButton(reportEl, 'fullScreen');
+      // Respect chrome settings: shift the overlay below #SuiteNavWrapper so the
+      // top bar (waffle, settings, profile) remains visible and clickable.
+      const suiteNav = document.getElementById('SuiteNavWrapper');
+      if (suiteNav) {
+        const suiteNavHeight = suiteNav.getBoundingClientRect().height || 48;
+        // Override inline !important with setProperty priority
+        reportEl.style.setProperty('top', `${suiteNavHeight}px`, 'important');
+        reportEl.style.setProperty('height', `calc(100vh - ${suiteNavHeight}px)`, 'important');
+        reportEl.style.setProperty('bottom', 'auto', 'important');
+        // Ensure top bar stays above the fullscreen overlay (z-index:999999)
+        suiteNav.style.setProperty('z-index', '1000001', 'important');
+      }
+
+      ContentRenderer.injectEditButton(reportEl, 'fullScreen', getEditButtonConfig((k) => this.properties[k] as string | number | boolean | undefined));
 
       console.log('[PiCanvas] Profile report moved to body (fullScreen mode)');
     }
@@ -2424,32 +2596,134 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   /**
    * Fetch and render external file content asynchronously
    */
+  /**
+   * Detect whether a URL is a SharePoint sharing link.
+   * Sharing links follow the pattern: https://{tenant}.sharepoint.com/:x:/s/{site}/{id}
+   */
+  private static isSharingLink(url: string): boolean {
+    return /^https:\/\/[^/]+\.sharepoint\.com\/:.:\//i.test(url);
+  }
+
+  /**
+   * Encode a sharing URL into a Graph API share token.
+   * See: https://learn.microsoft.com/en-us/graph/api/shares-get
+   */
+  private static encodeSharingToken(url: string): string {
+    const base64 = btoa(url)
+      .replace(/\//g, '_')
+      .replace(/\+/g, '-')
+      .replace(/=+$/, '');
+    return 'u!' + base64;
+  }
+
   private async fetchAndRenderFileContent(
     tabIndex: number,
     fileUrl: string,
-    fileType: 'html' | 'markdown',
+    fileType: 'html' | 'markdown' | 'sharing',
     $contentHost: JQuery<HTMLElement>
   ): Promise<void> {
     try {
       console.log(`[PiCanvas] Fetching file for tab ${tabIndex}: ${fileUrl}`);
 
-      // Build the REST API URL to fetch file content
-      const siteUrl = this.context.pageContext.web.absoluteUrl;
-      const serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
-      const apiUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value`;
+      let content: string;
+      let resolvedFileType: 'html' | 'markdown' = fileType === 'sharing' ? 'html' : fileType;
 
-      // Fetch file content via SPHttpClient
-      const { SPHttpClient } = await import('@microsoft/sp-http');
-      const response = await this.context.spHttpClient.get(
-        apiUrl,
-        SPHttpClient.configurations.v1
-      );
+      if (PiCanvasWebPart.isSharingLink(fileUrl)) {
+        // ── Sharing link: activate then resolve ──
+        // SharePoint sharing links grant access only after the user "activates"
+        // them (i.e. navigates to the link). We do this via a hidden iframe
+        // first, which adds the user to the sharing link's permission scope.
+        // Then we resolve the file via the _api/v2.0/shares/ endpoint.
 
-      if (!response.ok) {
-        throw new Error(`Failed to load file: ${response.status} ${response.statusText}`);
+        const shareToken = PiCanvasWebPart.encodeSharingToken(fileUrl);
+        const tenantRoot = this.context.pageContext.web.absoluteUrl.match(/^https:\/\/[^/]+/)?.[0] || '';
+        const sharesApiUrl = `${tenantRoot}/_api/v2.0/shares/${shareToken}/driveItem`;
+
+        console.log(`[PiCanvas] Activating sharing link via hidden iframe: ${fileUrl}`);
+
+        // Step 1: Activate the sharing link by loading it in a hidden iframe.
+        // This causes SharePoint to grant the current user access.
+        await new Promise<void>((resolve) => {
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = fileUrl;
+          const cleanup = (): void => { try { iframe.remove(); } catch (e) { console.warn('[PiCanvas] iframe cleanup:', e); } };
+          iframe.onload = () => { cleanup(); resolve(); };
+          // Timeout after 5s — the grant may have already happened or the iframe may not fire load
+          const timer = setTimeout(() => { cleanup(); resolve(); }, 5000);
+          iframe.onerror = () => { clearTimeout(timer); cleanup(); resolve(); };
+          iframe.onload = () => { clearTimeout(timer); cleanup(); resolve(); };
+          document.body.appendChild(iframe);
+        });
+
+        console.log(`[PiCanvas] Sharing link activated, resolving via SP v2.0: ${sharesApiUrl}`);
+
+        const { SPHttpClient } = await import('@microsoft/sp-http');
+
+        // Step 2: Get driveItem metadata (file name + download URL)
+        const metaResponse = await this.context.spHttpClient.get(
+          sharesApiUrl,
+          SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json' } }
+        );
+
+        if (!metaResponse.ok) {
+          throw new Error(`Failed to resolve sharing link: ${metaResponse.status} ${metaResponse.statusText}. The sharing link may have expired or the user may not have access.`);
+        }
+
+        const driveItem = await metaResponse.json();
+        const fileName: string = driveItem.name || '';
+        console.log(`[PiCanvas] Sharing link resolved to: ${fileName}`);
+
+        // Detect file type from the actual file name
+        const detected = ContentRenderer.detectFileType(fileName);
+        if (detected === 'unknown') {
+          throw new Error(`Unsupported file type for "${fileName}". Only .html and .md files are supported via sharing links.`);
+        }
+        resolvedFileType = detected;
+
+        // Step 3: Fetch file content via the shares/content endpoint
+        const contentApiUrl = `${sharesApiUrl}/content`;
+        const contentResponse = await this.context.spHttpClient.get(
+          contentApiUrl,
+          SPHttpClient.configurations.v1
+        );
+
+        if (!contentResponse.ok) {
+          // Fallback: try the pre-authenticated download URL from metadata
+          const downloadUrl: string = driveItem['@microsoft.graph.downloadUrl'] || driveItem['@content.downloadUrl'] || '';
+          if (downloadUrl) {
+            console.log('[PiCanvas] Falling back to pre-authenticated download URL');
+            const dlResponse = await fetch(downloadUrl);
+            if (!dlResponse.ok) {
+              throw new Error(`Failed to download shared file: ${dlResponse.status} ${dlResponse.statusText}`);
+            }
+            content = await dlResponse.text();
+          } else {
+            throw new Error(`Failed to load shared file content: ${contentResponse.status} ${contentResponse.statusText}`);
+          }
+        } else {
+          content = await contentResponse.text();
+        }
+      } else {
+        // ── Server-relative path: fetch via SP REST API ──
+        const siteUrl = this.context.pageContext.web.absoluteUrl;
+        const serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+        const apiUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value?nocache=${Date.now()}`;
+
+        const { SPHttpClient } = await import('@microsoft/sp-http');
+        const response = await this.context.spHttpClient.get(
+          apiUrl,
+          SPHttpClient.configurations.v1
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to load file: ${response.status} ${response.statusText}`);
+        }
+
+        content = await response.text();
       }
 
-      const content = await response.text();
       console.log(`[PiCanvas] Loaded file (${content.length} chars)`);
 
       // Substitute metadata tokens before rendering
@@ -2458,7 +2732,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         : content;
 
       // Render based on file type
-      if (fileType === 'html') {
+      if (resolvedFileType === 'html') {
         let htmlToInject = contentWithTokens;
 
         // Strip SP chrome rules if config override is enabled
@@ -2471,10 +2745,188 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         // DOMPurify strips <style> even with ADD_TAGS due to document context
         $contentHost.html(htmlToInject);
 
+        // Execute inline <script> blocks that jQuery .html() strips/ignores.
+        // SharePoint CSP blocks dynamically created <script> elements, so we
+        // use new Function() which SharePoint allows.
+        const hostEl = $contentHost[0];
+        if (hostEl) {
+          // Expose bundled libraries to inline scripts (avoids CDN dependencies)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).__picanvasEcharts = ContentRenderer.getEcharts();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).Chart = ContentRenderer.getChartJs();
+
+          const scripts = hostEl.querySelectorAll('script');
+          scripts.forEach((orig: HTMLScriptElement) => {
+            if (orig.src) return; // Skip external scripts
+            const code = orig.textContent || '';
+            if (code.trim()) {
+              // eslint-disable-next-line no-new-func
+              try { new Function(code)(); } catch (e) { console.warn('[PiCanvas] Script execution error:', e); }
+            }
+          });
+        }
+
+        // ── List Bindings: bridge HTML ↔ SharePoint lists via custom events ──
+        // Enables any HTML asset to read/write bound SP lists without knowing REST.
+        // HTML dispatches `picanvas:list-add|update|delete` with { listKey, ... };
+        // PiCanvas writes via spHttpClient (user context, native SP perms) and
+        // re-dispatches `picanvas:lists-ready` with fresh data after mutations.
+        const hostElForBindings = $contentHost[0];
+        if (hostElForBindings) {
+          const bindingsRaw = (this.properties[`tab${tabIndex}FileListBindings`] as string) || '';
+          let bindings: IListBinding[] = [];
+          try {
+            bindings = bindingsRaw ? JSON.parse(bindingsRaw) : [];
+          } catch (e) {
+            console.warn('[PiCanvas] Invalid tab list bindings JSON:', e);
+          }
+          if (bindings.length > 0) {
+            this.wireListBindings(hostElForBindings, bindings);
+          }
+
+          // ── Embedded State file-save bridge ──
+          // HTML asset can persist its state back to the source file by dispatching
+          // `picanvas:file-save` with { state }. PiCanvas rewrites the
+          // EMBEDDED_STATE_MARKER_START/END block and writes the file back via SP REST
+          // (server-relative) or the shares driveItem endpoint (sharing link).
+          // Native SP permissions apply — only users with write access succeed.
+          this.wireFileStateSave(hostElForBindings, fileUrl);
+        }
+
         // Detect remaining SP chrome conflicts for config panel warning
         this.detectSpChromeConflicts($contentHost[0]);
+
+        // Inject dynamic navigation data for HTML files with .aahub-nav-inner.
+        // PiCanvas fetches SP nav nodes (with audience targeting) and dispatches
+        // them to the HTML's script via a custom DOM event.
+        const aahubRoot = hostEl?.querySelector('.aahub-root');
+        if (aahubRoot && aahubRoot.querySelector('.aahub-nav-inner')) {
+          // Use ListNavigationService to fetch nav from PiCanvasNavigation list
+          if (!this._listNavigationService) {
+            this._listNavigationService = new ListNavigationService(this.context);
+          }
+          this._listNavigationService.getNavigation().then(nodes => {
+            if (nodes && nodes.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (window as any).__picanvasNavData = nodes;
+              aahubRoot.dispatchEvent(new CustomEvent('picanvas:nav-ready', {
+                detail: { nodes },
+                bubbles: false
+              }));
+            }
+          }).catch(err => {
+            console.warn('[PiCanvas] List nav fetch failed, hardcoded fallback active:', err);
+          });
+
+          // ── User Preferences (JSON file in SiteAssets/PiCanvas/) ──
+          if (!this._userPreferencesService) {
+            this._userPreferencesService = new UserPreferencesService(this.context);
+          }
+          const prefsService = this._userPreferencesService;
+
+          const dispatchPrefs = (prefs: IUserPreferences): void => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).__picanvasUserPrefs = prefs;
+            aahubRoot.dispatchEvent(new CustomEvent('picanvas:userprefs-ready', {
+              detail: { prefs },
+              bubbles: false
+            }));
+
+            // Backward compat: also dispatch shortcuts-ready
+            const legacyShortcuts = prefs.shortcuts.map(s => ({
+              Id: s.id,
+              Title: s.title,
+              ShortcutUrl: s.url,
+              ShortcutIcon: s.icon,
+              SortOrder: s.sortOrder,
+              OpenInNewWindow: s.openInNewWindow
+            }));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).__picanvasShortcutsData = legacyShortcuts;
+            aahubRoot.dispatchEvent(new CustomEvent('picanvas:shortcuts-ready', {
+              detail: { shortcuts: legacyShortcuts },
+              bubbles: false
+            }));
+          };
+
+          // Load and dispatch prefs (with migration from old shortcuts list)
+          prefsService.getPreferences().then(async (prefs) => {
+            // One-time migration from UserShortcutsService list
+            if (prefs.shortcuts.length === 0) {
+              try {
+                if (!this._userShortcutsService) {
+                  this._userShortcutsService = new UserShortcutsService(this.context);
+                }
+                const oldShortcuts = await this._userShortcutsService.getShortcuts();
+                if (oldShortcuts.length > 0) {
+                  const migrated = await prefsService.migrateFromShortcutsList(oldShortcuts);
+                  console.log(`[PiCanvas] Migrated ${oldShortcuts.length} shortcuts to JSON prefs`);
+                  dispatchPrefs(migrated);
+                  return;
+                }
+              } catch (migErr) {
+                console.warn('[PiCanvas] Shortcut migration check failed:', migErr);
+              }
+            }
+            dispatchPrefs(prefs);
+          }).catch(err => {
+            console.warn('[PiCanvas] User preferences fetch failed:', err);
+          });
+
+          // Listen for unified prefs-update event from the HTML personalization panel
+          aahubRoot.addEventListener('picanvas:prefs-update', (e: Event) => {
+            const { action, payload } = (e as CustomEvent).detail;
+            let promise: Promise<IUserPreferences>;
+
+            switch (action) {
+              case 'shortcut-add':
+                promise = prefsService.addShortcut(payload.title, payload.url, payload.icon, payload.openInNewWindow);
+                break;
+              case 'shortcut-delete':
+                promise = prefsService.deleteShortcut(payload.id);
+                break;
+              case 'shortcut-reorder':
+                promise = prefsService.reorderShortcuts(payload.orderedIds);
+                break;
+              case 'nav-toggle':
+                promise = prefsService.toggleNavItem(payload.navId, payload.visible);
+                break;
+              case 'nav-reorder':
+                promise = prefsService.setNavOrder(payload.orderedIds);
+                break;
+              case 'display-update':
+                promise = prefsService.setDisplayPref(payload.key, payload.value);
+                break;
+              case 'reset':
+                promise = prefsService.resetToDefaults();
+                break;
+              default:
+                console.warn('[PiCanvas] Unknown prefs-update action:', action);
+                return;
+            }
+
+            promise.then(prefs => dispatchPrefs(prefs)).catch(err => {
+              console.warn('[PiCanvas] prefs-update failed:', err);
+            });
+          });
+
+          // Backward compat: old shortcut-specific events
+          aahubRoot.addEventListener('picanvas:shortcut-add', (e: Event) => {
+            const { title, url, icon, openInNewWindow } = (e as CustomEvent).detail;
+            prefsService.addShortcut(title, url, icon, openInNewWindow).then(p => dispatchPrefs(p));
+          });
+          aahubRoot.addEventListener('picanvas:shortcut-delete', (e: Event) => {
+            const { id } = (e as CustomEvent).detail;
+            prefsService.deleteShortcut(id).then(p => dispatchPrefs(p));
+          });
+          aahubRoot.addEventListener('picanvas:shortcut-reorder', (e: Event) => {
+            const { orderedIds } = (e as CustomEvent).detail;
+            prefsService.reorderShortcuts(orderedIds).then(p => dispatchPrefs(p));
+          });
+        }
       } else {
-        const rendered = ContentRenderer.renderFileContent(contentWithTokens, fileType);
+        const rendered = ContentRenderer.renderFileContent(contentWithTokens, resolvedFileType);
         $contentHost.html(rendered.html);
       }
 
@@ -2484,6 +2936,313 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const errorResult = ContentRenderer.renderFileError(errorMessage);
       $contentHost.html(errorResult.html);
     }
+  }
+
+  /**
+   * Wire custom events between an HTML asset and its bound SharePoint lists.
+   * Loads all list data once, dispatches `picanvas:lists-ready`, and listens
+   * for add/update/delete actions from the HTML. Re-dispatches `lists-ready`
+   * after each successful mutation so the HTML re-renders from fresh state.
+   */
+  private async wireListBindings(hostEl: HTMLElement, bindings: IListBinding[]): Promise<void> {
+    if (!this._listBindingService) {
+      this._listBindingService = new ListBindingService(this.context);
+    }
+    const svc = this._listBindingService;
+
+    const loadAll = async (): Promise<Record<string, unknown>> => {
+      const out: Record<string, unknown> = {};
+      await Promise.all(bindings.map(async (b) => {
+        const items = await svc.getItems(b.listTitle);
+        out[b.key] = items;
+      }));
+      return out;
+    };
+
+    const dispatchReady = async (): Promise<void> => {
+      const lists = await loadAll();
+      const user = {
+        email: this.context.pageContext.user.email || '',
+        displayName: this.context.pageContext.user.displayName || '',
+        loginName: this.context.pageContext.user.loginName || ''
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__picanvasLists = lists;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__picanvasUser = user;
+      hostEl.dispatchEvent(new CustomEvent('picanvas:lists-ready', {
+        detail: { lists, user },
+        bubbles: false
+      }));
+    };
+
+    const lookupList = (listKey: string): IListBinding | undefined =>
+      bindings.find(b => b.key === listKey);
+
+    // Listen for add
+    hostEl.addEventListener('picanvas:list-add', async (e: Event) => {
+      const { listKey, fields } = (e as CustomEvent).detail || {};
+      const binding = lookupList(listKey);
+      if (!binding) { console.warn('[PiCanvas] list-add: unknown listKey', listKey); return; }
+      await svc.addItem(binding.listTitle, fields || {});
+      await dispatchReady();
+    });
+
+    // Listen for update
+    hostEl.addEventListener('picanvas:list-update', async (e: Event) => {
+      const { listKey, itemId, fields } = (e as CustomEvent).detail || {};
+      const binding = lookupList(listKey);
+      if (!binding) { console.warn('[PiCanvas] list-update: unknown listKey', listKey); return; }
+      await svc.updateItem(binding.listTitle, Number(itemId), fields || {});
+      await dispatchReady();
+    });
+
+    // Listen for delete
+    hostEl.addEventListener('picanvas:list-delete', async (e: Event) => {
+      const { listKey, itemId } = (e as CustomEvent).detail || {};
+      const binding = lookupList(listKey);
+      if (!binding) { console.warn('[PiCanvas] list-delete: unknown listKey', listKey); return; }
+      await svc.deleteItem(binding.listTitle, Number(itemId));
+      await dispatchReady();
+    });
+
+    // Listen for manual refresh request
+    hostEl.addEventListener('picanvas:list-refresh', async () => {
+      await dispatchReady();
+    });
+
+    // Initial load
+    await dispatchReady();
+  }
+
+  /**
+   * Wire file-state save bridge. HTML asset dispatches `picanvas:file-save`
+   * with { state } to persist its state back into the HTML file's
+   * EMBEDDED_STATE block. Supports both server-relative paths and sharing links.
+   */
+  private wireFileStateSave(hostEl: HTMLElement, fileUrl: string): void {
+    const MARKER_START = '// EMBEDDED_STATE_MARKER_START';
+    const MARKER_END = '// EMBEDDED_STATE_MARKER_END';
+
+    // Probe edit access asynchronously and notify the HTML so it can grey out
+    // write-UI for read-only users. Non-blocking: sign-off handlers work
+    // independently and fall back to file-save-error if the probe was wrong.
+    this.probeFileEditAccess(fileUrl).then(canEdit => {
+      hostEl.dispatchEvent(new CustomEvent('picanvas:file-perms-ready', {
+        detail: { canEdit },
+        bubbles: false
+      }));
+      console.log(`[PiCanvas] file-perms-ready: canEdit=${canEdit}`);
+    }).catch(err => {
+      console.warn('[PiCanvas] file-perms probe failed, defaulting to canEdit=true:', err);
+      hostEl.dispatchEvent(new CustomEvent('picanvas:file-perms-ready', {
+        detail: { canEdit: true },
+        bubbles: false
+      }));
+    });
+
+    hostEl.addEventListener('picanvas:file-save', async (e: Event) => {
+      const { state } = (e as CustomEvent).detail || {};
+      if (state === undefined) {
+        console.warn('[PiCanvas] file-save: no state in event detail');
+        return;
+      }
+
+      try {
+        // Step 1: Fetch fresh file content (avoid stomping concurrent writes)
+        const { current, driveInfo } = await this.readFileForEdit(fileUrl);
+
+        // Step 2: Replace EMBEDDED_STATE block
+        const newBlock = `${MARKER_START}\nconst EMBEDDED_STATE = ${JSON.stringify(state, null, 2)};\n${MARKER_END}`;
+        const markerRegex = new RegExp(
+          `${this.escapeRegex(MARKER_START)}[\\s\\S]*?${this.escapeRegex(MARKER_END)}`
+        );
+        let updated: string;
+        if (markerRegex.test(current)) {
+          updated = current.replace(markerRegex, newBlock);
+        } else {
+          console.warn('[PiCanvas] file-save: markers not found in HTML; appending');
+          updated = current + '\n<script>' + newBlock + '</script>\n';
+        }
+
+        // Step 3: Write back
+        await this.writeFileContent(fileUrl, updated, driveInfo);
+
+        // Step 4: Notify HTML
+        hostEl.dispatchEvent(new CustomEvent('picanvas:file-saved', {
+          detail: { state, savedAt: new Date().toISOString() },
+          bubbles: false
+        }));
+        console.log('[PiCanvas] file-save: successfully persisted state to file');
+      } catch (err) {
+        console.error('[PiCanvas] file-save failed:', err);
+        hostEl.dispatchEvent(new CustomEvent('picanvas:file-save-error', {
+          detail: { error: (err as Error).message || String(err) },
+          bubbles: false
+        }));
+      }
+    });
+  }
+
+  /**
+   * Read the HTML file's current content for editing.
+   * For sharing links, also resolves and returns the drive/item IDs needed for the write.
+   */
+  private async readFileForEdit(fileUrl: string): Promise<{
+    current: string;
+    driveInfo?: { serverRelativeUrl: string };
+  }> {
+    const { SPHttpClient } = await import('@microsoft/sp-http');
+
+    if (PiCanvasWebPart.isSharingLink(fileUrl)) {
+      // Resolve sharing link → server-relative URL so we can use SP REST for
+      // both read AND write. The /_api/v2.0/shares/{token}/driveItem/content
+      // endpoint accepts GET with SP cookies but rejects PUT, so we route
+      // writes through the SP REST API instead.
+      const shareToken = PiCanvasWebPart.encodeSharingToken(fileUrl);
+      const tenantRoot = this.context.pageContext.web.absoluteUrl.match(/^https:\/\/[^/]+/)?.[0] || '';
+      const metaUrl = `${tenantRoot}/_api/v2.0/shares/${shareToken}/driveItem`;
+      const metaResp = await this.context.spHttpClient.get(
+        metaUrl, SPHttpClient.configurations.v1,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      if (!metaResp.ok) {
+        throw new Error(`Failed to resolve sharing link for edit: ${metaResp.status}`);
+      }
+      const driveItem = await metaResp.json();
+
+      // Derive server-relative URL from webUrl (absolute URL of the file)
+      const webUrl: string = driveItem.webUrl || '';
+      if (!webUrl) {
+        throw new Error('Sharing link resolution missing webUrl');
+      }
+      const urlObj = new URL(webUrl);
+      const serverRelativeUrl = urlObj.pathname; // e.g. /sites/213644/SiteAssets/file.html
+
+      // Read via SP REST (GET works with cookies on GetFileByServerRelativeUrl)
+      const siteUrl = this.context.pageContext.web.absoluteUrl;
+      const readUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value?nocache=${Date.now()}`;
+      const resp = await this.context.spHttpClient.get(readUrl, SPHttpClient.configurations.v1);
+      if (!resp.ok) {
+        throw new Error(`Failed to read file for edit: ${resp.status}`);
+      }
+      return { current: await resp.text(), driveInfo: { serverRelativeUrl } };
+    }
+
+    // Server-relative path
+    const siteUrl = this.context.pageContext.web.absoluteUrl;
+    const serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+    const apiUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value?nocache=${Date.now()}`;
+    const resp = await this.context.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
+    if (!resp.ok) {
+      throw new Error(`Failed to read file for edit: ${resp.status}`);
+    }
+    return { current: await resp.text() };
+  }
+
+  /**
+   * Write updated HTML content back to the file source.
+   */
+  private async writeFileContent(
+    fileUrl: string,
+    newContent: string,
+    driveInfo?: { serverRelativeUrl: string }
+  ): Promise<void> {
+    const { SPHttpClient } = await import('@microsoft/sp-http');
+
+    // Determine the server-relative URL (either resolved from sharing link or passed directly)
+    const siteUrl = this.context.pageContext.web.absoluteUrl;
+    let serverRelativeUrl: string;
+    if (PiCanvasWebPart.isSharingLink(fileUrl)) {
+      if (!driveInfo?.serverRelativeUrl) {
+        throw new Error('Sharing link write requires server-relative URL from readFileForEdit');
+      }
+      serverRelativeUrl = driveInfo.serverRelativeUrl;
+    } else {
+      serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+    }
+
+    const apiUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value`;
+    const resp = await this.context.spHttpClient.fetch(apiUrl, SPHttpClient.configurations.v1, {
+      method: 'POST',
+      headers: { 'X-HTTP-Method': 'PUT', 'Content-Type': 'text/html' },
+      body: newContent
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`Failed to write file: ${resp.status} — ${errText.substring(0, 200)}`);
+    }
+  }
+
+  /**
+   * Probe whether the current user can edit the file at fileUrl.
+   *
+   * Strategy: read `EffectiveBasePermissions` on the file's list item. This
+   * endpoint returns the UNION of all the user's permission grants — so a
+   * site owner accessing via a read-only sharing link will still show their
+   * underlying Edit bit, while a user with only the read-only link grant will
+   * show View only.
+   *
+   * Fails CLOSED (returns false) when the probe can't determine an answer,
+   * rather than letting users try a write that we know won't persist. An
+   * actual 403 on save will also trigger read-only mode as a second safety net.
+   */
+  private async probeFileEditAccess(fileUrl: string): Promise<boolean> {
+    try {
+      const { SPHttpClient } = await import('@microsoft/sp-http');
+      const siteUrl = this.context.pageContext.web.absoluteUrl;
+
+      // Resolve to server-relative URL (sharing links → follow to driveItem.webUrl)
+      let serverRelativeUrl: string;
+      if (PiCanvasWebPart.isSharingLink(fileUrl)) {
+        const shareToken = PiCanvasWebPart.encodeSharingToken(fileUrl);
+        const tenantRoot = siteUrl.match(/^https:\/\/[^/]+/)?.[0] || '';
+        const metaUrl = `${tenantRoot}/_api/v2.0/shares/${shareToken}/driveItem`;
+        const metaResp = await this.context.spHttpClient.get(
+          metaUrl, SPHttpClient.configurations.v1,
+          { headers: { 'Accept': 'application/json' } }
+        );
+        if (!metaResp.ok) {
+          console.warn(`[PiCanvas] probe: driveItem resolve failed (${metaResp.status}) — defaulting canEdit=false`);
+          return false;
+        }
+        const driveItem = await metaResp.json();
+        const webUrl: string = driveItem.webUrl || '';
+        if (!webUrl) return false;
+        serverRelativeUrl = new URL(webUrl).pathname;
+      } else {
+        serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+      }
+
+      const permsUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/ListItemAllFields/EffectiveBasePermissions`;
+      // Use raw fetch with cookies — SPHttpClient adds OData-Version: 4.0 which
+      // this legacy endpoint rejects with 406 Not Acceptable.
+      const resp = await fetch(permsUrl, {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json;odata=nometadata' }
+      });
+      if (!resp.ok) {
+        console.warn(`[PiCanvas] probe: EffectiveBasePermissions failed (${resp.status}) — defaulting canEdit=false`);
+        return false;
+      }
+      const data = await resp.json();
+      const low = parseInt(data.Low || '0', 10);
+      const high = parseInt(data.High || '0', 10);
+
+      // EditListItems = bit 2 in Low (value 4)
+      const EDIT_LIST_ITEMS = 4;
+      const hasEdit = (low & EDIT_LIST_ITEMS) !== 0;
+
+      console.log(`[PiCanvas] probe: Low=${low} High=${high} canEdit=${hasEdit}`);
+      return hasEdit;
+    } catch (err) {
+      console.warn('[PiCanvas] probeFileEditAccess threw:', err);
+      return false; // fail-closed
+    }
+  }
+
+  private escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   /**
@@ -4470,7 +5229,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     ContentRenderer.executeJavaScriptElement(
       el,
       graphEnabled ? this._graphFetch : undefined,
-      graphEnabled ? this._graphScopes : undefined
+      graphEnabled ? this._graphScopes : undefined,
+      getEditButtonConfig((k) => this.properties[k] as string | number | boolean | undefined)
     );
   }
 
@@ -4482,6 +5242,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     this._tocIntervals.clear();
     this._tocScrollspyCleanups.forEach(fn => fn());
     this._tocScrollspyCleanups = [];
+
+    // Clean up previous site navigation
+    if (this._navCleanupFn) { this._navCleanupFn(); this._navCleanupFn = null; }
 
     // Disconnect any previous full-width resize listeners before re-rendering
     if (this._fullWidthResizeObserver) {
@@ -4498,6 +5261,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
     // Update SP chrome hiding styles on every re-render (config changes)
     this.injectSpChromeStyles();
+    this.injectCustomLogo();
 
     // Control body classes for Application Customizer CSS
     // In Read mode: add classes so hiding CSS and banner full-width CSS take effect
@@ -4513,8 +5277,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       document.body.classList.remove('picanvas-banner-fullwidth');
       // Also remove pre-hide styles injected by onInit() so webparts are visible in Edit mode
       this.removePreHideStyles();
-      // Remove floating edit button in edit mode
+      // Remove floating edit button and custom logo in edit mode
       this.removeChromeEditButton();
+      this.removeCustomLogo();
     }
 
     if (this.displayMode === DisplayMode.Read) {
@@ -4558,6 +5323,104 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const fullWidthContentAttr = this.hasFullWidthContent() ? 'data-has-fullwidth-content="true"' : '';
 
       this.domElement.innerHTML = `<div data-addui='tabs' data-tab-style='${tabStyle}' data-tab-alignment='${tabAlignment}' ${orientationAttrs} ${transitionsAttr} ${unlimitedImageAttr} ${contentOnlyAttr} ${fullWidthEmbedAttr} ${fullHeightEmbedAttr} ${fullWidthContentAttr}><div role='tabs' id='${tabsDiv}'></div><div role='contents' id='${contentsDiv}'></div></div>`;
+
+      // ── Site Navigation (async, non-blocking, fully isolated) ──
+      try {
+        if (this.properties['enableSiteNavigation'] === true) {
+          const navSource = (this.properties['siteNavSource'] as NavSource) || 'quicklaunch';
+          const navPosition = (this.properties['siteNavPosition'] as string) || 'above-tabs';
+          const navConfig: INavRenderConfig = {
+            style: (this.properties['siteNavStyle'] as 'horizontal' | 'vertical' | 'dropdown') || 'horizontal',
+            theme: (this.properties['siteNavTheme'] as string) || 'auto',
+            customCss: (this.properties['siteNavCustomCss'] as string) || '',
+            collapsible: this.properties['siteNavCollapsible'] !== false,
+            fontFamily: (this.properties['siteNavFontFamily'] as string) || '',
+            fontSize: (this.properties['siteNavFontSize'] as string) || '13px',
+            fontWeight: (this.properties['siteNavFontWeight'] as string) || '400',
+            itemHeight: (this.properties['siteNavItemHeight'] as string) || '36px',
+            alignment: (this.properties['siteNavAlignment'] as string) || 'left',
+            itemSpacing: (this.properties['siteNavItemSpacing'] as string) || '2px',
+            textTransform: (this.properties['siteNavTextTransform'] as string) || 'none'
+          };
+
+          // Create wrapper with loading skeleton
+          const navWrapper = document.createElement('div');
+          navWrapper.className = 'picanvas-site-nav-wrapper';
+          navWrapper.innerHTML = NavRenderer.renderLoading(navConfig);
+
+          // Insert at the correct position
+          const tabsContainer = this.domElement.querySelector("[data-addui='tabs']") as HTMLElement;
+          const tabStrip = this.domElement.querySelector("[role='tabs']") as HTMLElement;
+          const contentsEl = this.domElement.querySelector("[role='contents']") as HTMLElement;
+
+          if (navPosition === 'above-tabs' && tabsContainer) {
+            this.domElement.insertBefore(navWrapper, tabsContainer);
+          } else if (navPosition === 'below-tabs' && tabStrip && contentsEl) {
+            tabsContainer.insertBefore(navWrapper, contentsEl);
+          } else if (navPosition === 'replace-tabs' && tabStrip && tabsContainer) {
+            tabsContainer.insertBefore(navWrapper, tabStrip);
+            tabStrip.style.display = 'none';
+          }
+
+          // Initialize NavigationService if needed
+          if (!this._navigationService) {
+            this._navigationService = new NavigationService(this.context);
+          }
+
+          // Clear cache if source changed
+          if (this._lastNavSource !== null && this._lastNavSource !== navSource) {
+            this._navigationService.clearCache();
+          }
+          this._lastNavSource = navSource;
+
+          // Skeleton timeout: remove if fetch hasn't completed in 10s
+          const skeletonTimeout = window.setTimeout(() => {
+            if (navWrapper.parentNode && navWrapper.querySelector('.picanvas-nav-skeleton')) {
+              navWrapper.parentNode.removeChild(navWrapper);
+              if (navPosition === 'replace-tabs' && tabStrip) tabStrip.style.display = '';
+            }
+          }, 10000);
+
+          // Store cleanup for the wrapper
+          this._navCleanupFn = () => {
+            window.clearTimeout(skeletonTimeout);
+            try { NavRenderer.destroyNav(navWrapper); } catch { /* safe */ }
+            if (navWrapper.parentNode) navWrapper.parentNode.removeChild(navWrapper);
+            // Restore tab strip if it was hidden
+            if (tabStrip) tabStrip.style.display = '';
+          };
+
+          // Fire async fetch — non-blocking, page stays interactive
+          this._navigationService.getNavigation(navSource).then(nodes => {
+            window.clearTimeout(skeletonTimeout);
+            // Re-render guard: ensure wrapper is still in the DOM
+            if (!navWrapper.parentNode) return;
+
+            if (!nodes || nodes.length === 0) {
+              if (navWrapper.parentNode) navWrapper.parentNode.removeChild(navWrapper);
+              if (navPosition === 'replace-tabs' && tabStrip) tabStrip.style.display = '';
+              return;
+            }
+
+            try {
+              const result = NavRenderer.render(nodes, navConfig);
+              navWrapper.innerHTML = result.html;
+              NavRenderer.initializeNav(navWrapper, this.context.pageContext.web.absoluteUrl);
+            } catch (renderErr) {
+              console.warn('[PiCanvas] Site navigation render failed:', renderErr);
+              if (navWrapper.parentNode) navWrapper.parentNode.removeChild(navWrapper);
+              if (navPosition === 'replace-tabs' && tabStrip) tabStrip.style.display = '';
+            }
+          }).catch(err => {
+            window.clearTimeout(skeletonTimeout);
+            console.warn('[PiCanvas] Site navigation fetch failed:', err);
+            if (navWrapper.parentNode) navWrapper.parentNode.removeChild(navWrapper);
+            if (navPosition === 'replace-tabs' && tabStrip) tabStrip.style.display = '';
+          });
+        }
+      } catch (navErr) {
+        console.warn('[PiCanvas] Site navigation setup failed:', navErr);
+      }
 
       // IMPORTANT: Call getSections() to mark DOM elements with data-picanvas-section-id
       // and data-picanvas-column-id BEFORE we try to find them in the render loop
@@ -4777,7 +5640,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                   const errorResult = ContentRenderer.renderFileError(strings.FileUrlMissingMessage || 'No file URL configured. Please enter a file path in the web part settings.');
                   $contentHost.html(errorResult.html);
                 } else {
-                  const fileType = ContentRenderer.detectFileType(fileUrl);
+                  const isSharingUrl = PiCanvasWebPart.isSharingLink(fileUrl);
+                  const fileType = isSharingUrl ? 'sharing' as const : ContentRenderer.detectFileType(fileUrl);
                   if (fileType === 'unknown') {
                     const errorResult = ContentRenderer.renderFileError(strings.FileTypeUnsupportedMessage || 'Unsupported file type. Only .html and .md files are supported.');
                     $contentHost.html(errorResult.html);
@@ -4852,7 +5716,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                   const errorResult = ContentRenderer.renderFileError(strings.FileUrlMissingMessage || 'No file URL configured. Please enter a file path in the web part settings.');
                   $contentHost.html(errorResult.html);
                 } else {
-                  const fileType = ContentRenderer.detectFileType(fileUrl);
+                  const isSharingUrl = PiCanvasWebPart.isSharingLink(fileUrl);
+                  const fileType = isSharingUrl ? 'sharing' as const : ContentRenderer.detectFileType(fileUrl);
                   if (fileType === 'unknown') {
                     const errorResult = ContentRenderer.renderFileError(strings.FileTypeUnsupportedMessage || 'Unsupported file type. Only .html and .md files are supported.');
                     $contentHost.html(errorResult.html);
@@ -5006,8 +5871,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                   const errorResult = ContentRenderer.renderFileError(strings.FileUrlMissingMessage || 'No file URL configured. Please enter a file path in the web part settings.');
                   $contentHost.html(errorResult.html);
                 } else {
-                  // Detect file type and validate
-                  const fileType = ContentRenderer.detectFileType(fileUrl);
+                  // Detect file type and validate (sharing links resolved by fetchAndRenderFileContent)
+                  const isSharingUrl = PiCanvasWebPart.isSharingLink(fileUrl);
+                  const fileType = isSharingUrl ? 'sharing' as const : ContentRenderer.detectFileType(fileUrl);
                   if (fileType === 'unknown') {
                     const errorResult = ContentRenderer.renderFileError(strings.FileTypeUnsupportedMessage || 'Unsupported file type. Only .html and .md files are supported.');
                     $contentHost.html(errorResult.html);
@@ -5854,8 +6720,25 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     const chromeStyle = document.getElementById(`picanvas-sp-chrome-${this.instanceId}`);
     if (chromeStyle) chromeStyle.remove();
 
-    // Clean up floating edit button
+    // Clean up floating edit button and custom logo
     this.removeChromeEditButton();
+    this.removeCustomLogo();
+
+    // Remove body classes so they don't leak into the next page during SPA navigation.
+    // The Application Customizer's navigatedEvent handler also does this, but disposing
+    // here ensures correctness even if the customizer isn't installed.
+    document.body.classList.remove('picanvas-hiding-active');
+    document.body.classList.remove('picanvas-banner-fullwidth');
+
+    // Clear this instance's entries from the static global webpart registry.
+    // Without this, the next page's PiCanvas instance sees stale ownership from
+    // the disposed instance and falls back to cloning from detached DOM elements.
+    const instanceId = this.instanceId;
+    PiCanvasWebPart._globalWebpartRegistry.forEach((value, key) => {
+      if (value.instanceId === instanceId) {
+        PiCanvasWebPart._globalWebpartRegistry.delete(key);
+      }
+    });
 
     // Clean up profile report display mode (portal) if active
     const prEl = document.querySelector('.picanvas-profilereport[data-display-mode="fullSection"], .picanvas-profilereport[data-display-mode="fullScreen"]') as any;
