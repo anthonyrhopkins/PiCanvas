@@ -53,7 +53,7 @@ import { ITemplateListItem } from './models/TemplateModels';
 import { ContentRenderer, IRssDisplayConfig, IProfileReportDisplayConfig } from './services/ContentRenderer';
 
 // Edit button shared config
-import { getEditButtonConfig, buildEditButtonStyle, buildEditButtonInnerHtml } from './services/EditButtonConfig';
+import { getEditButtonConfig, buildEditButtonStyle, buildEditButtonInnerHtml, handleEditButtonClick } from './services/EditButtonConfig';
 
 // Navigation renderer
 import { NavigationService, NavSource } from './services/NavigationService';
@@ -349,7 +349,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ProfileReportLibrarySources',       // JSON string: ILibrarySource[] — discovery mode
     'ProfileReportLabelHints',           // JSON string: Record<string, ILabelHint> — optional discovery label overrides
     'ProfileReportFileTypeColumn',       // string: SP column that identifies report type (e.g., "ReportType")
-    'ProfileReportDisplayColumns'        // string: comma-separated SP columns to show as metadata (e.g., "Author,Status")
+    'ProfileReportDisplayColumns',       // string: comma-separated SP columns to show as metadata (e.g., "Author,Status")
+    'ProfileReportPropensityBadge'       // 'all' | 'medium-high' | 'high' | 'off' — propensity badge on company cards
   ];
 
   private static readonly DEFAULT_LOCK_TEMPLATE = `
@@ -860,19 +861,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       const editUrl = editButton.href;
       const pageRelUrl = new URL(editUrl).pathname;
       const siteUrl = this.context.pageContext.web.serverRelativeUrl;
-      fetch(`${siteUrl}/_api/contextinfo`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json;odata=nometadata' },
-        credentials: 'same-origin'
-      })
-        .then(r => r.json())
-        .then(d => fetch(`${siteUrl}/_api/web/GetFileByServerRelativeUrl('${pageRelUrl}')/CheckOut()`, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json;odata=nometadata', 'X-RequestDigest': d.FormDigestValue },
-          credentials: 'same-origin'
-        }))
-        .then(() => { window.location.href = editUrl; })
-        .catch(() => { window.location.href = editUrl; }); // fallback: navigate even if checkout fails
+      const currentUserId = this.context.pageContext.legacyPageContext?.userId || 0;
+      handleEditButtonClick({ siteUrl, pageRelUrl, editUrl, currentUserId, buttonEl: editButton });
     });
 
     editButton.style.cssText = buildEditButtonStyle(config);
@@ -1954,6 +1944,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           if (filters.ownerRegion && (c.ownerRegion || '') !== filters.ownerRegion) continue;
           if (filters.industry && (c.industry || '') !== filters.industry) continue;
           if (filters.sector && (c.sector || '') !== filters.sector) continue;
+          if (filters.growthPropensity && (c.growthPropensity || '') !== filters.growthPropensity) continue;
         }
 
         // Text search (indexOf on precomputed searchIndex)
@@ -2018,7 +2009,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       for (let i = renderedCardCount; i < end; i++) {
         const { entry, originalIndex } = filteredCompanies[i];
-        const cardHtml = ContentRenderer.renderCompanyCard(entry, originalIndex, currentSearchQuery || undefined);
+        const cardHtml = ContentRenderer.renderCompanyCard(entry, originalIndex, currentSearchQuery || undefined, $report.attr('data-propensity-badge'));
         const temp = document.createElement('div');
         temp.innerHTML = cardHtml;
         if (temp.firstElementChild) {
@@ -5270,6 +5261,14 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       document.body.classList.add('picanvas-hiding-active');
       document.body.classList.add('picanvas-banner-fullwidth');
 
+      // Ensure the Copilot chat iframe renders above the property pane overlay
+      if (!document.getElementById('picanvas-copilot-fix')) {
+        const copilotStyle = document.createElement('style');
+        copilotStyle.id = 'picanvas-copilot-fix';
+        copilotStyle.textContent = `body > div:has(iframe[data-automationid="ChatODSPFrame"]) { z-index: 100003 !important; }`;
+        document.head.appendChild(copilotStyle);
+      }
+
       // Inject floating edit button when SP chrome is hidden (users can't reach the native edit button)
       this.injectChromeEditButton();
     } else {
@@ -6137,6 +6136,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
                 librarySources,
                 labelHints,
                 discoveryColumnConfig,
+                propensityBadge: (this.properties[`tab${tabIndex}ProfileReportPropensityBadge`] as string) || 'off',
               };
 
               // Show loading state immediately

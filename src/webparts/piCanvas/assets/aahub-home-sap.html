@@ -35,6 +35,11 @@ html:has(.aahub-root) .propertyPaneCopilotPane,
 html:has(.aahub-root) .propertyPaneCopilotPane * {
   pointer-events: auto !important;
 }
+/* Copilot chat iframe mounts in a separate body-child div at z-index:1000.
+   Boost it above the property pane (100002) so the chat is visible. */
+html:has(.aahub-root) body > div:has(iframe[data-automationid="ChatODSPFrame"]) {
+  z-index: 100003 !important;
+}
 
 /* ── Full-Page Bleed: Hero below O365 header, covers SP chrome ── */
 .aahub-root {

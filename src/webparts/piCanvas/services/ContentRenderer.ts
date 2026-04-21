@@ -14,7 +14,7 @@ const DOMPurify = require('dompurify');
 import { IProfileReportTheme, BUILTIN_THEMES } from '../models/ProfileReportThemes';
 import { REPORT_TYPE_REGISTRY, buildFilenameToIdMap } from '../data/ReportTypeRegistry';
 import type { ILibrarySource, IDiscoveredFile, ILabelHint, IDiscoveryColumnConfig } from '../data/DiscoveryTypes';
-import { IEditButtonConfig, DEFAULT_EDIT_BUTTON_CONFIG, buildEditButtonStyle, buildEditButtonInnerHtml } from './EditButtonConfig';
+import { IEditButtonConfig, DEFAULT_EDIT_BUTTON_CONFIG, buildEditButtonStyle, buildEditButtonInnerHtml, handleEditButtonClick } from './EditButtonConfig';
 
 // ── Security: DOMPurify post-sanitization hooks ──
 // These run on EVERY DOMPurify.sanitize() call across PiCanvas, automatically
@@ -224,6 +224,7 @@ export interface ICompanyEntry {
   subIndustry?: string;
   status?: string;
   logoUrl?: string;
+  growthPropensity?: string;
 }
 
 export interface IProfileReportDisplayConfig {
@@ -262,6 +263,8 @@ export interface IProfileReportDisplayConfig {
   labelHints?: Record<string, ILabelHint>;
   /** Discovery mode: SP column config for report type labeling + metadata display */
   discoveryColumnConfig?: IDiscoveryColumnConfig;
+  /** Which propensity levels to show as badges on company cards: 'all' | 'medium-high' | 'high' | 'off' */
+  propensityBadge?: string;
 }
 
 export interface ILandingConfig {
@@ -1362,23 +1365,12 @@ export class ContentRenderer {
       e.preventDefault();
       const editUrl = editButton.href;
       const pageRelUrl = new URL(editUrl).pathname;
-      // Derive site URL from page path (everything before /SitePages/ or /_layouts/)
       const siteMatch = pageRelUrl.match(/^(.*?\/(?:sites|teams)\/[^/]+)/i);
       const siteUrl = siteMatch ? siteMatch[1] : '';
       if (!siteUrl) { window.location.href = editUrl; return; }
-      fetch(`${siteUrl}/_api/contextinfo`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json;odata=nometadata' },
-        credentials: 'same-origin'
-      })
-        .then(r => r.json())
-        .then(d => fetch(`${siteUrl}/_api/web/GetFileByServerRelativeUrl('${pageRelUrl}')/CheckOut()`, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json;odata=nometadata', 'X-RequestDigest': d.FormDigestValue },
-          credentials: 'same-origin'
-        }))
-        .then(() => { window.location.href = editUrl; })
-        .catch(() => { window.location.href = editUrl; }); // fallback: navigate even if checkout fails
+      const spCtx = (window as unknown as { _spPageContextInfo?: { userId?: number } })._spPageContextInfo;
+      const userId = spCtx?.userId || 0;
+      handleEditButtonClick({ siteUrl, pageRelUrl, editUrl, currentUserId: userId, buttonEl: editButton });
     });
 
     // Style the button using shared config builder
@@ -2072,7 +2064,7 @@ export class ContentRenderer {
    * Render a single company card for the explorer grid.
    * Returns an HTML string for a clickable card button.
    */
-  public static renderCompanyCard(entry: ICompanyEntry, index: number, searchQuery?: string): string {
+  public static renderCompanyCard(entry: ICompanyEntry, index: number, searchQuery?: string, propensityBadge?: string): string {
     const encodedName = this.encodeHtml(entry.companyName);
     const encodedDomain = this.encodeHtml(entry.domain);
 
@@ -2087,6 +2079,19 @@ export class ContentRenderer {
     const badges: string[] = [];
     if (entry.industry) badges.push(`<span class="pr-card-badge pr-card-badge-industry">${highlight(this.encodeHtml(entry.industry))}</span>`);
     if (entry.sector) badges.push(`<span class="pr-card-badge pr-card-badge-sector">${highlight(this.encodeHtml(entry.sector))}</span>`);
+
+    // Propensity badge (configurable: 'all', 'medium-high', 'high', 'off')
+    if (propensityBadge && propensityBadge !== 'off' && entry.growthPropensity) {
+      const level = entry.growthPropensity.toUpperCase();
+      const show = propensityBadge === 'all'
+        || (propensityBadge === 'medium-high' && (level === 'HIGH' || level === 'MEDIUM'))
+        || (propensityBadge === 'high' && level === 'HIGH');
+      if (show) {
+        const colorClass = level === 'HIGH' ? 'pr-propensity-high' : level === 'MEDIUM' ? 'pr-propensity-medium' : 'pr-propensity-low';
+        badges.push(`<span class="pr-card-badge ${colorClass}">${level}</span>`);
+      }
+    }
+
     const badgesHtml = badges.length > 0 ? `<div class="pr-card-badges">${badges.join('')}</div>` : '';
 
     // Meta line
@@ -2124,6 +2129,11 @@ export class ContentRenderer {
     if (entry.sector) badges.push(`<span class="company-badge company-badge-sector">${this.encodeHtml(entry.sector)}</span>`);
     if (entry.accountOwner) badges.push(`<span class="company-badge company-badge-owner">${this.encodeHtml(entry.accountOwner)}</span>`);
     if (entry.ownerRegion) badges.push(`<span class="company-badge company-badge-region">${this.encodeHtml(entry.ownerRegion)}</span>`);
+    if (entry.growthPropensity) {
+      const level = entry.growthPropensity.toUpperCase();
+      const colorClass = level === 'HIGH' ? 'pr-propensity-high' : level === 'MEDIUM' ? 'pr-propensity-medium' : 'pr-propensity-low';
+      badges.push(`<span class="company-badge ${colorClass}">${level}</span>`);
+    }
     const badgesHtml = badges.length > 0 ? `<div class="pr-detail-badges">${badges.join('')}</div>` : '';
 
     const posLabel = `${currentIndex + 1} / ${totalFiltered}`;
@@ -2213,6 +2223,7 @@ export class ContentRenderer {
     const regions = [...new Set(companies.map(c => c.ownerRegion).filter(Boolean))].sort() as string[];
     const industries = [...new Set(companies.map(c => c.industry).filter(Boolean))].sort() as string[];
     const sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort() as string[];
+    const propensities = [...new Set(companies.map(c => c.growthPropensity).filter(Boolean))].sort() as string[];
 
     const buildOptions = (values: string[]): string =>
       values.map(v => `<option value="${this.encodeHtml(v)}">${this.encodeHtml(v)}</option>`).join('');
@@ -2230,17 +2241,18 @@ export class ContentRenderer {
       ${regions.length > 0 ? `<select class="pr-filter-select" data-filter="ownerRegion"><option value="">All Regions (${regions.length})</option>${buildOptions(regions)}</select>` : ''}
       ${industries.length > 0 ? `<select class="pr-filter-select" data-filter="industry"><option value="">All Industries (${industries.length})</option>${buildOptions(industries)}</select>` : ''}
       ${sectors.length > 0 ? `<select class="pr-filter-select" data-filter="sector"><option value="">All Sectors (${sectors.length})</option>${buildOptions(sectors)}</select>` : ''}
+      ${propensities.length > 0 ? `<select class="pr-filter-select" data-filter="growthPropensity"><option value="">All Propensity (${propensities.length})</option>${buildOptions(propensities)}</select>` : ''}
       <div class="pr-filter-chips"></div>
       ${sortHtml}
     </div>`;
 
     // Render initial batch of cards (50)
     const initialCards = companies.slice(0, 200).map((entry, index) =>
-      this.renderCompanyCard(entry, index)
+      this.renderCompanyCard(entry, index, undefined, config.propensityBadge)
     ).join('');
 
     const html = `
-      <div class="picanvas-profilereport" id="${reportId}" data-theme="${config.theme}" data-layout="${config.layout}" data-display-mode="${displayMode}" data-view="explorer" data-total-companies="${totalCount}" style="${displayStyle}">
+      <div class="picanvas-profilereport" id="${reportId}" data-theme="${config.theme}" data-layout="${config.layout}" data-display-mode="${displayMode}" data-view="explorer" data-total-companies="${totalCount}" data-propensity-badge="${config.propensityBadge || 'off'}" style="${displayStyle}">
         <div class="pr-explorer-view">
           <div class="pr-explorer-topbar">
             <span class="pr-app-title">Company Profiles</span>

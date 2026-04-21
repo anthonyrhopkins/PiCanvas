@@ -150,3 +150,167 @@ export function buildEditButtonInnerHtml(config: IEditButtonConfig): string {
 function escapeHtml(str: string): string {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+/* ── Checkout-aware edit button click handler ── */
+
+export interface IEditClickOptions {
+  siteUrl: string;
+  pageRelUrl: string;
+  editUrl: string;
+  currentUserId: number;
+  buttonEl: HTMLElement;
+}
+
+const SPINNER_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="31.4 31.4" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>`;
+
+async function getFormDigest(siteUrl: string): Promise<string> {
+  const r = await fetch(`${siteUrl}/_api/contextinfo`, {
+    method: 'POST',
+    headers: { 'Accept': 'application/json;odata=nometadata' },
+    credentials: 'same-origin'
+  });
+  const d = await r.json();
+  return d.FormDigestValue;
+}
+
+async function getCheckoutUserId(siteUrl: string, pageRelUrl: string): Promise<number | null> {
+  const r = await fetch(
+    `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${pageRelUrl}')/ListItemAllFields?$select=CheckoutUserId`,
+    { headers: { 'Accept': 'application/json;odata=nometadata' }, credentials: 'same-origin' }
+  );
+  if (!r.ok) return null;
+  const d = await r.json();
+  return d.CheckoutUserId ?? null;
+}
+
+async function getUserInfo(siteUrl: string, userId: number): Promise<{ Title: string; Email: string }> {
+  const r = await fetch(
+    `${siteUrl}/_api/web/GetUserById(${userId})?$select=Title,Email`,
+    { headers: { 'Accept': 'application/json;odata=nometadata' }, credentials: 'same-origin' }
+  );
+  if (!r.ok) return { Title: `User #${userId}`, Email: '' };
+  const d = await r.json();
+  return { Title: d.Title || `User #${userId}`, Email: d.Email || '' };
+}
+
+async function callCheckOut(siteUrl: string, pageRelUrl: string, digest: string): Promise<Response> {
+  return fetch(`${siteUrl}/_api/web/GetFileByServerRelativeUrl('${pageRelUrl}')/CheckOut()`, {
+    method: 'POST',
+    headers: { 'Accept': 'application/json;odata=nometadata', 'X-RequestDigest': digest },
+    credentials: 'same-origin'
+  });
+}
+
+async function callUndoCheckOut(siteUrl: string, pageRelUrl: string, digest: string): Promise<Response> {
+  return fetch(`${siteUrl}/_api/web/GetFileByServerRelativeUrl('${pageRelUrl}')/UndoCheckOut()`, {
+    method: 'POST',
+    headers: { 'Accept': 'application/json;odata=nometadata', 'X-RequestDigest': digest },
+    credentials: 'same-origin'
+  });
+}
+
+function showCheckoutToast(message: string, type: 'info' | 'warning' | 'error'): void {
+  const existing = document.getElementById('picanvas-checkout-toast');
+  if (existing) existing.remove();
+
+  const colors = {
+    info: { bg: '#E8F4FD', border: '#0070F2', text: '#003362' },
+    warning: { bg: '#FFF3CD', border: '#D4790A', text: '#664D03' },
+    error: { bg: '#FDEAEA', border: '#D32F2F', text: '#5F2120' }
+  };
+  const c = colors[type];
+
+  const toast = document.createElement('div');
+  toast.id = 'picanvas-checkout-toast';
+  toast.style.cssText = `
+    position: fixed; bottom: 80px; right: 24px; max-width: 380px; z-index: 1000000;
+    background: ${c.bg}; border: 1px solid ${c.border}; border-radius: 8px;
+    padding: 12px 36px 12px 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px; line-height: 1.5; color: ${c.text};
+    animation: picanvas-toast-in 0.25s ease-out;
+  `;
+  toast.innerHTML = `
+    <style>
+      @keyframes picanvas-toast-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+      #picanvas-checkout-toast a { color: ${c.border}; text-decoration: underline; }
+    </style>
+    ${message}
+    <button style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:16px;color:${c.text};line-height:1;padding:2px 6px;" title="Dismiss">&times;</button>
+  `;
+  toast.querySelector('button')!.addEventListener('click', () => toast.remove());
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentNode) toast.remove(); }, 10000);
+}
+
+/**
+ * Checkout-aware click handler for the edit button.
+ * Checks page checkout state before navigating to edit mode.
+ * Handles stale checkouts by attempting UndoCheckOut (owners) or showing guidance.
+ */
+export async function handleEditButtonClick(opts: IEditClickOptions): Promise<void> {
+  const { siteUrl, pageRelUrl, editUrl, currentUserId, buttonEl } = opts;
+
+  const origHtml = buttonEl.innerHTML;
+  buttonEl.innerHTML = SPINNER_SVG;
+  buttonEl.style.pointerEvents = 'none';
+
+  const restore = (): void => {
+    buttonEl.innerHTML = origHtml;
+    buttonEl.style.pointerEvents = '';
+  };
+
+  try {
+    const [digest, checkoutUserId] = await Promise.all([
+      getFormDigest(siteUrl),
+      getCheckoutUserId(siteUrl, pageRelUrl)
+    ]);
+
+    // Not checked out — normal flow
+    if (!checkoutUserId) {
+      const r = await callCheckOut(siteUrl, pageRelUrl, digest);
+      if (r.ok || r.status === 423) {
+        // 423 can happen in a race — navigate anyway, SP will handle it
+        window.location.href = editUrl;
+        return;
+      }
+      // Unexpected error
+      restore();
+      showCheckoutToast('Unable to check out this page. Please try again or use the SharePoint page library.', 'error');
+      return;
+    }
+
+    // Checked out by current user — just navigate
+    if (checkoutUserId === currentUserId) {
+      window.location.href = editUrl;
+      return;
+    }
+
+    // Checked out by someone else — try to discard (owners can do this)
+    const undoResp = await callUndoCheckOut(siteUrl, pageRelUrl, digest);
+    if (undoResp.ok) {
+      // Re-fetch digest (old one may be stale after undo)
+      const freshDigest = await getFormDigest(siteUrl);
+      await callCheckOut(siteUrl, pageRelUrl, freshDigest);
+      window.location.href = editUrl;
+      return;
+    }
+
+    // UndoCheckOut failed — user lacks permission. Show helpful message.
+    restore();
+    const user = await getUserInfo(siteUrl, checkoutUserId);
+    const nameDisplay = user.Email
+      ? `<strong>${escapeHtml(user.Title)}</strong> (${escapeHtml(user.Email)})`
+      : `<strong>${escapeHtml(user.Title)}</strong>`;
+    showCheckoutToast(
+      `This page is checked out by ${nameDisplay}.<br>` +
+      `Ask them to check it in, or go to <a href="${escapeHtml(siteUrl)}/SitePages/Forms/AllItems.aspx" target="_blank">Site Pages library</a> ` +
+      `&rarr; right-click the page &rarr; <em>Discard Check Out</em>.`,
+      'warning'
+    );
+  } catch (err) {
+    restore();
+    showCheckoutToast('Unable to check out this page. Please try again.', 'error');
+    console.error('[PiCanvas] Edit checkout failed:', err);
+  }
+}
