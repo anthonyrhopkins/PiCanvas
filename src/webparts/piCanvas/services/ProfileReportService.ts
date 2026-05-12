@@ -86,7 +86,7 @@ export class ProfileReportService {
     if (!sanitized) throw new Error('Invalid list name');
 
     const siteUrl = this.context.pageContext.web.absoluteUrl;
-    const selectFields = 'Id,Title,PiRadarID,CompanyDomain,Ticker,Industry,Sector,Revenue,Employees,AccountOwner,OwnerEmail,OwnerRegion,Status,SearchTerms,Headquarters,Founded,LegalName,SubIndustry,LogoUrl';
+    const selectFields = 'Id,Title,CompanyID,CompanyDomain,Ticker,Industry,Sector,Revenue,Employees,AccountOwner,OwnerEmail,OwnerRegion,Status,SearchTerms,Headquarters,Founded,LegalName,SubIndustry,LogoUrl';
     // Note: $orderby is omitted to avoid the list view threshold on large lists (>5000 items).
     // Results are sorted client-side after all pages are fetched.
     const firstUrl = `${siteUrl}/_api/web/lists/getbytitle('${sanitized}')/items` +
@@ -139,7 +139,7 @@ export class ProfileReportService {
           companyName: item.Title || '',
           jsonFileUrl: '', // Not used for list-based entries
           timeCreated: '',
-          piRadarId: item.PiRadarID ? Number(item.PiRadarID) : undefined,
+          companyId: item.CompanyID ? Number(item.CompanyID) : undefined,
           spListItemId: item.Id ? Number(item.Id) : undefined,
           industry: item.Industry || undefined,
           sector: item.Sector || undefined,
@@ -259,7 +259,7 @@ export class ProfileReportService {
 
   /**
    * Load a single company's full profile.
-   * Uses PiRadarID-based file paths when available (list-based entries),
+   * Uses CompanyID-based file paths when available (list-based entries),
    * otherwise falls back to domain-based lookup (legacy folder entries).
    *
    * If `librarySources` is provided, uses discovery mode: scans `{domain}/` folders
@@ -287,7 +287,7 @@ export class ProfileReportService {
       companyKey: companyDomain,
       companyName: entry.companyName || shortName,
       domain: companyDomain,
-      piRadarId: entry.piRadarId,
+      companyId: entry.companyId,
       industry: entry.industry,
       sector: entry.sector,
       accountOwner: entry.accountOwner,
@@ -366,7 +366,7 @@ export class ProfileReportService {
     // === Registry mode (fallback): fetch all report types in parallel ===
     const pathCtx = {
       domain: companyDomain,
-      piRadarId: entry.piRadarId,
+      companyId: entry.companyId,
       shortName,
     };
 
@@ -435,7 +435,7 @@ export class ProfileReportService {
   public async fetchReportContent(
     libPath: string,
     reportType: IReportTypeDefinition,
-    pathCtx: { domain: string; piRadarId?: number | null; shortName?: string },
+    pathCtx: { domain: string; companyId?: number | null; shortName?: string },
     pathOverride?: string
   ): Promise<string | null> {
     // Build ordered path chain
@@ -583,9 +583,9 @@ export class ProfileReportService {
    * Returns the large Note fields (description, executives, competitors, etc.)
    * that are too heavy for the initial bulk list load.
    */
-  public async fetchCompanyDetail(listName: string, piRadarId: number): Promise<Record<string, string> | null> {
+  public async fetchCompanyDetail(listName: string, companyId: number): Promise<Record<string, string> | null> {
     if (this.detectWorkbenchEnvironment()) return null;
-    if (!listName || !piRadarId) return null;
+    if (!listName || !companyId) return null;
 
     const sanitized = this.sanitizeLibraryName(listName);
     if (!sanitized) return null;
@@ -593,7 +593,7 @@ export class ProfileReportService {
     const siteUrl = this.context.pageContext.web.absoluteUrl;
     const detailFields = 'CompanyDescription,Competitors,Products,Customers,Executives,ExecutiveSummary';
     const apiUrl = `${siteUrl}/_api/web/lists/getbytitle('${sanitized}')/items` +
-      `?$filter=PiRadarID eq ${piRadarId}` +
+      `?$filter=CompanyID eq ${companyId}` +
       `&$select=${detailFields}` +
       `&$top=1`;
 
@@ -610,7 +610,7 @@ export class ProfileReportService {
 
       return data.value[0] as Record<string, string>;
     } catch (error) {
-      console.warn(`ProfileReportService: fetchCompanyDetail error for PiRadarID=${piRadarId}`, error);
+      console.warn(`ProfileReportService: fetchCompanyDetail error for CompanyID=${companyId}`, error);
       return null;
     }
   }

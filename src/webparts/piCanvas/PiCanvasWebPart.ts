@@ -1801,11 +1801,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
 
       // Fetch profile files and detail fields in parallel
       const listName = config.listName || '';
-      const hasPiRadarId = entry.piRadarId !== undefined && entry.piRadarId !== null;
+      const hasCompanyId = entry.companyId !== undefined && entry.companyId !== null;
       const [profile, companyDetail] = await Promise.all([
         service.loadCompanyProfile(libraryName, entry, metadataConfig, config.pathOverrides, config.librarySources, config.labelHints, config.discoveryColumnConfig),
-        (hasPiRadarId && listName)
-          ? service.fetchCompanyDetail(listName, entry.piRadarId!)
+        (hasCompanyId && listName)
+          ? service.fetchCompanyDetail(listName, entry.companyId!)
           : Promise.resolve(null)
       ]);
 

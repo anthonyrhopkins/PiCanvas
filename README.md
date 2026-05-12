@@ -6,7 +6,7 @@
 
 A single SPFx web part that replaces custom development. PiCanvas renders full-page portals, data-driven dashboards, and enterprise search interfaces — all inside SharePoint, using the logged-in user's identity and permissions. Its JavaScript sandbox has authenticated access to Microsoft Graph and the full M365 ecosystem — files, sites, mail, calendar, Teams, people, Copilot APIs — scoped to whatever permissions your tenant has granted. No Azure Functions, no external databases, no additional servers.
 
-> What started as a tabbed layout web part has become something else entirely. At SAP, PiCanvas powers a 22,000-company intelligence platform with 14 report types loaded in parallel, a full intranet portal with list-driven navigation and custom theming, and a Copilot-integrated search interface — all from a single `.sppkg` package.
+> What started as a tabbed layout web part has become something else entirely. PiCanvas has been used in production to power large-scale company-intelligence platforms with parallel-loaded report types, full intranet portals with list-driven navigation and custom theming, and Copilot-integrated search interfaces — all from a single `.sppkg` package.
 
 | Edit Mode | Configuration Panel |
 |---|---|
@@ -17,8 +17,8 @@ A single SPFx web part that replaces custom development. PiCanvas renders full-p
 ### What People Build With It
 
 - **Full intranet portals** — custom HTML/CSS pages with hierarchical navigation rendered from SharePoint lists, responsive themes, and live RSS feeds. Replaces the entire SharePoint page chrome.
-- **Enterprise data applications** — JavaScript sandbox with authenticated `graphFetch` queries SharePoint lists (22,000+ items with pagination), Microsoft Graph, and Copilot APIs. Renders company profiles, financial dashboards, and search interfaces.
-- **Intelligence platforms** — 14 built-in report types (growth profiles, competitive landscapes, earnings summaries) loaded in parallel from document libraries with automatic fallback paths.
+- **Enterprise data applications** — JavaScript sandbox with authenticated `graphFetch` queries large SharePoint lists (with pagination), Microsoft Graph, and Copilot APIs. Renders company profiles, financial dashboards, and search interfaces.
+- **Intelligence platforms** — built-in report types (growth profiles, competitive landscapes, earnings summaries) loaded in parallel from document libraries with automatic fallback paths.
 - **Documentation & knowledge hubs** — Markdown with syntax highlighting, Mermaid architecture diagrams, auto-generated TOC, GitHub repo rendering via API.
 - **Admin interfaces** — built-in content management UI with navigation tree editors, bulk operations, and status tracking.
 - **Tabbed pages** — the original use case. Organize web parts, sections, and content types into a clean tabbed experience with 4 styles, vertical/horizontal orientation, and deep linking.
@@ -96,7 +96,7 @@ PiCanvas replaces the standard property pane with a full-screen configuration ov
 **Platform**
 - SPFx 1.22.0, TypeScript 5.6, Heft build system
 - Service architecture: content rendering, permissions, theming, templates, tab locking, metadata tokens, RSS, TOC
-- In production at SAP — intranet portals, full-stack applications, data dashboards
+- Used in production for intranet portals, full-stack applications, and data dashboards
 
 ---
 

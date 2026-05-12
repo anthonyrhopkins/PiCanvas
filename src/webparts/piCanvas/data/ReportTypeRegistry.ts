@@ -53,8 +53,8 @@ export const REPORT_TYPE_REGISTRY: readonly IReportTypeDefinition[] = [
     defaultEnabled: true,
     pathTemplate: '{domain}/method-K.md',
     fallbackPaths: [
-      'outputs/{piRadarId}-{domain}-method-K.md',
-      'outputs-method-l/{piRadarId}-{domain}-method-K.md',
+      'outputs/{companyId}-{domain}-method-K.md',
+      'outputs-method-l/{companyId}-{domain}-method-K.md',
     ],
     order: 10,
   },
@@ -66,7 +66,7 @@ export const REPORT_TYPE_REGISTRY: readonly IReportTypeDefinition[] = [
     category: 'analysis',
     defaultEnabled: true,
     pathTemplate: '{domain}/method-L.md',
-    fallbackPaths: ['outputs-method-l/{piRadarId}-{domain}-method-K.md'],
+    fallbackPaths: ['outputs-method-l/{companyId}-{domain}-method-K.md'],
     order: 20,
   },
   {
@@ -78,7 +78,7 @@ export const REPORT_TYPE_REGISTRY: readonly IReportTypeDefinition[] = [
     defaultEnabled: true,
     pathTemplate: '{domain}/final-report.html',
     fallbackPaths: [
-      'final-html/{piRadarId}-{domain}-final-report.html',
+      'final-html/{companyId}-{domain}-final-report.html',
       'final-html/{domain}.html',
     ],
     order: 30,
@@ -92,7 +92,7 @@ export const REPORT_TYPE_REGISTRY: readonly IReportTypeDefinition[] = [
     defaultEnabled: true,
     pathTemplate: '{domain}/ai-synthesis.md',
     fallbackPaths: [
-      'final-html/ai-synthesis/{piRadarId}-{domain}-method-M-final.md',
+      'final-html/ai-synthesis/{companyId}-{domain}-method-M-final.md',
       'final-html/ai-synthesis/{domain}-method-M-final.md',
     ],
     order: 40,
@@ -207,22 +207,22 @@ export const REPORT_TYPE_REGISTRY: readonly IReportTypeDefinition[] = [
 
 /**
  * Resolve path template tokens.
- * Replaces {domain}, {piRadarId}, {shortName} with actual values.
- * Paths containing unresolved {piRadarId} (when piRadarId is not available) are skipped.
+ * Replaces {domain}, {companyId}, {shortName} with actual values.
+ * Paths containing unresolved {companyId} (when companyId is not available) are skipped.
  */
 export function resolveReportPath(
   template: string,
-  ctx: { domain: string; piRadarId?: number | null; shortName?: string }
+  ctx: { domain: string; companyId?: number | null; shortName?: string }
 ): string | null {
   let result = template.replace(/\{domain\}/g, ctx.domain);
   if (ctx.shortName) {
     result = result.replace(/\{shortName\}/g, ctx.shortName);
   }
-  if (ctx.piRadarId !== undefined && ctx.piRadarId !== null) {
-    result = result.replace(/\{piRadarId\}/g, String(ctx.piRadarId));
+  if (ctx.companyId !== undefined && ctx.companyId !== null) {
+    result = result.replace(/\{companyId\}/g, String(ctx.companyId));
   }
-  // If there are still unresolved {piRadarId} tokens, skip this path
-  if (result.includes('{piRadarId}')) return null;
+  // If there are still unresolved {companyId} tokens, skip this path
+  if (result.includes('{companyId}')) return null;
   return result;
 }
 

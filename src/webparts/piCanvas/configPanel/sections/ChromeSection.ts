@@ -126,7 +126,7 @@ export class ChromeSection {
         <!-- Site Header -->
         <div class="pc-mockup-row pc-mockup-siteheader ${h(siteHeaderHidden)}">
           <div class="pc-mockup-region" style="flex:1;gap:16px;">
-            <span style="font-weight:600;">PiRadar</span>
+            <span style="font-weight:600;">Contoso</span>
             <span class="pc-mockup-label">Home</span>
             <span class="pc-mockup-label">Documents</span>
             <span class="pc-mockup-label">Pages</span>

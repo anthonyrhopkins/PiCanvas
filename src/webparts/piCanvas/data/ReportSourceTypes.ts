@@ -12,15 +12,15 @@ export interface ICustomReportSource {
   id: string;
   label: string;
   folderPath: string;                    // Filename mode: folder within library. Metadata mode: library/list title to query.
-  filePattern: 'domain' | 'piRadarId';   // Only used in filename mode
-  fileSuffix?: string;                   // Only used in filename mode with piRadarId
+  filePattern: 'domain' | 'companyId';   // Only used in filename mode
+  fileSuffix?: string;                   // Only used in filename mode with companyId
   contentType: 'md' | 'html' | 'json';
   enabled: boolean;
 
   // Metadata-based lookup (when lookupMode === 'metadata')
   lookupMode?: 'filename' | 'metadata';          // How to find files (default: 'filename')
   metadataColumn?: string;                        // Column to filter by (e.g., "Pi_CompanyID")
-  metadataValue?: 'domain' | 'piRadarId' | 'companyName'; // What value to match against
+  metadataValue?: 'domain' | 'companyId' | 'companyName'; // What value to match against
   categoryColumn?: string;                        // Column that tags file category
   categoryFilter?: string;                        // Only files where category = this value
   resultMode?: 'single' | 'list';                 // 'single': inline content. 'list': file browser (default: 'single')
@@ -43,7 +43,7 @@ export function toReportTypeDefinition(source: ICustomReportSource, order: numbe
     defaultEnabled: source.enabled,
     pathTemplate: source.filePattern === 'domain'
       ? `${source.folderPath}/{domain}.${source.contentType}`
-      : `${source.folderPath}/{piRadarId}-{domain}${source.fileSuffix || ''}.${source.contentType}`,
+      : `${source.folderPath}/{companyId}-{domain}${source.fileSuffix || ''}.${source.contentType}`,
     fallbackPaths: [],
     order,
   };

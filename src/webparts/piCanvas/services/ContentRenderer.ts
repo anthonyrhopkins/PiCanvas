@@ -131,7 +131,7 @@ export interface IIntelEarnings {
 }
 
 export interface ICompanyIntel {
-  piRadarId: number;
+  companyId: number;
   description?: string;
   founded?: string;
   hq?: string;
@@ -151,7 +151,7 @@ export interface ICompanyProfile {
   companyKey: string;
   companyName: string;
   domain: string;
-  piRadarId?: number;
+  companyId?: number;
   industry?: string;
   sector?: string;
   accountOwner?: string;
@@ -207,7 +207,7 @@ export interface ICompanyEntry {
   companyName: string;      // Title from list, or derived from domain
   jsonFileUrl: string;      // ServerRelativeUrl of the condensed JSON (may be empty for list-based entries)
   timeCreated: string;
-  piRadarId?: number;       // PiRadarID from Pi_Companies list
+  companyId?: number;       // CompanyID from Pi_Companies list
   spListItemId?: number;    // SharePoint list item ID (for linking back)
   industry?: string;
   sector?: string;
