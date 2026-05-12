@@ -210,16 +210,6 @@ var ai = await graphFetch('/beta/copilot/search', {
 
 `graphFetch` uses the **[SharePoint Online Client Extensibility](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/use-aadhttpclient)** service principal — a tenant-wide Entra ID application that all SPFx solutions share. API scopes must be approved by a tenant admin via the **[API Access page](https://learn.microsoft.com/en-us/sharepoint/api-access)** in SharePoint Admin Center (`{tenant}-admin.sharepoint.com` > Advanced > API management).
 
-| Scope | What It Unlocks |
-|-------|----------------|
-| `Sites.Read.All` | Read SharePoint sites, lists, document libraries |
-| `Files.Read.All` | Read files across OneDrive and SharePoint |
-| `User.Read` | Current user's profile |
-| `People.Read` | People search and org chart |
-| `Mail.Read` | Email access |
-| `Calendars.Read` | Calendar events |
-| `ExternalItem.Read.All` | Microsoft Search connectors |
-
 For scopes not available through the SPFx service principal (e.g., Copilot APIs, third-party services, or fine-grained consent), you can use your own **[Entra ID app registration](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/use-aadhttpclient-enterpriseapi)** and acquire tokens via `AadHttpClient` in your JavaScript code.
 
 > **See also:** [Building SPFx solutions with Microsoft Graph](https://learn.microsoft.com/en-us/sharepoint/dev/spfx/web-parts/get-started/using-microsoft-graph-apis) — step-by-step guide for requesting and approving Graph API permissions.
