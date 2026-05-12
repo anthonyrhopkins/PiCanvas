@@ -31,7 +31,6 @@ src/webparts/piCanvas/
   configPanel/
     sections/TabBuilderSection.ts # Config UI for tab content type + settings
   assets/
-    aahub-home-sap.html           # Example: full HTML asset with inline scripts
     m365-archive-calculator.html  # Example: HTML asset using bundled Chart.js
   data/
     ReportTypeRegistry.ts         # Report type definitions for Profile Reports
