@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Lite build variant: `npm run package:lite` produces `pi-canvas-lite.sppkg` with only the PiCanvas web part and loader extension (no AA Hub or PiRadar Command). Uses distinct solution and component IDs so it can coexist tenant-wide with the full package. See `DEVELOPER_GUIDE.md` → Packaging Variants.
-- `scripts/migrate-picanvas-componentid.js` for rewriting the PiCanvas componentId in existing pages' `CanvasContent1` when migrating between full and lite variants.
 - JavaScript Sandbox API documentation in README (graphFetch, httpFetch, render, container, etc.)
 - Copilot Search Demo sample (`samples/copilot_search_demo.js`) — Microsoft 365 search app using Graph Search, Copilot Retrieval, and Copilot Search APIs
   - Dynamic content-type tabs (Pages, Loop, PowerPoint, Word, Excel, PDF, OneNote, Sites, Images, Files)

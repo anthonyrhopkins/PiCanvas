@@ -330,24 +330,3 @@ DOMPurify runs global hooks (registered in `ContentRenderer.ts`) on every `sanit
 1. `target="_blank"` links get `rel="noopener noreferrer"` automatically
 2. `http://` hrefs are upgraded to `https://` (except localhost)
 3. Iframes without `sandbox` get `sandbox="allow-scripts allow-same-origin allow-popups allow-forms"`
-
----
-
-## Packaging Variants
-
-PiCanvas ships in two sppkg variants from the same source tree:
-
-| Variant | Command | Output | Components |
-|---|---|---|---|
-| Full | `npm run package` | `sharepoint/solution/pi-canvas.sppkg` | PiCanvas + AA Hub + PiRadar Command + Loader extension |
-| Lite | `npm run package:lite` | `sharepoint/solution/pi-canvas-lite.sppkg` | PiCanvas + Loader extension only |
-
-### How the lite build works
-
-`scripts/package-lite.js` temporarily swaps `config/config.json` and `config/package-solution.json` with their `*-lite.json` counterparts, patches the PiCanvas webpart and loader-extension manifest IDs to lite-specific GUIDs, runs the normal `npm run package`, then restores the originals (even on Ctrl-C). The lite outputs preserve the originals untouched in git.
-
-### Why distinct component IDs
-
-When a sppkg is deployed via a site collection or tenant app catalog with `skipFeatureDeployment: true`, its component IDs are registered tenant-wide. If you reused the same component IDs in lite and full, only one variant could be deployed anywhere in the tenant. Lite uses its own GUIDs so it can coexist with the full deployment in the same tenant.
-
-The trade-off: a page authored with full's PiCanvas (componentId `6bcd9bfc-…`) won't render under lite (componentId `a2f32703-…`). The PiCanvas web part will appear as a missing component. To migrate a page across variants, rewrite the componentId in the page's `CanvasContent1` field — `scripts/migrate-picanvas-componentid.js` does this for a list of pages on a given site.

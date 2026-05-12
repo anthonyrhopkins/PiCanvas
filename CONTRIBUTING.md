@@ -50,14 +50,6 @@ npm run package
 
 The `.sppkg` file will be in `sharepoint/solution/`.
 
-To build the lite variant (PiCanvas web part only, no AA Hub or PiRadar Command), use:
-
-```bash
-npm run package:lite
-```
-
-This outputs `sharepoint/solution/pi-canvas-lite.sppkg` with distinct solution and component IDs.
-
 ## How to Contribute
 
 ### Reporting Bugs

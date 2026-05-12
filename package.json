@@ -35,7 +35,6 @@
     "test": "heft test",
     "serve": "heft start",
     "package": "heft build --clean --production && heft package-solution --production",
-    "package:lite": "node scripts/package-lite.js",
     "serve:workbench": "open \"https://pispace.sharepoint.com/_layouts/15/workbench.aspx?debug=true&noredir=true&debugManifestsFile=https://localhost:4321/temp/build/manifests.js\" && heft start",
     "lint": "eslint src --ext .ts,.tsx"
   },
