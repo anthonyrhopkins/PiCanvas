@@ -2,13 +2,28 @@
 /* eslint-disable no-console */
 const { execSync } = require('child_process');
 
-const SITE = process.env.SITE || 'https://sap.sharepoint.com/sites/213644';
+// Required env vars:
+//   SITE   - target site collection, e.g. https://contoso.sharepoint.com/sites/mysite
+//   PAGES  - comma-separated page filenames, e.g. Page1.aspx,Page2.aspx
+// Optional:
+//   OLD_ID - source PiCanvas componentId (defaults to the full sppkg's id)
+//   NEW_ID - target PiCanvas componentId (defaults to the lite sppkg's id)
+const SITE = process.env.SITE;
 const OLD_ID = (process.env.OLD_ID || '6bcd9bfc-425b-47c2-8e5e-c17eb1c864c5').toLowerCase();
 const NEW_ID = (process.env.NEW_ID || 'a2f32703-6648-4a90-80ed-b84598982d7d').toLowerCase();
-const PAGES = (process.env.PAGES || 'Copilot-Studio-Guide.aspx,CS-Strategy-Dashboard-2026.aspx,Github-demo.aspx').split(',');
+const PAGES = (process.env.PAGES || '').split(',').filter(Boolean);
+
+if (!SITE || PAGES.length === 0) {
+  console.error('Usage: SITE=<site-url> PAGES=<page1.aspx,page2.aspx> node scripts/migrate-picanvas-componentid.js');
+  process.exit(1);
+}
+
+function tenantHost() {
+  return new URL(SITE).origin;
+}
 
 function token() {
-  return execSync('m365 util accesstoken get --resource https://sap.sharepoint.com --output text', {
+  return execSync(`m365 util accesstoken get --resource ${tenantHost()} --output text`, {
     encoding: 'utf8'
   }).trim();
 }

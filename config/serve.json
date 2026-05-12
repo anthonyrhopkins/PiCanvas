@@ -2,5 +2,5 @@
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/spfx-serve.schema.json",
   "port": 4321,
   "https": true,
-  "initialPage": "https://sap.sharepoint.com/sites/213105/SitePages/copilot-api-demo.aspx?debug=true&noredir=true&debugManifestsFile=https://localhost:4321/temp/build/manifests.js&loadSPFX=true"
+  "initialPage": "https://enter-your-SharePoint-site/_layouts/workbench.aspx"
 }
