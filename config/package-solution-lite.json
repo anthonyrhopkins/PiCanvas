@@ -1,0 +1,52 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "pi-canvas-lite-client-side-solution",
+    "id": "b30e073b-aea2-461d-acbb-11a6c0e0972a",
+    "version": "2.4.2.1",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "PiSpace (@anthonyrhopkins) - Built on Mark Rackley's foundation",
+      "websiteUrl": "https://github.com/anthonyrhopkins/PiCanvas",
+      "privacyUrl": "https://github.com/anthonyrhopkins/PiCanvas/blob/main/README.md",
+      "termsOfUseUrl": "https://github.com/anthonyrhopkins/PiCanvas/blob/main/LICENSE",
+      "mpnId": ""
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "PiCanvas Lite - Infinite possibilities"
+      },
+      "longDescription": {
+        "default": "PiCanvas Lite for SharePoint - Tabbed layouts only (no AA Hub or PiRadar Command webparts). For new site collections that don't need the PiRadar add-ons."
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "PiCanvas Lite Feature",
+        "description": "Activates the PiCanvas webpart only (no AA Hub or PiRadar Command).",
+        "id": "08ead4d0-30f2-4cbc-b7c9-306a802bd3ca",
+        "version": "1.0.0.0",
+        "componentIds": [
+          "a2f32703-6648-4a90-80ed-b84598982d7d"
+        ]
+      },
+      {
+        "title": "PiCanvas Loader Extension",
+        "description": "Application Customizer that pre-hides connected webparts before PiCanvas moves them into tabs. Eliminates flash of webparts at their original DOM position.",
+        "id": "77028786-c389-4cc8-b97f-d1084edbfbb8",
+        "version": "1.0.0.0",
+        "componentIds": [
+          "77028786-c389-4cc8-b97f-d1084edbfbb8"
+        ]
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/pi-canvas-lite.sppkg"
+  }
+}

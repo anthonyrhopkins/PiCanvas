@@ -112,11 +112,20 @@ PiCanvas replaces the standard property pane with a full-screen configuration ov
 
 ```bash
 npm install
-npx heft build --production
-npx heft package-solution --production
+npm run package
 ```
 
 Upload `sharepoint/solution/pi-canvas.sppkg` to your App Catalog, click **Deploy**, then add the app from Site Contents.
+
+#### Lite variant
+
+If you only want the PiCanvas web part itself (no AA Hub, no PiRadar Command), build the lite variant instead:
+
+```bash
+npm run package:lite
+```
+
+Outputs `sharepoint/solution/pi-canvas-lite.sppkg` with its own solution + component IDs so it can coexist tenant-wide with the full package. Best for site collections that just need tabbed layouts. Note: lite and full use different PiCanvas component IDs — pages built with one don't render PiCanvas under the other without rewriting the page's CanvasContent (see `scripts/migrate-picanvas-componentid.js`).
 
 ### Guest User Access
 
