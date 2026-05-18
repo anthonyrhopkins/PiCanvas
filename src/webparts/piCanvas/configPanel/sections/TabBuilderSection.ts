@@ -8,6 +8,8 @@ import { SliderControl } from '../controls/SliderControl';
 import { ColorPicker } from '../controls/ColorPicker';
 import { TOC_STYLE_PRESETS, TocPresetKey } from '../../data/TocStylePresets';
 import { REGISTRY_ID_TO_LEGACY_PROP, CATEGORY_LABELS, getRegistryByCategory } from '../../data/ReportTypeRegistry';
+import { RemotePagePicker, IRemotePickerResult } from '../RemotePagePicker';
+import { IRemoteSelection, RemoteMode } from '../../services/RemoteContentService';
 
 export interface ITabBuilderOptions {
   getProperty: (key: string) => string | number | boolean | undefined;
@@ -44,7 +46,8 @@ const CONTENT_TYPES: IContentTypeInfo[] = [
   { key: 'javascript', icon: 'JS', label: 'JavaScript' },
   { key: 'toc', icon: '&#9776;', label: 'TOC' },
   { key: 'profilereport', icon: '&#128200;', label: 'Profile Report' },
-  { key: 'github', icon: '&#128025;', label: 'GitHub Repo' }
+  { key: 'github', icon: '&#128025;', label: 'GitHub Repo' },
+  { key: 'remote', icon: '&#127760;', label: 'Remote Page' },
 ];
 
 export class TabBuilderSection {
@@ -483,6 +486,16 @@ export class TabBuilderSection {
     } else if (contentType === 'file') {
       this._renderTextField(accordion.body, tabIndex, 'FileUrl', 'File URL', '/sites/.../SiteAssets/file.html or sharing link');
       this._renderListBindings(accordion.body, tabIndex);
+
+      const fileFwToggle = new ToggleControl({
+        label: 'Content Width',
+        checked: opts.getProperty(`tab${tabIndex}ContentFullWidth`) === true,
+        onText: 'Full Width',
+        offText: 'Contained',
+        onChange: (v) => { opts.setProperty(`tab${tabIndex}ContentFullWidth`, v); opts.onChanged(); }
+      });
+      fileFwToggle.render(accordion.body);
+      this._controls.push(fileFwToggle);
     } else if (contentType === 'javascript') {
       this._renderTextArea(accordion.body, tabIndex, 'CustomContent', 'JavaScript Code',
         "container.innerHTML = '<h1>Hello!</h1>';");
@@ -834,6 +847,45 @@ export class TabBuilderSection {
         opts.setProperty(`tab${tabIndex}GitHubRepoUrl`, urlInput.value);
         opts.onChanged();
       });
+    } else if (contentType === 'remote') {
+      const url = (opts.getProperty(`tab${tabIndex}RemoteUrl`) as string) || '';
+      const mode = ((opts.getProperty(`tab${tabIndex}RemoteMode`) as string) || 'live') as RemoteMode;
+      const refreshSec = (opts.getProperty(`tab${tabIndex}RemoteRefreshSec`) as number) || 0;
+      let selections: IRemoteSelection[] = [];
+      try {
+        const raw = (opts.getProperty(`tab${tabIndex}RemoteSelections`) as string) || '';
+        selections = raw ? JSON.parse(raw) : [];
+      } catch {
+        selections = [];
+      }
+
+      const summary = document.createElement('div');
+      summary.style.cssText = 'font:13px sans-serif;color:#444;padding:8px;background:#f8f8f8;border-radius:4px;margin-bottom:10px;';
+      const refreshLabel = mode === 'snapshot' && refreshSec > 0 ? `, refresh every ${refreshSec}s` : '';
+      summary.innerHTML = url
+        ? `<div><strong>${escapeHtmlLocal(url)}</strong></div>
+           <div>${escapeHtmlLocal(mode)}${escapeHtmlLocal(refreshLabel)} · ${selections.length} selection${selections.length === 1 ? '' : 's'}</div>`
+        : '<em>Not configured. Click "Configure source" to begin.</em>';
+      accordion.body.appendChild(summary);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = url ? 'Reconfigure source' : 'Configure source';
+      btn.style.cssText = 'padding:6px 14px;background:#0078d4;color:#fff;border:0;border-radius:4px;cursor:pointer;font:14px sans-serif;';
+      btn.addEventListener('click', () => {
+        RemotePagePicker.open(
+          { url, mode, selections, refreshSec },
+          (r: IRemotePickerResult) => {
+            opts.setProperty(`tab${tabIndex}RemoteUrl`, r.url);
+            opts.setProperty(`tab${tabIndex}RemoteMode`, r.mode);
+            opts.setProperty(`tab${tabIndex}RemoteSelections`, JSON.stringify(r.selections));
+            opts.setProperty(`tab${tabIndex}RemoteRefreshSec`, r.refreshSec);
+            this._renderTabBody(tabIndex);
+            opts.onChanged();
+          }
+        );
+      });
+      accordion.body.appendChild(btn);
     }
   }
 
@@ -1502,4 +1554,10 @@ export class TabBuilderSection {
     this._clickHandlerBound = false;
     this._el = null;
   }
+}
+
+function escapeHtmlLocal(s: string): string {
+  return s.replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c
+  ));
 }
