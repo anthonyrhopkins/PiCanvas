@@ -373,7 +373,7 @@ export class RemoteContentService {
   private static buildSnapshot(doc: Document, selections: IRemoteSelection[]): { wrapper: HTMLElement; missingCount: number; selectionCount: number } {
     const wrapper = document.createElement('div');
     wrapper.className = 'picanvas-remote-snapshot';
-    wrapper.style.cssText = 'all: initial; display: block; width: 100%;';
+    wrapper.style.cssText = 'display: block; width: 100%; position: relative;';
 
     Array.from(doc.querySelectorAll<HTMLLinkElement | HTMLStyleElement>('link[rel="stylesheet"], style')).forEach(node => {
       wrapper.appendChild(node.cloneNode(true));
@@ -443,7 +443,9 @@ export class RemoteContentService {
       const frame = document.createElement('iframe');
       frame.style.cssText = 'position:absolute;left:-99999px;top:0;width:1200px;height:2000px;border:0;';
       frame.setAttribute('aria-hidden', 'true');
-      frame.src = url;
+      // Mark the request as a PiCanvas probe so any nested PiCanvas on the
+      // source page skips its own init/render (avoids polluting our parent).
+      frame.src = appendProbeParam(url);
       document.body.appendChild(frame);
 
       const cleanup = () => { try { document.body.removeChild(frame); } catch { /* gone */ } };
@@ -598,4 +600,15 @@ function parseSectionIndex(id: string): number | null {
   if (!id.startsWith('sec:')) return null;
   const n = parseInt(id.slice(4), 10);
   return Number.isFinite(n) ? n : null;
+}
+
+/** Append `?_picanvas_probe=1` so a nested PiCanvas on the source page skips its own init. */
+function appendProbeParam(url: string): string {
+  try {
+    const u = new URL(url, window.location.href);
+    u.searchParams.set('_picanvas_probe', '1');
+    return u.toString();
+  } catch {
+    return url + (url.includes('?') ? '&' : '?') + '_picanvas_probe=1';
+  }
 }

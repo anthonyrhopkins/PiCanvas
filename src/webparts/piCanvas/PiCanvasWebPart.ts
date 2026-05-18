@@ -393,6 +393,21 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   private _spChromeConflicts: string[] = [];
   private _remoteMounts: Map<number, IRemoteMount> = new Map();
 
+  /**
+   * Detects whether this page is being loaded inside another PiCanvas's
+   * remote-content probe iframe (URL carries `?_picanvas_probe=1`). When true,
+   * PiCanvas skips all rendering and side effects to keep the parent page's
+   * state clean. SP still renders the canvas DOM, which is what the parent
+   * needs to probe sections/webparts.
+   */
+  private static isRemoteProbe(): boolean {
+    try {
+      return new URLSearchParams(window.location.search).get('_picanvas_probe') === '1';
+    } catch {
+      return false;
+    }
+  }
+
   private _zonesCache: Array<[string, string]> = [];
   private _currentHighlightedElement: HTMLElement | null = null;
   private _isPropertyPaneOpen: boolean = false;
@@ -1120,6 +1135,14 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   protected async onInit(): Promise<void> {
+    // If we're being loaded inside another PiCanvas's remote-content probe
+    // iframe (`?_picanvas_probe=1`), skip ALL side effects so we don't pollute
+    // the parent page's state. SP still renders the canvas (sections/webparts)
+    // for our parent to inspect; we just don't run PiCanvas-specific init.
+    if (PiCanvasWebPart.isRemoteProbe()) {
+      return super.onInit();
+    }
+
     // IMMEDIATELY hide connected webparts before they render visibly
     // This prevents the "flash" of webparts at their original position
     this.injectEarlyHidingStyles();
@@ -5234,6 +5257,11 @@ ${scopeSel} > * { box-sizing: border-box; }
   }
 
   public render(): void {
+    // Probe iframes: don't render PiCanvas at all (avoids global-registry writes
+    // and other side effects that would leak into the parent page's PiCanvas).
+    if (PiCanvasWebPart.isRemoteProbe()) {
+      return;
+    }
     try {
       this._renderInternal();
     } catch (error) {
