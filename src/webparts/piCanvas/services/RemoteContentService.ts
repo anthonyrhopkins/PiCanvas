@@ -369,20 +369,45 @@ export class RemoteContentService {
     });
   }
 
-  /** Build the snapshot DOM: clone targets, copy stylesheets into a scoped wrapper. */
+  /**
+   * Build the snapshot DOM: clone targets and their stylesheets into a Shadow
+   * DOM. Shadow DOM gives real style isolation — SP's cloned CSS rules
+   * (which target `body`, `html`, etc.) match the *shadow root's* virtual
+   * document, not the host page, so cloned content lays out correctly without
+   * leaking SP styles into the host.
+   */
   private static buildSnapshot(doc: Document, selections: IRemoteSelection[]): { wrapper: HTMLElement; missingCount: number; selectionCount: number } {
     const wrapper = document.createElement('div');
     wrapper.className = 'picanvas-remote-snapshot';
     wrapper.style.cssText = 'display: block; width: 100%; position: relative;';
 
+    const shadow = wrapper.attachShadow({ mode: 'open' });
+
+    // Mirror the SP document's <html> + <body> structure inside the shadow root
+    // so cloned CSS rules that target those selectors still work.
+    const bodyWrap = document.createElement('div');
+    bodyWrap.className = 'picanvas-remote-snapshot-body';
+    bodyWrap.style.cssText = 'display: block; width: 100%;';
+
+    // Copy stylesheets so cloned elements retain layout (link[rel=stylesheet] and inline <style>).
     Array.from(doc.querySelectorAll<HTMLLinkElement | HTMLStyleElement>('link[rel="stylesheet"], style')).forEach(node => {
-      wrapper.appendChild(node.cloneNode(true));
+      shadow.appendChild(node.cloneNode(true));
     });
+
+    // Small reset: shadow root has no UA stylesheet — provide one.
+    const reset = document.createElement('style');
+    reset.textContent = `
+      :host { display: block; width: 100%; }
+      .picanvas-remote-snapshot-body { display: block; width: 100%; }
+      .picanvas-remote-snapshot-body * { box-sizing: border-box; }
+    `;
+    shadow.appendChild(reset);
 
     const targets = this.resolveTargets(doc, selections);
     targets.forEach(el => {
-      wrapper.appendChild(el.cloneNode(true));
+      bodyWrap.appendChild(el.cloneNode(true));
     });
+    shadow.appendChild(bodyWrap);
 
     return {
       wrapper,
