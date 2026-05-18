@@ -351,10 +351,10 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ProfileReportFileTypeColumn',       // string: SP column that identifies report type (e.g., "ReportType")
     'ProfileReportDisplayColumns',       // string: comma-separated SP columns to show as metadata (e.g., "Author,Status")
     'ProfileReportPropensityBadge',      // 'all' | 'medium-high' | 'high' | 'off' — propensity badge on company cards
-    // Remote page content (v3.2)
+    // Remote page content
     'RemoteUrl',           // Source SharePoint page URL
     'RemoteMode',          // 'live' | 'snapshot'
-    'RemoteSelections',    // JSON: Array<{ kind, id, label }>
+    'RemoteSelections',    // JSON: Array<{ kind: 'page' | 'section' | 'webpart', id, label }>
     'RemoteRefreshSec',    // Snapshot auto-refresh (seconds); 0 = off; min non-zero = 30
   ];
 
