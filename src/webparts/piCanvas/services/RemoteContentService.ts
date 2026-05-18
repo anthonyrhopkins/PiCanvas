@@ -7,13 +7,21 @@
  *   - 'snapshot' — clone selected DOM into the host, optional auto-refresh
  *
  * Same-tenant only in v1 (cross-origin iframes block both modes).
+ *
+ * Selectors / identity model
+ * --------------------------
+ * Modern SP doesn't put a stable `data-section-id` on `.CanvasSection`.
+ * We address sections by ordinal index (id = "sec:0", "sec:1", …). Webparts
+ * have a stable `data-sp-feature-instance-id` (matched on the inner element).
+ * The page chrome itself carries `data-sp-feature-instance-id="_Page Chrome"`
+ * (or similar) — those are filtered out everywhere.
  */
 
 export type RemoteSelectionKind = 'section' | 'webpart' | 'page';
 
 export interface IRemoteSelection {
   kind: RemoteSelectionKind;
-  id: string;       // section data-section-id, webpart instance id, or 'page' sentinel
+  id: string;       // "sec:N" for sections, webpart instance id, or "page" sentinel
   label: string;    // user-visible label
 }
 
@@ -54,7 +62,19 @@ const CHROME_SELECTORS = [
   '#spLeftNav',
   '#spCommandBar',
   '[data-automation-id="pageCommandBar"]',
+  '[data-automation-id="sp-appBar"]',
 ].join(', ');
+
+/** Selector that matches a real SP canvas section regardless of build hash. */
+const SECTION_SELECTOR = '.CanvasSection';
+
+/** Webparts whose feature tag matches this regex are page chrome — never list/clone them. */
+const CHROME_FEATURE_TAG_RE = /chrome|page chrome/i;
+
+/** Heuristic for "page chrome" webpart instance ids that SP emits. */
+function isChromeWebpartId(id: string): boolean {
+  return id.startsWith('_') || id === '_Page Chrome';
+}
 
 export class RemoteContentService {
   /**
@@ -116,12 +136,11 @@ export class RemoteContentService {
         const startedAt = Date.now();
         const poll = () => {
           if (destroyed || !doc) return;
-          const hasSection = doc.querySelector('.CanvasSection[data-section-id]') !== null;
-          if (doc.readyState === 'complete' && hasSection) {
+          if (doc.readyState === 'complete' && RemoteContentService.isPageReady(doc)) {
             window.clearTimeout(timeoutHandle);
             status.remove();
-            const css = RemoteContentService.buildLiveStyles(config.selections);
-            RemoteContentService.injectStyles(doc, css);
+            RemoteContentService.markTargets(doc, config.selections);
+            RemoteContentService.injectStyles(doc, RemoteContentService.buildLiveStyles(config.selections));
             const detachResize = RemoteContentService.attachAutoSize(frame);
             if (config.isEditMode) {
               frame.style.outline = '2px dashed #0078d4';
@@ -152,7 +171,7 @@ export class RemoteContentService {
         },
         refresh: () => {
           if (destroyed) return;
-          frame.contentWindow?.location.reload();
+          try { frame.contentWindow?.location.reload(); } catch { /* cross-origin or gone */ }
         },
       };
     }
@@ -200,9 +219,7 @@ export class RemoteContentService {
         const refreshNote = (config.refreshSec || 0) > 0 ? ` · refresh ${config.refreshSec}s` : '';
         banner.textContent = `Remote: ${config.url} · ${config.selections.length} selection${config.selections.length === 1 ? '' : 's'} · Snapshot${refreshNote}`;
         host.insertBefore(banner, wrapper);
-      }
 
-      if (config.isEditMode && config.mode === 'snapshot') {
         const refreshBtn = document.createElement('button');
         refreshBtn.type = 'button';
         refreshBtn.textContent = 'Refresh now';
@@ -230,56 +247,11 @@ export class RemoteContentService {
     };
   }
 
-  /** Resolve selections against a loaded document into target elements. */
-  private static resolveTargets(doc: Document, selections: IRemoteSelection[]): HTMLElement[] {
-    const targets: HTMLElement[] = [];
-    const seen = new Set<HTMLElement>();
-    const push = (el: HTMLElement | null) => {
-      if (el && !seen.has(el)) { seen.add(el); targets.push(el); }
-    };
-    for (const sel of selections) {
-      if (sel.kind === 'page') {
-        push(doc.querySelector<HTMLElement>('[data-automation-id="canvasContent"]')
-          || doc.querySelector<HTMLElement>('#spPageCanvasContent')
-          || doc.body);
-      } else if (sel.kind === 'section') {
-        push(doc.querySelector<HTMLElement>(`.CanvasSection[data-section-id="${cssEscape(sel.id)}"]`));
-      } else if (sel.kind === 'webpart') {
-        push(doc.querySelector<HTMLElement>(`[data-sp-feature-instance-id="${cssEscape(sel.id)}"]`));
-      }
-    }
-    return targets;
-  }
-
-  /** Build the snapshot DOM: clone targets, copy stylesheets into a scoped wrapper. */
-  private static buildSnapshot(doc: Document, selections: IRemoteSelection[]): { wrapper: HTMLElement; missingCount: number; selectionCount: number } {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'picanvas-remote-snapshot';
-    wrapper.style.cssText = 'all: initial; display: block; width: 100%;';
-
-    // Copy stylesheets so cloned elements retain layout.
-    Array.from(doc.querySelectorAll<HTMLLinkElement | HTMLStyleElement>('link[rel="stylesheet"], style')).forEach(node => {
-      wrapper.appendChild(node.cloneNode(true));
-    });
-
-    const targets = this.resolveTargets(doc, selections);
-    targets.forEach(el => {
-      wrapper.appendChild(el.cloneNode(true));
-    });
-
-    return {
-      wrapper,
-      missingCount: selections.length - targets.length,
-      selectionCount: selections.length,
-    };
-  }
-
   /**
    * Probe a remote SharePoint page for sections + webparts.
    * Used by RemotePagePicker.
    */
   public static async probeRemotePage(url: string): Promise<IProbeResult> {
-    // Origin check up front (avoids loading the iframe at all for cross-tenant URLs).
     try {
       const parsed = new URL(url, window.location.href);
       if (parsed.origin !== window.location.origin) {
@@ -317,41 +289,146 @@ export class RemoteContentService {
     return { ok: true, items };
   }
 
+  /** True when the canvas has rendered at least one section or known content root. */
+  private static isPageReady(doc: Document): boolean {
+    return doc.querySelector(SECTION_SELECTOR) !== null
+      || doc.querySelector('[data-automation-id="canvasContent"]') !== null
+      || doc.querySelector('[data-automation-id="CanvasLayout"]') !== null;
+  }
+
+  /** Resolve selections against a loaded document into target elements. */
+  private static resolveTargets(doc: Document, selections: IRemoteSelection[]): HTMLElement[] {
+    const sections = Array.from(doc.querySelectorAll<HTMLElement>(SECTION_SELECTOR));
+    const targets: HTMLElement[] = [];
+    const seen = new Set<HTMLElement>();
+    const push = (el: HTMLElement | null) => {
+      if (el && !seen.has(el)) { seen.add(el); targets.push(el); }
+    };
+    for (const sel of selections) {
+      if (sel.kind === 'page') {
+        push(doc.querySelector<HTMLElement>('[data-automation-id="canvasContent"]')
+          || doc.querySelector<HTMLElement>('[data-automation-id="CanvasLayout"]')
+          || doc.querySelector<HTMLElement>('#spPageCanvasContent')
+          || doc.body);
+      } else if (sel.kind === 'section') {
+        const idx = parseSectionIndex(sel.id);
+        if (idx !== null && idx >= 0 && idx < sections.length) {
+          push(sections[idx]);
+        }
+      } else if (sel.kind === 'webpart') {
+        push(doc.querySelector<HTMLElement>(`[data-sp-feature-instance-id="${cssEscape(sel.id)}"]`));
+      }
+    }
+    return targets;
+  }
+
+  /**
+   * Tag the iframe's DOM so live-mode CSS can target sections/webparts to keep.
+   * We can't use `data-section-id` because modern SP doesn't emit one.
+   */
+  private static markTargets(doc: Document, selections: IRemoteSelection[]): void {
+    const hasWholePage = selections.some(s => s.kind === 'page');
+    // Clear any prior marks (idempotent on refresh).
+    Array.from(doc.querySelectorAll('[data-picanvas-keep]')).forEach(el => el.removeAttribute('data-picanvas-keep'));
+    Array.from(doc.querySelectorAll('[data-picanvas-section-idx]')).forEach(el => el.removeAttribute('data-picanvas-section-idx'));
+
+    const sections = Array.from(doc.querySelectorAll<HTMLElement>(SECTION_SELECTOR));
+    sections.forEach((sec, idx) => { sec.setAttribute('data-picanvas-section-idx', String(idx)); });
+
+    if (hasWholePage) {
+      sections.forEach(sec => sec.setAttribute('data-picanvas-keep', '1'));
+      return;
+    }
+
+    const sectionIdxs = new Set<number>();
+    const webpartIds = new Set<string>();
+    for (const sel of selections) {
+      if (sel.kind === 'section') {
+        const idx = parseSectionIndex(sel.id);
+        if (idx !== null) sectionIdxs.add(idx);
+      } else if (sel.kind === 'webpart') {
+        webpartIds.add(sel.id);
+      }
+    }
+
+    // Mark explicitly-selected sections (keep wholly).
+    sectionIdxs.forEach(idx => {
+      const sec = sections[idx];
+      if (sec) sec.setAttribute('data-picanvas-keep', '1');
+    });
+
+    // Mark selected webparts and the sections that contain them (keep section partial).
+    webpartIds.forEach(wpId => {
+      const wp = doc.querySelector<HTMLElement>(`[data-sp-feature-instance-id="${cssEscape(wpId)}"]`);
+      if (!wp) return;
+      wp.setAttribute('data-picanvas-keep', '1');
+      const containingSection = wp.closest<HTMLElement>(SECTION_SELECTOR);
+      if (containingSection && !containingSection.hasAttribute('data-picanvas-keep')) {
+        containingSection.setAttribute('data-picanvas-keep', 'partial');
+      }
+    });
+  }
+
+  /** Build the snapshot DOM: clone targets, copy stylesheets into a scoped wrapper. */
+  private static buildSnapshot(doc: Document, selections: IRemoteSelection[]): { wrapper: HTMLElement; missingCount: number; selectionCount: number } {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'picanvas-remote-snapshot';
+    wrapper.style.cssText = 'all: initial; display: block; width: 100%;';
+
+    Array.from(doc.querySelectorAll<HTMLLinkElement | HTMLStyleElement>('link[rel="stylesheet"], style')).forEach(node => {
+      wrapper.appendChild(node.cloneNode(true));
+    });
+
+    const targets = this.resolveTargets(doc, selections);
+    targets.forEach(el => {
+      wrapper.appendChild(el.cloneNode(true));
+    });
+
+    return {
+      wrapper,
+      missingCount: selections.length - targets.length,
+      selectionCount: selections.length,
+    };
+  }
+
   /** Extract section + webpart inventory from a fully-rendered SP page document. */
   private static collectItems(doc: Document): IProbedItem[] {
     const items: IProbedItem[] = [
       { kind: 'page', id: 'page', label: 'Whole page' },
     ];
 
-    const sectionEls = Array.from(doc.querySelectorAll<HTMLElement>('.CanvasSection[data-section-id]'));
+    const sectionEls = Array.from(doc.querySelectorAll<HTMLElement>(SECTION_SELECTOR));
     sectionEls.forEach((sec, idx) => {
-      const id = sec.getAttribute('data-section-id') || '';
-      if (!id) return;
       const cols = sec.querySelectorAll('[data-automation-id="CanvasSectionColumn"]').length
         || sec.querySelectorAll('.CanvasColumn').length
         || 1;
+      const sectionId = `sec:${idx}`;
       items.push({
         kind: 'section',
-        id,
+        id: sectionId,
         label: `Section ${idx + 1} (${cols} column${cols === 1 ? '' : 's'})`,
       });
 
       const webparts = Array.from(sec.querySelectorAll<HTMLElement>('[data-sp-feature-instance-id]'));
       webparts.forEach((wp) => {
         const wpId = wp.getAttribute('data-sp-feature-instance-id') || '';
-        if (!wpId) return;
+        if (!wpId || isChromeWebpartId(wpId)) return;
+        const featureTag = wp.getAttribute('data-sp-feature-tag') || '';
+        if (CHROME_FEATURE_TAG_RE.test(featureTag)) return;
+
         const ariaLabel = wp.getAttribute('aria-label')
           || wp.querySelector('[aria-label]')?.getAttribute('aria-label')
           || '';
         const titleEl = wp.querySelector<HTMLElement>('h2, h3, [role="heading"]');
         const titleText = (titleEl?.textContent || '').trim();
-        const label = ariaLabel || titleText || `Webpart ${wpId.slice(0, 8)}`;
+        const featureLabel = featureTag.replace(/web part.*$/i, '').trim();
+        const label = ariaLabel || titleText || featureLabel || `Webpart ${wpId.slice(0, 8)}`;
         const isDynamic = !!wp.querySelector('iframe, [data-react-root], [data-automation-id="listViewControl"], [data-automation-id="ChartControl"]');
         items.push({
           kind: 'webpart',
           id: wpId,
           label,
-          containingSectionId: id,
+          containingSectionId: sectionId,
           isDynamic,
         });
       });
@@ -370,41 +447,26 @@ export class RemoteContentService {
       document.body.appendChild(frame);
 
       const cleanup = () => { try { document.body.removeChild(frame); } catch { /* gone */ } };
-
       const fail = (reason: string) => { cleanup(); reject(new Error(reason)); };
-
       const timeout = window.setTimeout(() => fail('timeout'), READY_TIMEOUT_MS);
 
       frame.addEventListener('load', () => {
-        // Same-origin check: accessing contentDocument throws cross-origin.
         let doc: Document | null = null;
-        try {
-          doc = frame.contentDocument;
-        } catch {
-          window.clearTimeout(timeout);
-          fail('cross-tenant');
-          return;
+        try { doc = frame.contentDocument; } catch {
+          window.clearTimeout(timeout); fail('cross-tenant'); return;
         }
-        if (!doc) {
-          window.clearTimeout(timeout);
-          fail('access-denied');
-          return;
-        }
-        // Poll for SP page readiness (presence of any CanvasSection or known content root).
+        if (!doc) { window.clearTimeout(timeout); fail('access-denied'); return; }
+
         const startedAt = Date.now();
         const poll = () => {
           if (!doc) return;
-          const hasSection = doc.querySelector('.CanvasSection[data-section-id]') !== null;
-          const hasContentRoot = doc.querySelector('[data-automation-id="canvasContent"]') !== null;
-          if (doc.readyState === 'complete' && (hasSection || hasContentRoot)) {
+          if (doc.readyState === 'complete' && RemoteContentService.isPageReady(doc)) {
             window.clearTimeout(timeout);
             resolve(frame);
             return;
           }
           if (Date.now() - startedAt > READY_TIMEOUT_MS) {
-            window.clearTimeout(timeout);
-            fail('timeout');
-            return;
+            window.clearTimeout(timeout); fail('timeout'); return;
           }
           window.setTimeout(poll, 250);
         };
@@ -422,35 +484,40 @@ export class RemoteContentService {
     return title.includes('access denied') || title.includes('sign in');
   }
 
-  /** Build CSS for the live-mode stylesheet given the selections. */
+  /**
+   * Build CSS for the live-mode stylesheet. Targets are tagged with
+   * `data-picanvas-keep` by markTargets() before this CSS is injected.
+   */
   private static buildLiveStyles(selections: IRemoteSelection[]): string {
     const hasWholePage = selections.some(s => s.kind === 'page');
 
     const css: string[] = [];
     css.push(`${CHROME_SELECTORS} { display: none !important; }`);
-    css.push('html, body { background: transparent !important; margin: 0 !important; padding: 0 !important; }');
+    // Let the body grow with its content so the iframe auto-sizes correctly.
+    // Modern SP sets body { height: 100vh; overflow: hidden auto } which traps the page inside the viewport.
+    css.push('html, body { background: transparent !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }');
+    css.push('[data-automation-id="contentScrollRegion"], [role="main"] { height: auto !important; overflow: visible !important; }');
 
     if (hasWholePage) return css.join('\n');
 
-    const sectionSelections = selections.filter(s => s.kind === 'section').map(s => s.id);
-    const webpartSelections = selections.filter(s => s.kind === 'webpart');
-    const webpartIds = webpartSelections.map(w => w.id);
-    const keepIds = new Set<string>(sectionSelections);
+    const sectionSelected = selections.some(s => s.kind === 'section');
+    const webpartSelected = selections.some(s => s.kind === 'webpart');
 
-    if (webpartIds.length === 0 && sectionSelections.length > 0) {
-      // Section-only: hide every section that isn't selected.
-      const notSelectors = Array.from(keepIds).map(id => `:not([data-section-id="${cssEscape(id)}"])`).join('');
-      css.push(`.CanvasSection${notSelectors} { display: none !important; }`);
-    } else if (webpartIds.length > 0) {
-      // Mixed/webpart mode: hide sections that are neither explicitly selected NOR contain a selected webpart.
-      const notKeeper = Array.from(keepIds).map(id => `:not([data-section-id="${cssEscape(id)}"])`).join('');
-      const notHas = webpartIds.map(id => `:not(:has([data-sp-feature-instance-id="${cssEscape(id)}"]))`).join('');
-      css.push(`.CanvasSection${notKeeper}${notHas} { display: none !important; }`);
+    if (!sectionSelected && !webpartSelected) {
+      // Nothing selected — hide all sections so the iframe shows nothing.
+      css.push(`${SECTION_SELECTOR} { display: none !important; }`);
+      return css.join('\n');
+    }
 
-      // Within sections kept because of a webpart selection (not in explicit keepers), hide non-selected webparts.
-      const wpNotSelectors = webpartIds.map(id => `:not([data-sp-feature-instance-id="${cssEscape(id)}"])`).join('');
-      const notExplicitSection = Array.from(keepIds).map(id => `:not([data-section-id="${cssEscape(id)}"])`).join('');
-      css.push(`.CanvasSection${notExplicitSection} [data-sp-feature-instance-id]${wpNotSelectors} { display: none !important; }`);
+    // Hide sections that have no keep marker.
+    css.push(`${SECTION_SELECTOR}:not([data-picanvas-keep]) { display: none !important; }`);
+
+    if (webpartSelected) {
+      // Within sections kept only because of a webpart (data-picanvas-keep="partial"),
+      // hide every webpart that isn't itself marked.
+      css.push(
+        `${SECTION_SELECTOR}[data-picanvas-keep="partial"] [data-sp-feature-instance-id]:not([data-picanvas-keep]) { display: none !important; }`
+      );
     }
 
     return css.join('\n');
@@ -458,6 +525,8 @@ export class RemoteContentService {
 
   /** Inject a stylesheet into a same-origin iframe document. */
   private static injectStyles(doc: Document, css: string): HTMLStyleElement {
+    // Remove any prior PiCanvas-injected stylesheet first (idempotent on refresh).
+    Array.from(doc.querySelectorAll('style[data-picanvas-remote]')).forEach(s => s.remove());
     const style = doc.createElement('style');
     style.setAttribute('data-picanvas-remote', 'true');
     style.textContent = css;
@@ -497,4 +566,11 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c
   ));
+}
+
+/** Parse a section id of the form "sec:N" into N. Returns null for malformed input. */
+function parseSectionIndex(id: string): number | null {
+  if (!id.startsWith('sec:')) return null;
+  const n = parseInt(id.slice(4), 10);
+  return Number.isFinite(n) ? n : null;
 }
