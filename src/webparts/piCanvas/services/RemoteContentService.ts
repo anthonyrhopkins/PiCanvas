@@ -149,9 +149,102 @@ export class RemoteContentService {
       };
     }
 
-    // Snapshot mode lands in Task 6.
-    showError('Snapshot mode is not implemented yet.');
-    return { destroy: () => { destroyed = true; }, refresh: () => { /* no-op */ } };
+    // ---------- snapshot mode ----------
+    let snapshotFrame: HTMLIFrameElement | null = null;
+    let refreshTimer: number | undefined;
+
+    const runSnapshot = async () => {
+      try {
+        snapshotFrame = await RemoteContentService.loadHiddenFrame(config.url);
+      } catch (e) {
+        const reason = (e as Error).message;
+        if (reason === 'cross-tenant') return showError("Cross-tenant sources aren't supported yet.");
+        if (reason === 'timeout') return showError("Source page didn't finish loading. Refresh the page to retry.");
+        return showError('Could not load the source page.');
+      }
+      if (destroyed) {
+        if (snapshotFrame) { try { document.body.removeChild(snapshotFrame); } catch { /* gone */ } }
+        return;
+      }
+      const doc = snapshotFrame.contentDocument!;
+      if (RemoteContentService.isAccessDenied(doc)) {
+        try { document.body.removeChild(snapshotFrame); } catch { /* gone */ }
+        return showError("You don't have access to this page.");
+      }
+      const { wrapper, missingCount, selectionCount } = RemoteContentService.buildSnapshot(doc, config.selections);
+      try { document.body.removeChild(snapshotFrame); } catch { /* gone */ }
+      snapshotFrame = null;
+
+      if (selectionCount > 0 && missingCount === selectionCount) {
+        showError('Selected content no longer exists on the source page. Re-pick in tab settings.');
+        return;
+      }
+
+      // Atomic swap: clear prior content, append new wrapper.
+      Array.from(host.querySelectorAll('.picanvas-remote-snapshot, .picanvas-remote-status, .picanvas-remote-error')).forEach(n => n.remove());
+      host.appendChild(wrapper);
+    };
+
+    runSnapshot();
+
+    const refreshSec = Math.max(0, config.refreshSec || 0);
+    if (refreshSec > 0) {
+      const interval = Math.max(REFRESH_MIN_SEC, refreshSec) * 1000;
+      refreshTimer = window.setInterval(runSnapshot, interval);
+    }
+
+    return {
+      destroy: () => {
+        destroyed = true;
+        if (refreshTimer) window.clearInterval(refreshTimer);
+        if (snapshotFrame) { try { document.body.removeChild(snapshotFrame); } catch { /* gone */ } }
+      },
+      refresh: () => { if (!destroyed) runSnapshot(); },
+    };
+  }
+
+  /** Resolve selections against a loaded document into target elements. */
+  private static resolveTargets(doc: Document, selections: IRemoteSelection[]): HTMLElement[] {
+    const targets: HTMLElement[] = [];
+    const seen = new Set<HTMLElement>();
+    const push = (el: HTMLElement | null) => {
+      if (el && !seen.has(el)) { seen.add(el); targets.push(el); }
+    };
+    for (const sel of selections) {
+      if (sel.kind === 'page') {
+        push(doc.querySelector<HTMLElement>('[data-automation-id="canvasContent"]')
+          || doc.querySelector<HTMLElement>('#spPageCanvasContent')
+          || doc.body);
+      } else if (sel.kind === 'section') {
+        push(doc.querySelector<HTMLElement>(`.CanvasSection[data-section-id="${cssEscape(sel.id)}"]`));
+      } else if (sel.kind === 'webpart') {
+        push(doc.querySelector<HTMLElement>(`[data-sp-feature-instance-id="${cssEscape(sel.id)}"]`));
+      }
+    }
+    return targets;
+  }
+
+  /** Build the snapshot DOM: clone targets, copy stylesheets into a scoped wrapper. */
+  private static buildSnapshot(doc: Document, selections: IRemoteSelection[]): { wrapper: HTMLElement; missingCount: number; selectionCount: number } {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'picanvas-remote-snapshot';
+    wrapper.style.cssText = 'all: initial; display: block; width: 100%;';
+
+    // Copy stylesheets so cloned elements retain layout.
+    Array.from(doc.querySelectorAll<HTMLLinkElement | HTMLStyleElement>('link[rel="stylesheet"], style')).forEach(node => {
+      wrapper.appendChild(node.cloneNode(true));
+    });
+
+    const targets = this.resolveTargets(doc, selections);
+    targets.forEach(el => {
+      wrapper.appendChild(el.cloneNode(true));
+    });
+
+    return {
+      wrapper,
+      missingCount: selections.length - targets.length,
+      selectionCount: selections.length,
+    };
   }
 
   /**
@@ -362,9 +455,6 @@ export class RemoteContentService {
     return () => ro.disconnect();
   }
 }
-
-// Silence unused-const warnings for skeleton constants — used in later tasks
-void REFRESH_MIN_SEC;
 
 /** CSS.escape polyfill (SP supports modern browsers — be defensive). */
 function cssEscape(value: string): string {
