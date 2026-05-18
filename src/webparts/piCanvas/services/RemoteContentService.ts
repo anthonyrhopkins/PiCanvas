@@ -106,10 +106,55 @@ export class RemoteContentService {
       return { ok: false, error: 'access-denied', message: "You don't have access to this page." };
     }
 
-    // DOM probing implemented in Task 4. For now, return empty success.
-    const items: IProbedItem[] = [];
+    const items = this.collectItems(doc);
     try { document.body.removeChild(frame); } catch { /* gone */ }
+    if (items.length <= 1) {
+      return { ok: false, error: 'no-items', message: 'This page has no detectable sections or webparts.' };
+    }
     return { ok: true, items };
+  }
+
+  /** Extract section + webpart inventory from a fully-rendered SP page document. */
+  private static collectItems(doc: Document): IProbedItem[] {
+    const items: IProbedItem[] = [
+      { kind: 'page', id: 'page', label: 'Whole page' },
+    ];
+
+    const sectionEls = Array.from(doc.querySelectorAll<HTMLElement>('.CanvasSection[data-section-id]'));
+    sectionEls.forEach((sec, idx) => {
+      const id = sec.getAttribute('data-section-id') || '';
+      if (!id) return;
+      const cols = sec.querySelectorAll('[data-automation-id="CanvasSectionColumn"]').length
+        || sec.querySelectorAll('.CanvasColumn').length
+        || 1;
+      items.push({
+        kind: 'section',
+        id,
+        label: `Section ${idx + 1} (${cols} column${cols === 1 ? '' : 's'})`,
+      });
+
+      const webparts = Array.from(sec.querySelectorAll<HTMLElement>('[data-sp-feature-instance-id]'));
+      webparts.forEach((wp) => {
+        const wpId = wp.getAttribute('data-sp-feature-instance-id') || '';
+        if (!wpId) return;
+        const ariaLabel = wp.getAttribute('aria-label')
+          || wp.querySelector('[aria-label]')?.getAttribute('aria-label')
+          || '';
+        const titleEl = wp.querySelector<HTMLElement>('h2, h3, [role="heading"]');
+        const titleText = (titleEl?.textContent || '').trim();
+        const label = ariaLabel || titleText || `Webpart ${wpId.slice(0, 8)}`;
+        const isDynamic = !!wp.querySelector('iframe, [data-react-root], [data-automation-id="listViewControl"], [data-automation-id="ChartControl"]');
+        items.push({
+          kind: 'webpart',
+          id: wpId,
+          label,
+          containingSectionId: id,
+          isDynamic,
+        });
+      });
+    });
+
+    return items;
   }
 
   /** Create a hidden iframe and resolve when the SP page has rendered enough to inspect. */
