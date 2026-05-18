@@ -123,6 +123,14 @@ export class RemoteContentService {
             const css = RemoteContentService.buildLiveStyles(config.selections);
             RemoteContentService.injectStyles(doc, css);
             const detachResize = RemoteContentService.attachAutoSize(frame);
+            if (config.isEditMode) {
+              frame.style.outline = '2px dashed #0078d4';
+              frame.style.outlineOffset = '2px';
+              const banner = document.createElement('div');
+              banner.style.cssText = 'font:600 11px sans-serif;background:#0078d4;color:#fff;padding:2px 8px;display:inline-block;margin-bottom:4px;border-radius:3px;';
+              banner.textContent = `Remote: ${config.url} · ${config.selections.length} selection${config.selections.length === 1 ? '' : 's'} · Live`;
+              host.insertBefore(banner, frame);
+            }
             cleanup = () => { detachResize(); };
             return;
           }
@@ -183,6 +191,25 @@ export class RemoteContentService {
       // Atomic swap: clear prior content, append new wrapper.
       Array.from(host.querySelectorAll('.picanvas-remote-snapshot, .picanvas-remote-status, .picanvas-remote-error')).forEach(n => n.remove());
       host.appendChild(wrapper);
+
+      if (config.isEditMode) {
+        wrapper.style.outline = '2px dashed #0078d4';
+        wrapper.style.outlineOffset = '2px';
+        const banner = document.createElement('div');
+        banner.style.cssText = 'font:600 11px sans-serif;background:#0078d4;color:#fff;padding:2px 8px;display:inline-block;margin-bottom:4px;border-radius:3px;';
+        const refreshNote = (config.refreshSec || 0) > 0 ? ` · refresh ${config.refreshSec}s` : '';
+        banner.textContent = `Remote: ${config.url} · ${config.selections.length} selection${config.selections.length === 1 ? '' : 's'} · Snapshot${refreshNote}`;
+        host.insertBefore(banner, wrapper);
+      }
+
+      if (config.isEditMode && config.mode === 'snapshot') {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.type = 'button';
+        refreshBtn.textContent = 'Refresh now';
+        refreshBtn.style.cssText = 'margin-left:8px;font:600 11px sans-serif;background:#fff;color:#0078d4;border:1px solid #0078d4;padding:2px 8px;border-radius:3px;cursor:pointer;';
+        refreshBtn.addEventListener('click', () => runSnapshot());
+        host.insertBefore(refreshBtn, wrapper);
+      }
     };
 
     runSnapshot();

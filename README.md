@@ -25,7 +25,7 @@ A single SPFx web part that replaces custom development. PiCanvas renders full-p
 
 ---
 
-## 12 Content Types
+## 13 Content Types
 
 Each tab renders its own content type independently. Everything runs inside the SPFx package — no external services required.
 
@@ -43,6 +43,7 @@ Each tab renders its own content type independently. Everything runs inside the 
 | **TOC** | Auto-generated Table of Contents from page headings |
 | **Profile Report** | Company intelligence dashboards powered by SharePoint lists |
 | **GitHub** | Native GitHub repo rendering via API |
+| **Remote Page** | Sections, webparts, or whole pages from another SharePoint page on the same tenant (live iframe or snapshot clone) |
 
 ### In Action
 
@@ -69,7 +70,7 @@ PiCanvas replaces the standard property pane with a full-screen configuration ov
 ## Key Features
 
 **Content & Rendering**
-- 12 content types — each tab is its own rendering engine
+- 13 content types — each tab is its own rendering engine
 - JavaScript sandbox with `graphFetch` (Microsoft Graph), `httpFetch`, ECharts, and DOM APIs
 - Markdown with syntax highlighting, Mermaid diagrams, RSS feeds with card/list/compact layouts
 - GitHub repo rendering via API (built when GitHub blocked iframe embedding via CSP)
