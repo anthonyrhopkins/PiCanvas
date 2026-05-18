@@ -62,13 +62,96 @@ export class RemoteContentService {
    * Returns a handle with destroy() + refresh().
    */
   public static mount(host: HTMLElement, config: IRemoteConfig): IRemoteMount {
-    host.innerHTML = '<div class="picanvas-remote-loading">Loading remote content…</div>';
-    // Implementation lands in Tasks 3–7.
-    void config; // skeleton — used in later tasks
-    return {
-      destroy: () => { host.innerHTML = ''; },
-      refresh: () => { /* no-op until snapshot mode lands */ },
+    host.innerHTML = '';
+    const status = document.createElement('div');
+    status.className = 'picanvas-remote-status';
+    status.textContent = 'Loading remote content…';
+    host.appendChild(status);
+
+    let destroyed = false;
+    let cleanup: () => void = () => { /* no-op */ };
+
+    const showError = (msg: string) => {
+      if (destroyed) return;
+      host.innerHTML = `<div class="picanvas-remote-error">${escapeHtml(msg)}</div>`;
     };
+
+    // Origin pre-check.
+    try {
+      const parsed = new URL(config.url, window.location.href);
+      if (parsed.origin !== window.location.origin) {
+        showError("Cross-tenant sources aren't supported yet.");
+        return { destroy: () => { destroyed = true; }, refresh: () => { /* no-op */ } };
+      }
+    } catch {
+      showError('Invalid source URL.');
+      return { destroy: () => { destroyed = true; }, refresh: () => { /* no-op */ } };
+    }
+
+    if (config.mode === 'live') {
+      const frame = document.createElement('iframe');
+      frame.style.cssText = 'width:100%;border:0;display:block;';
+      frame.setAttribute('loading', 'eager');
+      frame.src = config.url;
+      host.appendChild(frame);
+
+      const timeoutHandle: number = window.setTimeout(() => {
+        showError("Source page didn't finish loading. Refresh the page to retry.");
+      }, READY_TIMEOUT_MS);
+
+      frame.addEventListener('load', () => {
+        if (destroyed) return;
+        let doc: Document | null = null;
+        try { doc = frame.contentDocument; } catch { /* cross-origin */ }
+        if (!doc) {
+          window.clearTimeout(timeoutHandle);
+          showError("Cross-tenant sources aren't supported yet.");
+          return;
+        }
+        if (RemoteContentService.isAccessDenied(doc)) {
+          window.clearTimeout(timeoutHandle);
+          showError("You don't have access to this page.");
+          return;
+        }
+        const startedAt = Date.now();
+        const poll = () => {
+          if (destroyed || !doc) return;
+          const hasSection = doc.querySelector('.CanvasSection[data-section-id]') !== null;
+          if (doc.readyState === 'complete' && hasSection) {
+            window.clearTimeout(timeoutHandle);
+            status.remove();
+            const css = RemoteContentService.buildLiveStyles(config.selections);
+            RemoteContentService.injectStyles(doc, css);
+            const detachResize = RemoteContentService.attachAutoSize(frame);
+            cleanup = () => { detachResize(); };
+            return;
+          }
+          if (Date.now() - startedAt > READY_TIMEOUT_MS) {
+            window.clearTimeout(timeoutHandle);
+            showError("Source page didn't finish loading. Refresh the page to retry.");
+            return;
+          }
+          window.setTimeout(poll, 250);
+        };
+        poll();
+      });
+
+      return {
+        destroy: () => {
+          destroyed = true;
+          cleanup();
+          try { host.removeChild(frame); } catch { /* gone */ }
+        },
+        refresh: () => {
+          if (destroyed) return;
+          frame.contentWindow?.location.reload();
+        },
+      };
+    }
+
+    // Snapshot mode lands in Task 6.
+    showError('Snapshot mode is not implemented yet.');
+    return { destroy: () => { destroyed = true; }, refresh: () => { /* no-op */ } };
   }
 
   /**
@@ -218,8 +301,83 @@ export class RemoteContentService {
     const title = (doc.title || '').toLowerCase();
     return title.includes('access denied') || title.includes('sign in');
   }
+
+  /** Build CSS for the live-mode stylesheet given the selections. */
+  private static buildLiveStyles(selections: IRemoteSelection[]): string {
+    const hasWholePage = selections.some(s => s.kind === 'page');
+
+    const css: string[] = [];
+    css.push(`${CHROME_SELECTORS} { display: none !important; }`);
+    css.push('html, body { background: transparent !important; margin: 0 !important; padding: 0 !important; }');
+
+    if (hasWholePage) return css.join('\n');
+
+    const sectionSelections = selections.filter(s => s.kind === 'section').map(s => s.id);
+    const webpartSelections = selections.filter(s => s.kind === 'webpart');
+    const webpartIds = webpartSelections.map(w => w.id);
+    const keepIds = new Set<string>(sectionSelections);
+
+    if (webpartIds.length === 0 && sectionSelections.length > 0) {
+      // Section-only: hide every section that isn't selected.
+      const notSelectors = Array.from(keepIds).map(id => `:not([data-section-id="${cssEscape(id)}"])`).join('');
+      css.push(`.CanvasSection${notSelectors} { display: none !important; }`);
+    } else if (webpartIds.length > 0) {
+      // Mixed/webpart mode: hide sections that are neither explicitly selected NOR contain a selected webpart.
+      const notKeeper = Array.from(keepIds).map(id => `:not([data-section-id="${cssEscape(id)}"])`).join('');
+      const notHas = webpartIds.map(id => `:not(:has([data-sp-feature-instance-id="${cssEscape(id)}"]))`).join('');
+      css.push(`.CanvasSection${notKeeper}${notHas} { display: none !important; }`);
+
+      // Within sections kept because of a webpart selection (not in explicit keepers), hide non-selected webparts.
+      const wpNotSelectors = webpartIds.map(id => `:not([data-sp-feature-instance-id="${cssEscape(id)}"])`).join('');
+      const notExplicitSection = Array.from(keepIds).map(id => `:not([data-section-id="${cssEscape(id)}"])`).join('');
+      css.push(`.CanvasSection${notExplicitSection} [data-sp-feature-instance-id]${wpNotSelectors} { display: none !important; }`);
+    }
+
+    return css.join('\n');
+  }
+
+  /** Inject a stylesheet into a same-origin iframe document. */
+  private static injectStyles(doc: Document, css: string): HTMLStyleElement {
+    const style = doc.createElement('style');
+    style.setAttribute('data-picanvas-remote', 'true');
+    style.textContent = css;
+    doc.head.appendChild(style);
+    return style;
+  }
+
+  /** Auto-size iframe to the rendered content height. Returns a teardown fn. */
+  private static attachAutoSize(frame: HTMLIFrameElement): () => void {
+    const doc = frame.contentDocument;
+    if (!doc) return () => { /* no-op */ };
+    const measure = () => {
+      const h = Math.max(
+        doc.documentElement.scrollHeight,
+        doc.body.scrollHeight,
+      );
+      frame.style.height = `${h}px`;
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(doc.body);
+    return () => ro.disconnect();
+  }
 }
 
 // Silence unused-const warnings for skeleton constants — used in later tasks
 void REFRESH_MIN_SEC;
-void CHROME_SELECTORS;
+
+/** CSS.escape polyfill (SP supports modern browsers — be defensive). */
+function cssEscape(value: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (window as any).CSS?.escape === 'function') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (window as any).CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, '\\$&');
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c
+  ));
+}
