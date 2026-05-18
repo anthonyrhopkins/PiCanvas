@@ -14,7 +14,15 @@ export const TEMPLATE_SCHEMA_VERSION = '3.0';
 /**
  * Content type for tab content
  */
-export type TabContentType = 'webpart' | 'section' | 'markdown' | 'html' | 'mermaid' | 'embed' | 'file';
+export type TabContentType =
+  | 'webpart'
+  | 'section'
+  | 'markdown'
+  | 'html'
+  | 'mermaid'
+  | 'embed'
+  | 'file'
+  | 'remote';
 
 /**
  * Individual tab configuration within a template

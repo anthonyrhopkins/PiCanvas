@@ -350,7 +350,12 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     'ProfileReportLabelHints',           // JSON string: Record<string, ILabelHint> — optional discovery label overrides
     'ProfileReportFileTypeColumn',       // string: SP column that identifies report type (e.g., "ReportType")
     'ProfileReportDisplayColumns',       // string: comma-separated SP columns to show as metadata (e.g., "Author,Status")
-    'ProfileReportPropensityBadge'       // 'all' | 'medium-high' | 'high' | 'off' — propensity badge on company cards
+    'ProfileReportPropensityBadge',      // 'all' | 'medium-high' | 'high' | 'off' — propensity badge on company cards
+    // Remote page content (v3.2)
+    'RemoteUrl',           // Source SharePoint page URL
+    'RemoteMode',          // 'live' | 'snapshot'
+    'RemoteSelections',    // JSON: Array<{ kind, id, label }>
+    'RemoteRefreshSec',    // Snapshot auto-refresh (seconds); 0 = off; min non-zero = 30
   ];
 
   private static readonly DEFAULT_LOCK_TEMPLATE = `
@@ -2607,6 +2612,135 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
     return 'u!' + base64;
   }
 
+  /**
+   * Scope an injected HTML file's global CSS to a wrapper class, so its
+   * `html { ... }` and `body { ... }` rules don't pollute the SharePoint page.
+   *
+   * Strategy: inside each `<style>` block, rewrite selectors that target
+   * `html` or `body` at the start (or after a combinator/comma) to the
+   * supplied scope selector. Also wraps the content in the scope element.
+   *
+   * Without this, a file like `body { display: flex; align-items: center }`
+   * would re-style the SP page body, breaking the entire page layout.
+   */
+  private static scopeFileHtmlStyles(html: string, scopeClass: string): string {
+    const scopeSel = '.' + scopeClass;
+    const scoped = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_full, css: string) => {
+      const rewritten = PiCanvasWebPart.scopeCssRules(css, scopeSel);
+      return `<style>${rewritten}</style>`;
+    });
+    // Override viewport-relative height assumptions the original file's
+    // body/html rules carry. Without this, `body { min-height: 100vh }`
+    // would force the scope wrapper to fill the full viewport height,
+    // pushing siblings (like a prize ladder) far below the actual content.
+    const containmentReset = `<style>
+${scopeSel} { min-height: 0 !important; height: auto !important; max-height: none !important; }
+${scopeSel} > * { box-sizing: border-box; }
+</style>`;
+    return containmentReset + `<div class="${scopeClass}">${scoped}</div>`;
+  }
+
+  /**
+   * Rewrite a CSS string so any selector targeting `html` or `body` (alone or
+   * combined with classes/pseudos) becomes `${scopeSel}`. Other selectors are
+   * left alone but prefixed when they don't already mention the scope, so the
+   * file's global rules can't escape the wrapper.
+   */
+  private static scopeCssRules(css: string, scopeSel: string): string {
+    // Walk the CSS char by char, finding rule boundaries. Avoid mangling
+    // selectors inside @media/@supports/@keyframes by tracking nesting.
+    let out = '';
+    let i = 0;
+    const n = css.length;
+    while (i < n) {
+      // Pass through @-rules at the top level — their inner content gets
+      // recursively scoped if it has its own block.
+      if (css[i] === '@') {
+        const blockStart = css.indexOf('{', i);
+        if (blockStart < 0) { out += css.substring(i); break; }
+        const atName = css.substring(i, blockStart).trim().toLowerCase();
+        // @keyframes selectors (`from`, `0%`) aren't real selectors — pass through.
+        if (atName.startsWith('@keyframes') || atName.startsWith('@-webkit-keyframes') || atName.startsWith('@font-face') || atName.startsWith('@import') || atName.startsWith('@charset')) {
+          const end = PiCanvasWebPart.findMatchingBrace(css, blockStart);
+          out += css.substring(i, end + 1);
+          i = end + 1;
+          continue;
+        }
+        // @media/@supports: recurse on inner content
+        const innerEnd = PiCanvasWebPart.findMatchingBrace(css, blockStart);
+        const inner = css.substring(blockStart + 1, innerEnd);
+        out += css.substring(i, blockStart + 1) + PiCanvasWebPart.scopeCssRules(inner, scopeSel) + '}';
+        i = innerEnd + 1;
+        continue;
+      }
+      // Find the next selector-list (up to `{`) and the rule's block.
+      const blockStart = css.indexOf('{', i);
+      if (blockStart < 0) { out += css.substring(i); break; }
+      const blockEnd = PiCanvasWebPart.findMatchingBrace(css, blockStart);
+      const selectorList = css.substring(i, blockStart);
+      const body = css.substring(blockStart, blockEnd + 1);
+      const rewrittenSelectors = selectorList.split(',').map(sel => {
+        const trimmed = sel.trim();
+        if (!trimmed) return sel;
+        // Replace standalone `html`, `body`, or `:root` at the selector head
+        // with the scope. Patterns collapsed to scope: "body", "html", ":root",
+        // each comma part; "body.foo", "html.foo"; "body > X" → scope > X;
+        // "body X" → scope X.
+        const m = trimmed.match(/^(html|body)\b([\s\S]*)$/i);
+        if (m) return scopeSel + m[2];
+        if (trimmed === ':root' || trimmed.startsWith(':root ') || trimmed.startsWith(':root>') || trimmed.startsWith(':root,')) {
+          return scopeSel + trimmed.substring(':root'.length);
+        }
+        // Other selectors: prefix with scope so file rules can't reach SP DOM.
+        return scopeSel + ' ' + trimmed;
+      });
+      out += rewrittenSelectors.join(', ') + body;
+      i = blockEnd + 1;
+    }
+    return out;
+  }
+
+  /** Find matching `}` for the `{` at `openIdx`. Returns index of the `}`. */
+  private static findMatchingBrace(s: string, openIdx: number): number {
+    let depth = 0;
+    for (let i = openIdx; i < s.length; i++) {
+      if (s[i] === '{') depth++;
+      else if (s[i] === '}') { depth--; if (depth === 0) return i; }
+    }
+    return s.length - 1;
+  }
+
+  /**
+   * Normalise any SharePoint file URL shape into a decoded server-relative
+   * path suitable for `GetFileByServerRelativeUrl()`. Accepts:
+   *   • absolute URLs ("https://tenant.sharepoint.com/sites/.../file.html")
+   *   • server-relative paths starting with "/"
+   *   • bare paths without a leading slash
+   *
+   * Returns a decoded path (e.g. "/sites/209776/Shared Documents/file.html"),
+   * so callers can pass it through `encodeURIComponent` exactly once.
+   *
+   * Sharing links (":.:/s/..." form) must be resolved through the Graph
+   * shares endpoint first — call sites guard with `isSharingLink()`.
+   */
+  private static toServerRelativePath(fileUrl: string): string {
+    if (!fileUrl) return fileUrl;
+
+    let path = fileUrl;
+    if (/^https?:\/\//i.test(fileUrl)) {
+      try {
+        path = new URL(fileUrl).pathname;
+      } catch {
+        // Malformed URL — fall through, treat as a path
+      }
+    }
+    if (!path.startsWith('/')) path = `/${path}`;
+    if (path.indexOf('%') !== -1) {
+      try { return decodeURIComponent(path); } catch { /* malformed escape */ }
+    }
+    return path;
+  }
+
   private async fetchAndRenderFileContent(
     tabIndex: number,
     fileUrl: string,
@@ -2697,9 +2831,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           content = await contentResponse.text();
         }
       } else {
-        // ── Server-relative path: fetch via SP REST API ──
+        // ── Server-relative path or absolute SP URL: fetch via SP REST API ──
         const siteUrl = this.context.pageContext.web.absoluteUrl;
-        const serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+        const serverRelativeUrl = PiCanvasWebPart.toServerRelativePath(fileUrl);
         const apiUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value?nocache=${Date.now()}`;
 
         const { SPHttpClient } = await import('@microsoft/sp-http');
@@ -2731,6 +2865,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           const { html: cleaned } = this.stripSpChromeRules(htmlToInject);
           htmlToInject = cleaned;
         }
+
+        // Scope the file's CSS so its `html { ... }` and `body { ... }` rules
+        // can't leak into the SP page. Wraps content in a .picanvas-file-host
+        // div and rewrites top-level selectors to target the wrapper.
+        htmlToInject = PiCanvasWebPart.scopeFileHtmlStyles(htmlToInject, 'picanvas-file-host');
 
         // HTML files from SharePoint: inject directly to preserve <style> blocks
         // DOMPurify strips <style> even with ADD_TAGS due to document context
@@ -3107,8 +3246,8 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       if (!webUrl) {
         throw new Error('Sharing link resolution missing webUrl');
       }
-      const urlObj = new URL(webUrl);
-      const serverRelativeUrl = urlObj.pathname; // e.g. /sites/213644/SiteAssets/file.html
+      // Decoded so encodeURIComponent doesn't double-encode spaces etc.
+      const serverRelativeUrl = PiCanvasWebPart.toServerRelativePath(webUrl);
 
       // Read via SP REST (GET works with cookies on GetFileByServerRelativeUrl)
       const siteUrl = this.context.pageContext.web.absoluteUrl;
@@ -3120,9 +3259,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       return { current: await resp.text(), driveInfo: { serverRelativeUrl } };
     }
 
-    // Server-relative path
+    // Server-relative path or absolute SP URL
     const siteUrl = this.context.pageContext.web.absoluteUrl;
-    const serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+    const serverRelativeUrl = PiCanvasWebPart.toServerRelativePath(fileUrl);
     const apiUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value?nocache=${Date.now()}`;
     const resp = await this.context.spHttpClient.get(apiUrl, SPHttpClient.configurations.v1);
     if (!resp.ok) {
@@ -3150,7 +3289,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
       }
       serverRelativeUrl = driveInfo.serverRelativeUrl;
     } else {
-      serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+      serverRelativeUrl = PiCanvasWebPart.toServerRelativePath(fileUrl);
     }
 
     const apiUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/$value`;
@@ -3200,9 +3339,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
         const driveItem = await metaResp.json();
         const webUrl: string = driveItem.webUrl || '';
         if (!webUrl) return false;
-        serverRelativeUrl = new URL(webUrl).pathname;
+        serverRelativeUrl = PiCanvasWebPart.toServerRelativePath(webUrl);
       } else {
-        serverRelativeUrl = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+        serverRelativeUrl = PiCanvasWebPart.toServerRelativePath(fileUrl);
       }
 
       const permsUrl = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelativeUrl)}')/ListItemAllFields/EffectiveBasePermissions`;
@@ -5828,7 +5967,9 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               // Render external file content - either from URL or Text WebPart
               const fileSourceType = (this.properties[`tab${tabIndex}FileSourceType`] as string) || 'url';
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content file-content' ${lazyAttr} data-source-type="${fileSourceType}"></div>`);
+              const contentFullWidth = this.properties[`tab${tabIndex}ContentFullWidth`] === true;
+              const contentFullWidthAttr = contentFullWidth ? 'data-content-fullwidth="true"' : '';
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content file-content' ${lazyAttr} data-source-type="${fileSourceType}" ${contentFullWidthAttr}></div>`);
               $contentHost = this.attachLockElements(tabContentContainer, tabIndex, tabLabelForLock, lockState);
 
               if (fileSourceType === 'webpart') {
@@ -8140,14 +8281,14 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   }
 
   /**
-   * Check if any tab has full-width HTML/Markdown content.
+   * Check if any tab has full-width HTML/Markdown/file content.
    */
   private hasFullWidthContent(): boolean {
     const numTabs = this.getTabCount();
     for (let i = 1; i <= numTabs; i++) {
       const contentType = (this.properties[`tab${i}ContentType`] as string) || 'webpart';
       const fullWidth = this.properties[`tab${i}ContentFullWidth`] === true;
-      if ((contentType === 'html' || contentType === 'markdown') && fullWidth) {
+      if ((contentType === 'html' || contentType === 'markdown' || contentType === 'file') && fullWidth) {
         return true;
       }
     }
