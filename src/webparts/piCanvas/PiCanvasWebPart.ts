@@ -88,6 +88,7 @@ import { parseRSSFeed, IRssFeed } from './services/rssParser';
 // Permission imports
 import { PermissionService, ITabPermissionConfig, IPermissionCheckResult } from './services/PermissionService';
 import { TabLockService } from './services/TabLockService';
+import { RemoteContentService, IRemoteMount, IRemoteSelection, RemoteMode } from './services/RemoteContentService';
 
 // JavaScript template imports
 import {
@@ -390,6 +391,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   ];
 
   private _spChromeConflicts: string[] = [];
+  private _remoteMounts: Map<number, IRemoteMount> = new Map();
 
   private _zonesCache: Array<[string, string]> = [];
   private _currentHighlightedElement: HTMLElement | null = null;
@@ -5596,7 +5598,7 @@ ${scopeSel} > * { box-sizing: border-box; }
         const tabIndex = thisTabData[x].originalTabIndex || (parseInt(x) + 1);
         const tabLabelForLock = thisTabData[x].TabLabel || `Tab ${tabIndex}`;
         const contentType = (this.properties[`tab${tabIndex}ContentType`] as string) || 'webpart';
-        const isCustomContent = contentType === 'markdown' || contentType === 'html' || contentType === 'mermaid' || contentType === 'embed' || contentType === 'javascript' || contentType === 'rss' || contentType === 'file' || contentType === 'landing' || contentType === 'toc' || contentType === 'profilereport' || contentType === 'github';
+        const isCustomContent = contentType === 'markdown' || contentType === 'html' || contentType === 'mermaid' || contentType === 'embed' || contentType === 'javascript' || contentType === 'rss' || contentType === 'file' || contentType === 'landing' || contentType === 'toc' || contentType === 'profilereport' || contentType === 'github' || contentType === 'remote';
         const lockState = this.getTabLockState(tabIndex);
         const lockEnabled = lockState.enabled && !isPlaceholder;
 
@@ -6309,6 +6311,39 @@ ${scopeSel} > * { box-sizing: border-box; }
                 $contentHost.html(prepared.html);
               }
 
+            } else if (contentType === 'remote') {
+              const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
+              tabContentContainer = $(`<div class='picanvas-tab-content picanvas-remote-content' ${lazyAttr}></div>`);
+              $contentHost = this.attachLockElements(tabContentContainer, tabIndex, tabLabelForLock, lockState);
+
+              const url = ((this.properties[`tab${tabIndex}RemoteUrl`] as string) || '').trim();
+              const mode = (((this.properties[`tab${tabIndex}RemoteMode`] as string) || 'live').trim() || 'live') as RemoteMode;
+              const refreshSec = (this.properties[`tab${tabIndex}RemoteRefreshSec`] as number) || 0;
+              let selections: IRemoteSelection[] = [];
+              try {
+                const raw = ((this.properties[`tab${tabIndex}RemoteSelections`] as string) || '').trim();
+                selections = raw ? JSON.parse(raw) : [];
+              } catch {
+                selections = [];
+              }
+
+              // Destroy any prior mount for this tab (re-render path).
+              const prior = this._remoteMounts.get(tabIndex);
+              if (prior) { prior.destroy(); this._remoteMounts.delete(tabIndex); }
+
+              if (!url) {
+                $contentHost.html('<div class="picanvas-remote-error" style="padding:24px;text-align:center;color:#656d76">No source URL configured. Open tab settings to configure.</div>');
+              } else {
+                const mount = RemoteContentService.mount($contentHost[0], {
+                  url,
+                  mode,
+                  selections,
+                  refreshSec,
+                  isEditMode: this.displayMode !== DisplayMode.Read,
+                });
+                this._remoteMounts.set(tabIndex, mount);
+              }
+
             } else {
               // Default: webpart or section content type
               // Check if this is a section or column selection
@@ -6853,6 +6888,10 @@ ${scopeSel} > * { box-sizing: border-box; }
   }
 
   protected onDispose(): void {
+    // Clean up remote content mounts
+    this._remoteMounts.forEach(m => m.destroy());
+    this._remoteMounts.clear();
+
     // Clean up resize listeners
     this._resizeCleanup.forEach(fn => fn());
     this._resizeCleanup = [];
@@ -7029,6 +7068,9 @@ ${scopeSel} > * { box-sizing: border-box; }
         hasValidContent = true;
       } else if (contentType === 'rss') {
         // RSS Feed type - always valid, fetches from feed URL
+        hasValidContent = true;
+      } else if (contentType === 'remote') {
+        // Remote content — always considered valid; service shows its own empty/error states.
         hasValidContent = true;
       }
 
