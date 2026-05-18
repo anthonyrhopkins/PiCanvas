@@ -539,16 +539,41 @@ export class RemoteContentService {
     const doc = frame.contentDocument;
     if (!doc) return () => { /* no-op */ };
     const measure = () => {
-      const h = Math.max(
-        doc.documentElement.scrollHeight,
-        doc.body.scrollHeight,
+      // SP's body often has offsetHeight 0 (absolute-positioned children) and
+      // documentElement.scrollHeight overshoots (viewport + chrome). The canvas
+      // container is the reliable source of truth.
+      const canvas = doc.querySelector<HTMLElement>(
+        '[data-automation-id="CanvasLayout"], #spPageCanvasContent, .SPCanvas'
       );
-      frame.style.height = `${h}px`;
+      const candidates = [
+        canvas?.scrollHeight || 0,
+        canvas?.offsetHeight || 0,
+        doc.body.scrollHeight,
+      ].filter(n => n > 0);
+      const h = candidates.length ? Math.max(...candidates) : doc.documentElement.scrollHeight;
+      if (h > 0) frame.style.height = `${h}px`;
     };
     measure();
+
+    // Observe both body AND the canvas element (canvas is what actually grows
+    // with content; body may have offsetHeight 0 and never trigger).
     const ro = new ResizeObserver(measure);
     ro.observe(doc.body);
-    return () => ro.disconnect();
+    const canvas = doc.querySelector<HTMLElement>(
+      '[data-automation-id="CanvasLayout"], #spPageCanvasContent, .SPCanvas'
+    );
+    if (canvas) ro.observe(canvas);
+
+    // Belt-and-suspenders: re-measure on a short delay (SP webparts may render
+    // async after document.readyState=complete).
+    const timer1 = window.setTimeout(measure, 500);
+    const timer2 = window.setTimeout(measure, 2000);
+
+    return () => {
+      ro.disconnect();
+      window.clearTimeout(timer1);
+      window.clearTimeout(timer2);
+    };
   }
 }
 
