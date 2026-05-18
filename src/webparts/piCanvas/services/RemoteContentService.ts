@@ -75,14 +75,106 @@ export class RemoteContentService {
    * Probe a remote SharePoint page for sections + webparts.
    * Used by RemotePagePicker.
    */
-  public static probeRemotePage(url: string): Promise<IProbeResult> {
-    // Implementation lands in Tasks 3–4.
-    void url; // skeleton — used in later tasks
-    return Promise.resolve({ ok: false, error: 'unknown', message: 'not implemented' });
+  public static async probeRemotePage(url: string): Promise<IProbeResult> {
+    // Origin check up front (avoids loading the iframe at all for cross-tenant URLs).
+    try {
+      const parsed = new URL(url, window.location.href);
+      if (parsed.origin !== window.location.origin) {
+        return { ok: false, error: 'cross-tenant', message: 'Cross-tenant pages are not supported.' };
+      }
+    } catch {
+      return { ok: false, error: 'unknown', message: 'Invalid URL.' };
+    }
+
+    let frame: HTMLIFrameElement;
+    try {
+      frame = await this.loadHiddenFrame(url);
+    } catch (e) {
+      const reason = (e as Error).message;
+      if (reason === 'cross-tenant') {
+        return { ok: false, error: 'cross-tenant', message: 'Cross-tenant pages are not supported.' };
+      }
+      if (reason === 'timeout') {
+        return { ok: false, error: 'timeout', message: "Source page didn't finish loading." };
+      }
+      return { ok: false, error: 'unknown', message: 'Could not load the source page.' };
+    }
+
+    const doc = frame.contentDocument!;
+    if (this.isAccessDenied(doc)) {
+      try { document.body.removeChild(frame); } catch { /* gone */ }
+      return { ok: false, error: 'access-denied', message: "You don't have access to this page." };
+    }
+
+    // DOM probing implemented in Task 4. For now, return empty success.
+    const items: IProbedItem[] = [];
+    try { document.body.removeChild(frame); } catch { /* gone */ }
+    return { ok: true, items };
+  }
+
+  /** Create a hidden iframe and resolve when the SP page has rendered enough to inspect. */
+  private static loadHiddenFrame(url: string): Promise<HTMLIFrameElement> {
+    return new Promise((resolve, reject) => {
+      const frame = document.createElement('iframe');
+      frame.style.cssText = 'position:absolute;left:-99999px;top:0;width:1200px;height:2000px;border:0;';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.src = url;
+      document.body.appendChild(frame);
+
+      const cleanup = () => { try { document.body.removeChild(frame); } catch { /* gone */ } };
+
+      const fail = (reason: string) => { cleanup(); reject(new Error(reason)); };
+
+      const timeout = window.setTimeout(() => fail('timeout'), READY_TIMEOUT_MS);
+
+      frame.addEventListener('load', () => {
+        // Same-origin check: accessing contentDocument throws cross-origin.
+        let doc: Document | null = null;
+        try {
+          doc = frame.contentDocument;
+        } catch {
+          window.clearTimeout(timeout);
+          fail('cross-tenant');
+          return;
+        }
+        if (!doc) {
+          window.clearTimeout(timeout);
+          fail('access-denied');
+          return;
+        }
+        // Poll for SP page readiness (presence of any CanvasSection or known content root).
+        const startedAt = Date.now();
+        const poll = () => {
+          if (!doc) return;
+          const hasSection = doc.querySelector('.CanvasSection[data-section-id]') !== null;
+          const hasContentRoot = doc.querySelector('[data-automation-id="canvasContent"]') !== null;
+          if (doc.readyState === 'complete' && (hasSection || hasContentRoot)) {
+            window.clearTimeout(timeout);
+            resolve(frame);
+            return;
+          }
+          if (Date.now() - startedAt > READY_TIMEOUT_MS) {
+            window.clearTimeout(timeout);
+            fail('timeout');
+            return;
+          }
+          window.setTimeout(poll, 250);
+        };
+        poll();
+      });
+
+      frame.addEventListener('error', () => fail('unknown'));
+    });
+  }
+
+  /** Heuristic: detect SharePoint "you don't have permission" page inside the frame. */
+  private static isAccessDenied(doc: Document): boolean {
+    if (doc.querySelector('[data-automation-id="accessDeniedPage"]')) return true;
+    const title = (doc.title || '').toLowerCase();
+    return title.includes('access denied') || title.includes('sign in');
   }
 }
 
 // Silence unused-const warnings for skeleton constants — used in later tasks
-void READY_TIMEOUT_MS;
 void REFRESH_MIN_SEC;
 void CHROME_SELECTORS;
