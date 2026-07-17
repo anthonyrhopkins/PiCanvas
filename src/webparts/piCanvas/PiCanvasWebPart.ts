@@ -444,6 +444,11 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
   // Metadata token management
   private _fullWidthResizeObserver: ResizeObserver | null = null;
   private _fullWidthResizeHandler: (() => void) | null = null;
+
+  // Watches for lazy-rendered Highlighted Content / grid webparts inside tabs so
+  // their cached wide layout can be re-constrained after they render (see
+  // constrainOverflowingSectionWebparts).
+  private _hcwConstraintObserver: MutationObserver | null = null;
   private _metadataTokenService: MetadataTokenService | null = null;
   private _resolvedTokensByCategory: Record<MetadataTokenCategory, IResolvedToken[]> | null = null;
   private _tokensLoading: boolean = false;
@@ -1420,12 +1425,18 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
    * @returns true if visible, false if hidden
    */
   private isTabVisibleToUser(tabIndex: number): boolean {
-    // If permission data not loaded yet, show all tabs (graceful degradation)
-    if (!this._permissionService || !this._permissionData) {
+    const config = this.getTabPermissionConfig(tabIndex);
+
+    // Unrestricted tabs remain available without a membership lookup.
+    if (!config.enabled) {
       return true;
     }
 
-    const config = this.getTabPermissionConfig(tabIndex);
+    // Restricted tabs fail closed while membership is unavailable.
+    if (!this._permissionService || !this._permissionData) {
+      return false;
+    }
+
     return this._permissionService.checkTabPermission(config, this._permissionData);
   }
 
@@ -2322,8 +2333,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
               renderedHtml = `<pre class="json-viewer">${ContentRenderer.encodeHtmlPublic(content)}</pre>`;
             }
           } else if (fileFormat === 'html') {
-            const srcdocValue = content.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-            renderedHtml = `<iframe class="method-html-frame" srcdoc="${srcdocValue}" sandbox="allow-scripts allow-same-origin" frameborder="0" scrolling="no" style="width:100%;border:none;min-height:400px;"></iframe>`;
+            renderedHtml = `<div class="method-html-static">${ContentRenderer.renderHtml(content).html}</div>`;
           } else {
             // md and txt
             renderedHtml = `<div class="markdown">${ContentRenderer.renderMarkdown(content).html}</div>`;
@@ -2385,9 +2395,7 @@ export default class PiCanvasWebPart extends BaseClientSideWebPart<IPiCanvasWebP
           const result = ContentRenderer.renderMarkdown(content);
           renderedContent = `<div class="markdown">${result.html}</div>`;
         } else if (fileExt === 'html' || fileExt === 'htm') {
-          // Render HTML files in a sandboxed iframe to preserve scripts, styles, and interactivity
-          const srcdocValue = content.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-          renderedContent = `<iframe class="method-html-frame" srcdoc="${srcdocValue}" sandbox="allow-scripts allow-same-origin" frameborder="0" scrolling="no" style="width:100%;border:none;min-height:400px;"></iframe>`;
+          renderedContent = `<div class="method-html-static">${ContentRenderer.renderHtml(content).html}</div>`;
         } else {
           renderedContent = `<pre>${ContentRenderer.encodeHtmlPublic(content)}</pre>`;
         }
@@ -2766,6 +2774,10 @@ ${scopeSel} > * { box-sizing: border-box; }
     return path;
   }
 
+  private static isHtmlFileRenderingDisabled(): boolean {
+    return true;
+  }
+
   private async fetchAndRenderFileContent(
     tabIndex: number,
     fileUrl: string,
@@ -2779,34 +2791,15 @@ ${scopeSel} > * { box-sizing: border-box; }
       let resolvedFileType: 'html' | 'markdown' = fileType === 'sharing' ? 'html' : fileType;
 
       if (PiCanvasWebPart.isSharingLink(fileUrl)) {
-        // ── Sharing link: activate then resolve ──
-        // SharePoint sharing links grant access only after the user "activates"
-        // them (i.e. navigates to the link). We do this via a hidden iframe
-        // first, which adds the user to the sharing link's permission scope.
-        // Then we resolve the file via the _api/v2.0/shares/ endpoint.
+        // Resolve sharing links through the authenticated API. Never navigate a
+        // hidden iframe to tenant-authored content: doing so can execute an HTML
+        // asset before its type has been validated.
 
         const shareToken = PiCanvasWebPart.encodeSharingToken(fileUrl);
         const tenantRoot = this.context.pageContext.web.absoluteUrl.match(/^https:\/\/[^/]+/)?.[0] || '';
         const sharesApiUrl = `${tenantRoot}/_api/v2.0/shares/${shareToken}/driveItem`;
 
-        console.log(`[PiCanvas] Activating sharing link via hidden iframe: ${fileUrl}`);
-
-        // Step 1: Activate the sharing link by loading it in a hidden iframe.
-        // This causes SharePoint to grant the current user access.
-        await new Promise<void>((resolve) => {
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = fileUrl;
-          const cleanup = (): void => { try { iframe.remove(); } catch (e) { console.warn('[PiCanvas] iframe cleanup:', e); } };
-          iframe.onload = () => { cleanup(); resolve(); };
-          // Timeout after 5s — the grant may have already happened or the iframe may not fire load
-          const timer = setTimeout(() => { cleanup(); resolve(); }, 5000);
-          iframe.onerror = () => { clearTimeout(timer); cleanup(); resolve(); };
-          iframe.onload = () => { clearTimeout(timer); cleanup(); resolve(); };
-          document.body.appendChild(iframe);
-        });
-
-        console.log(`[PiCanvas] Sharing link activated, resolving via SP v2.0: ${sharesApiUrl}`);
+        console.log(`[PiCanvas] Resolving sharing link via SP v2.0: ${sharesApiUrl}`);
 
         const { SPHttpClient } = await import('@microsoft/sp-http');
 
@@ -2831,6 +2824,13 @@ ${scopeSel} > * { box-sizing: border-box; }
           throw new Error(`Unsupported file type for "${fileName}". Only .html and .md files are supported via sharing links.`);
         }
         resolvedFileType = detected;
+
+        if (resolvedFileType === 'html') {
+          $contentHost.html(ContentRenderer.renderFileError(
+            'Executable HTML files are disabled for security. Convert this content to Markdown or a reviewed PiCanvas component.'
+          ).html);
+          return;
+        }
 
         // Step 3: Fetch file content via the shares/content endpoint
         const contentApiUrl = `${sharesApiUrl}/content`;
@@ -2883,43 +2883,11 @@ ${scopeSel} > * { box-sizing: border-box; }
 
       // Render based on file type
       if (resolvedFileType === 'html') {
-        let htmlToInject = contentWithTokens;
-
-        // Strip SP chrome rules if config override is enabled
-        if (this.properties.chromeConfigOverridesContent === true) {
-          const { html: cleaned } = this.stripSpChromeRules(htmlToInject);
-          htmlToInject = cleaned;
-        }
-
-        // Scope the file's CSS so its `html { ... }` and `body { ... }` rules
-        // can't leak into the SP page. Wraps content in a .picanvas-file-host
-        // div and rewrites top-level selectors to target the wrapper.
-        htmlToInject = PiCanvasWebPart.scopeFileHtmlStyles(htmlToInject, 'picanvas-file-host');
-
-        // HTML files from SharePoint: inject directly to preserve <style> blocks
-        // DOMPurify strips <style> even with ADD_TAGS due to document context
-        $contentHost.html(htmlToInject);
-
-        // Execute inline <script> blocks that jQuery .html() strips/ignores.
-        // SharePoint CSP blocks dynamically created <script> elements, so we
-        // use new Function() which SharePoint allows.
-        const hostEl = $contentHost[0];
-        if (hostEl) {
-          // Expose bundled libraries to inline scripts (avoids CDN dependencies)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (window as any).__picanvasEcharts = ContentRenderer.getEcharts();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (window as any).Chart = ContentRenderer.getChartJs();
-
-          const scripts = hostEl.querySelectorAll('script');
-          scripts.forEach((orig: HTMLScriptElement) => {
-            if (orig.src) return; // Skip external scripts
-            const code = orig.textContent || '';
-            if (code.trim()) {
-              // eslint-disable-next-line no-new-func
-              try { new Function(code)(); } catch (e) { console.warn('[PiCanvas] Script execution error:', e); }
-            }
-          });
+        if (PiCanvasWebPart.isHtmlFileRenderingDisabled()) {
+          $contentHost.html(ContentRenderer.renderFileError(
+            'HTML files are disabled for security. Convert this content to Markdown or a reviewed PiCanvas component.'
+          ).html);
+          return;
         }
 
         // ── List Bindings: bridge HTML ↔ SharePoint lists via custom events ──
@@ -2955,7 +2923,7 @@ ${scopeSel} > * { box-sizing: border-box; }
         // Inject dynamic navigation data for HTML files with .aahub-nav-inner.
         // PiCanvas fetches SP nav nodes (with audience targeting) and dispatches
         // them to the HTML's script via a custom DOM event.
-        const aahubRoot = hostEl?.querySelector('.aahub-root');
+        const aahubRoot = hostElForBindings?.querySelector('.aahub-root');
         if (aahubRoot && aahubRoot.querySelector('.aahub-nav-inner')) {
           // Use ListNavigationService to fetch nav from PiCanvasNavigation list
           if (!this._listNavigationService) {
@@ -5415,6 +5383,10 @@ ${scopeSel} > * { box-sizing: border-box; }
       window.removeEventListener('resize', this._fullWidthResizeHandler);
       this._fullWidthResizeHandler = null;
     }
+    if (this._hcwConstraintObserver) {
+      this._hcwConstraintObserver.disconnect();
+      this._hcwConstraintObserver = null;
+    }
 
     require('./AddTabs.js');
     require('./AddTabs.css');
@@ -6318,26 +6290,12 @@ ${scopeSel} > * { box-sizing: border-box; }
               this.fetchAndRenderProfileReports(tabIndex, config, $contentHost);
 
             } else if (contentType === 'github') {
-              // Render GitHub Repository viewer via JavaScript sandbox
-              const repoUrl = (this.properties[`tab${tabIndex}GitHubRepoUrl`] as string) || '';
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
-              const sanitizedTabsDiv = tabsDiv.replace(/[^a-zA-Z0-9_-]/g, '');
-              const jsId = `picanvas-js-${sanitizedTabsDiv}-${tabIndex}`;
               tabContentContainer = $(`<div class='picanvas-tab-content picanvas-custom-content github-content' ${lazyAttr}></div>`);
               $contentHost = this.attachLockElements(tabContentContainer, tabIndex, tabLabelForLock, lockState);
-
-              if (!repoUrl) {
-                $contentHost.html(`<div style="padding:24px;text-align:center;color:#656d76">No GitHub repository URL configured. Please enter a URL in the web part settings.</div>`);
-              } else {
-                // Extract owner/repo from URL
-                const repoMatch = repoUrl.match(/github\.com\/([^/]+\/[^/\s?#]+)/);
-                const repo = repoMatch ? repoMatch[1].replace(/\.git$/, '') : repoUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
-
-                // Generate the GitHub viewer JavaScript code and prepare sandbox container
-                const ghViewerCode = this.generateGitHubViewerCode(repo);
-                const prepared = ContentRenderer.prepareJavaScript(ghViewerCode, jsId, 'full', '');
-                $contentHost.html(prepared.html);
-              }
+              $contentHost.html(ContentRenderer.renderFileError(
+                'GitHub repository tabs are disabled for security. Replace this tab with a reviewed PiCanvas component.'
+              ).html);
 
             } else if (contentType === 'remote') {
               const lazyAttr = enableLazy ? `data-lazy="true" data-lazy-loaded="false"` : '';
@@ -6699,6 +6657,10 @@ ${scopeSel} > * { box-sizing: border-box; }
 
         // Apply full-width content layout using JS to handle SharePoint's overflow-hidden
         this.applyFullWidthContentLayout();
+
+        // Constrain Highlighted Content / grid web parts that cached a wide layout
+        // before their section was moved into the (initially-active) tab.
+        this.constrainOverflowingSectionWebparts();
       }, 100);
 
       // Re-fix banners after a longer delay in case SharePoint's React re-renders
@@ -6923,6 +6885,20 @@ ${scopeSel} > * { box-sizing: border-box; }
     // Clean up resize listeners
     this._resizeCleanup.forEach(fn => fn());
     this._resizeCleanup = [];
+
+    // Disconnect observers
+    if (this._fullWidthResizeObserver) {
+      this._fullWidthResizeObserver.disconnect();
+      this._fullWidthResizeObserver = null;
+    }
+    if (this._fullWidthResizeHandler) {
+      window.removeEventListener('resize', this._fullWidthResizeHandler);
+      this._fullWidthResizeHandler = null;
+    }
+    if (this._hcwConstraintObserver) {
+      this._hcwConstraintObserver.disconnect();
+      this._hcwConstraintObserver = null;
+    }
 
     // Clean up SP chrome hiding styles
     const chromeStyle = document.getElementById(`picanvas-sp-chrome-${this.instanceId}`);
@@ -8416,6 +8392,78 @@ ${scopeSel} > * { box-sizing: border-box; }
   }
 
   /**
+   * Fix Highlighted Content (and similar grid) web parts that render wider than
+   * their tab container.
+   *
+   * Root cause: SharePoint's Highlighted Content web part computes its responsive
+   * column grid ONCE, from the width available when it first renders. When a native
+   * section is moved into a PiCanvas tab, the first (initially-active) tab's section
+   * is still laid out at the full page width at that moment, so the HCW caches a wide
+   * grid (e.g. 2304px). PiCanvas then constrains the CanvasSection to ~1236px, but the
+   * intermediate wrappers (plain DIVs, CanvasControl, ControlZone--control) and the HCW
+   * itself keep the cached width and overflow the container — the carousel stretches and
+   * its nav buttons become inaccessible. Tabs 2..n render while hidden and first measure
+   * inside the constrained container, so they are unaffected.
+   *
+   * Neither a window 'resize' event, a display toggle, nor max-width:100% forces a
+   * recompute (verified live). Only forcing width:100% on every ancestor between the HCW
+   * and the tab host collapses the wrapper chain, which makes the HCW re-measure and
+   * settle at the container width. Because the HCW lazy-renders (IntersectionObserver),
+   * we run this after tab setup AND observe the tab host so late-rendered HCWs get fixed.
+   */
+  private constrainOverflowingSectionWebparts(): void {
+    const hosts = this.domElement.querySelectorAll('.picanvas-tab-content.picanvas-section-content');
+    if (!hosts.length) return;
+
+    const constrainOne = (host: HTMLElement): void => {
+      // HCW and the older Content Query / Content Search grids share the overflow
+      // behaviour; target all of them.
+      const wide = host.querySelectorAll(
+        '[data-automation-id="HighlightedContentWebPart"], [class*="highlightedContent"], [class*="contentQuery"]'
+      );
+      wide.forEach((wp) => {
+        const hostWidth = host.clientWidth;
+        if (!hostWidth) return;
+        // Only act when the webpart actually overflows its host (avoids touching
+        // correctly-sized instances on hidden/other tabs).
+        if ((wp as HTMLElement).getBoundingClientRect().width <= hostWidth + 4) return;
+
+        // Force width:100% on every ancestor from the webpart up to (and including)
+        // the webpart element, stopping at the tab host. This collapses the cached
+        // wide wrapper chain so the grid recomputes to the container width.
+        let el: HTMLElement | null = wp as HTMLElement;
+        let depth = 0;
+        while (el && el !== host && depth < 10) {
+          el.style.setProperty('width', '100%', 'important');
+          el.style.setProperty('max-width', '100%', 'important');
+          el = el.parentElement;
+          depth++;
+        }
+        // Force a reflow so the recompute happens synchronously.
+        void (wp as HTMLElement).offsetHeight;
+      });
+    };
+
+    hosts.forEach((h) => constrainOne(h as HTMLElement));
+
+    // The HCW renders lazily (when scrolled into view), often after this first pass.
+    // Observe the domElement subtree and re-constrain when new HCW nodes appear.
+    if (!this._hcwConstraintObserver) {
+      let pending: number | undefined;
+      this._hcwConstraintObserver = new MutationObserver(() => {
+        if (pending) { clearTimeout(pending); }
+        pending = setTimeout(() => {
+          const currentHosts = this.domElement.querySelectorAll(
+            '.picanvas-tab-content.picanvas-section-content'
+          );
+          currentHosts.forEach((h) => constrainOne(h as HTMLElement));
+        }, 100) as unknown as number;
+      });
+      this._hcwConstraintObserver.observe(this.domElement, { childList: true, subtree: true });
+    }
+  }
+
+  /**
    * Compute and apply pixel-based full-width sizing for content divs
    * relative to the scroll region boundaries.
    */
@@ -9122,10 +9170,8 @@ ${scopeSel} > * { box-sizing: border-box; }
             { key: 'embed', text: strings.ContentTypeEmbed || 'Embed (iframe)' },
             { key: 'rss', text: strings.ContentTypeRss || 'RSS Feed' },
             { key: 'file', text: strings.ContentTypeFile || 'External File' },
-            { key: 'javascript', text: strings.ContentTypeJavaScript || 'JavaScript Code' },
             { key: 'toc', text: strings.ContentTypeToc || 'Table of Contents' },
-            { key: 'profilereport', text: strings.ContentTypeProfileReport || 'Profile Report' },
-            { key: 'github', text: strings.ContentTypeGitHub || 'GitHub Repository' }
+            { key: 'profilereport', text: strings.ContentTypeProfileReport || 'Profile Report' }
           ],
           selectedKey: this.properties[`tab${i}ContentType`] as string || 'webpart'
         })

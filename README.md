@@ -4,7 +4,7 @@
 ![SPFx Version](https://img.shields.io/badge/SPFx-1.22.0-green.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18.17.1%2B%20%7C%2022%2B-green.svg)
 
-A single SPFx web part that replaces custom development. PiCanvas renders full-page portals, data-driven dashboards, and enterprise search interfaces — all inside SharePoint, using the logged-in user's identity and permissions. Its JavaScript sandbox has authenticated access to Microsoft Graph and the full M365 ecosystem — files, sites, mail, calendar, Teams, people, Copilot APIs — scoped to whatever permissions your tenant has granted. No Azure Functions, no external databases, no additional servers.
+A SharePoint Framework web part for organizing SharePoint sections, web parts, and sanitized content into flexible tabbed experiences. PiCanvas uses the logged-in user's SharePoint permissions and does not execute tenant-authored JavaScript.
 
 > What started as a tabbed layout web part has become something else entirely. PiCanvas has been used in production to power large-scale company-intelligence platforms with parallel-loaded report types, full intranet portals with list-driven navigation and custom theming, and Copilot-integrated search interfaces — all from a single `.sppkg` package.
 
@@ -209,7 +209,7 @@ For scopes not available through the SPFx service principal (e.g., Copilot APIs,
 
 ## CSP Compliance
 
-SharePoint Online enforces Content Security Policy for script sources starting March 2026. **PiCanvas is CSP-compliant out of the box** — all dependencies are bundled in the .sppkg, no external CDN scripts, no `SPComponentLoader.loadScript()`, no inline `<script>` tags. No entries needed in Trusted Script Sources.
+PiCanvas bundles its runtime dependencies and does not execute scripts supplied through page properties or SharePoint HTML files. Deployments should still validate the effective SharePoint CSP and tenant policy before production rollout.
 
 ---
 

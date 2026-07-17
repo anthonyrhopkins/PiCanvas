@@ -25,26 +25,26 @@ If you discover a security vulnerability in PiCanvas, please report it responsib
 PiCanvas implements the following security measures:
 
 ### Input Validation
-- All user inputs are validated through SharePoint property pane controls
-- HTML encoding is applied to prevent XSS attacks
+- User-provided Markdown and HTML are sanitized before DOM insertion
+- Executable JavaScript content and executable HTML files are disabled
 - URL sanitization for external links
 - Embed iframes restricted to a domain allowlist (built-in trusted domains + configurable custom domains)
 
 ### Code Quality
-- ESLint security rules enforced (no-eval, no-script-url, no-new-func)
+- Production code does not evaluate tenant-authored JavaScript
 - Strict TypeScript null checks enabled
 - No prototype pollution vectors (no-proto, no-extend-native blocked)
 
 ### Permission Handling
 - Uses SharePoint's native SPHttpClient for API calls
 - Group membership checks use official SharePoint REST APIs
-- Fail-open behavior on API errors (graceful degradation)
+- Restricted tabs fail closed when group membership cannot be verified
 - 5-minute cache prevents excessive API calls
 
 ## Third-Party Dependencies
 
 - Dependencies are regularly audited via `npm audit`
-- jQuery is loaded from official CDN with integrity checks
+- Runtime dependencies are bundled with the SPFx package
 - All SPFx framework dependencies are from official Microsoft packages
 
 ## Responsible Disclosure

@@ -33,9 +33,9 @@ DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     }
   }
 
-  // 3. Auto-sandbox iframes that don't already have a sandbox attribute
-  if (node.tagName === 'IFRAME' && !node.hasAttribute('sandbox')) {
-    node.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+  // 3. Sandboxed embeds never execute content in the SharePoint origin.
+  if (node.tagName === 'IFRAME') {
+    node.setAttribute('sandbox', 'allow-forms allow-popups allow-presentation');
   }
 });
 
@@ -598,7 +598,7 @@ export class ContentRenderer {
           loading="lazy"
           allowfullscreen
           referrerpolicy="no-referrer-when-downgrade"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+          sandbox="allow-forms allow-popups allow-presentation"
         ></iframe>
       </div>
     `;
@@ -1120,6 +1120,17 @@ export class ContentRenderer {
       return;
     }
 
+    // Preserve legacy page configurations without executing their code. JavaScript
+    // authored in a page property is not isolated from the SharePoint origin.
+    if (this.isJavaScriptExecutionDisabled()) {
+      const disabledOutput = element.querySelector('.picanvas-js-output') as HTMLElement | null;
+      if (disabledOutput) {
+        disabledOutput.textContent = 'JavaScript content is disabled for security. Replace this tab with a supported declarative content type.';
+      }
+      element.classList.add('picanvas-js-executed', 'picanvas-js-disabled');
+      return;
+    }
+
     // Check if already executed
     if (element.classList.contains('picanvas-js-executed')) {
       return;
@@ -1207,12 +1218,7 @@ export class ContentRenderer {
       // Create sandboxed helpers
       const container = outputDiv;
 
-      // render() helper - sets innerHTML directly.
-      // JavaScript sandbox code is authored by the site editor (trusted context),
-      // so we preserve <style> blocks and inline styles without DOMPurify mangling.
-      // Security: <script> tags are already stripped by jQuery .html() and the
-      // sandbox itself runs via new Function(), so re-sanitizing here only breaks
-      // legitimate CSS (gradients, animations, backdrop-filter, etc.).
+      // Legacy helper retained only in unreachable compatibility code.
       const render = (html: string): void => {
         container.innerHTML = html;
       };
@@ -1300,23 +1306,15 @@ export class ContentRenderer {
         }
       });
 
-      // Execute user code in a sandboxed function scope
-      // Pass scoped 'document' so querySelector finds this instance's container
-      // eslint-disable-next-line no-new-func
-      const sandboxedFunction = new Function(
-        'container',
-        'render',
-        'create',
-        'echarts',
-        'document',
-        'graphFetch',
-        'graphScopes',
-        decodedCode
-      );
-
-      sandboxedFunction(container, render, create, echarts, scopedDocument, graphFetch, graphScopes);
-
-      element.classList.add('picanvas-js-executed');
+      // References keep the legacy compatibility branch type-checked until it is
+      // removed in the follow-up module extraction. This branch cannot execute.
+      void decodedCode;
+      void render;
+      void create;
+      void scopedDocument;
+      void graphFetch;
+      void graphScopes;
+      throw new Error('JavaScript content execution is disabled');
     } catch (error) {
       console.error('[PiCanvas] JavaScript execution error:', error);
       outputDiv.innerHTML = `
@@ -1331,6 +1329,10 @@ export class ContentRenderer {
       `;
       element.classList.add('picanvas-js-error');
     }
+  }
+
+  private static isJavaScriptExecutionDisabled(): boolean {
+    return true;
   }
 
   /**
@@ -2432,10 +2434,7 @@ export class ContentRenderer {
       } else if (intelTabKeys.has(tab.key)) {
         contentHtml = tab.content || '';
       } else if (tab.flag === 'HTML') {
-        const srcdocValue = (tab.content || '<p>No content available.</p>')
-          .replace(/&/g, '&amp;')
-          .replace(/"/g, '&quot;');
-        contentHtml = `<iframe class="method-html-frame" srcdoc="${srcdocValue}" sandbox="allow-scripts allow-same-origin" frameborder="0" scrolling="no" style="width:100%;border:none;min-height:400px;"></iframe>`;
+        contentHtml = `<div class="method-html-static">${this.renderHtml(tab.content || '<p>No content available.</p>').html}</div>`;
       } else {
         contentHtml = `<div class="markdown">${this.renderMarkdown(tab.content || '## No Content\n\nThis method has no content available.').html}</div>`;
       }
@@ -2633,4 +2632,3 @@ export class ContentRenderer {
     `;
   }
 }
-

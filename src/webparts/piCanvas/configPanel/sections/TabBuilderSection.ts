@@ -43,10 +43,8 @@ const CONTENT_TYPES: IContentTypeInfo[] = [
   { key: 'embed', icon: '&#9655;', label: 'Embed' },
   { key: 'rss', icon: '&#128225;', label: 'RSS' },
   { key: 'file', icon: '&#128196;', label: 'File' },
-  { key: 'javascript', icon: 'JS', label: 'JavaScript' },
   { key: 'toc', icon: '&#9776;', label: 'TOC' },
   { key: 'profilereport', icon: '&#128200;', label: 'Profile Report' },
-  { key: 'github', icon: '&#128025;', label: 'GitHub Repo' },
   { key: 'remote', icon: '&#127760;', label: 'Remote Page' },
 ];
 

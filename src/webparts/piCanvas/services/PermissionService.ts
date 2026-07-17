@@ -118,13 +118,9 @@ export class PermissionService {
       return result;
     } catch (error) {
       console.error('PermissionService: Failed to get user permission data', error);
-      // Return empty result on failure - tabs will default to visible
-      return {
-        userId: this.context.pageContext.legacyPageContext?.userId || 0,
-        userGroups: [],
-        associatedGroups: { ownerId: null, memberId: null, visitorId: null },
-        cachedAt: Date.now()
-      };
+      // Permission data is a security boundary for restricted tabs. Propagate
+      // failures so callers can fail closed instead of guessing visibility.
+      throw error;
     }
   }
 

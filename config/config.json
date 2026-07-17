@@ -22,7 +22,6 @@
   "externals": {},
   "localizedResources": {
     "PiCanvasWebPartStrings": "lib/webparts/piCanvas/loc/{locale}.js",
-    "PiCanvasLoaderApplicationCustomizerStrings": "lib/extensions/piCanvasLoader/loc/{locale}.js",
-    "PropertyControlStrings": "node_modules/@pnp/spfx-property-controls/lib/loc/{locale}.js"
+    "PiCanvasLoaderApplicationCustomizerStrings": "lib/extensions/piCanvasLoader/loc/{locale}.js"
   }
 }

@@ -394,7 +394,7 @@ class PropertyPaneContentPreviewBuilder implements IPropertyPaneField<IPropertyP
             src="${DOMPurify.sanitize(url)}"
             style="width: 100%; height: ${height}; border: none; border-radius: 6px;"
             loading="lazy"
-            sandbox="allow-scripts allow-same-origin"
+            sandbox="allow-forms allow-popups allow-presentation"
           ></iframe>
         </div>
       </div>

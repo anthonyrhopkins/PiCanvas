@@ -1,6 +1,6 @@
 {
   "name": "pi-canvas",
-  "version": "2.3.0.0",
+  "version": "3.0.0.0",
   "description": "PiCanvas - Infinite possibilities. Upgraded by @anthonyrhopkins, originally created by Mark Rackley.",
   "author": "PiSpace (@anthonyrhopkins)",
   "license": "MIT",
@@ -39,13 +39,12 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "@microsoft/sp-application-base": "^1.22.0",
+    "@microsoft/sp-application-base": "1.22.0",
     "@microsoft/sp-core-library": "1.22.0",
     "@microsoft/sp-lodash-subset": "1.22.0",
     "@microsoft/sp-office-ui-fabric-core": "1.22.0",
     "@microsoft/sp-property-pane": "1.22.0",
     "@microsoft/sp-webpart-base": "1.22.0",
-    "@pnp/spfx-property-controls": "^3.18.0",
     "@pnp/telemetry-js": "^2.0.0",
     "@radix-ui/react-slot": "^1.2.4",
     "chart.js": "^4.5.1",

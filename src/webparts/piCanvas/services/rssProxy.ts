@@ -1,37 +1,9 @@
 /**
  * RSS Proxy Utilities for PiCanvas
  *
- * Handles CORS issues when fetching RSS feeds by routing requests
- * through public proxy services. Ported from PiSpace RSS Hub.
- *
- * Proxy Chain: Direct → corsproxy.io → rss2json → thingproxy
+ * Fetches RSS feeds directly from the browser. PiCanvas deliberately does not
+ * transmit tenant-configured feed URLs or feed contents to public proxy services.
  */
-
-// Public CORS proxy services (fallback chain)
-// Ordered by reliability - corsproxy.io is most reliable for Microsoft feeds
-const PUBLIC_PROXIES = [
-    {
-        name: 'rss2json',
-        // rss2json.com - free tier allows 10,000 requests/day, returns JSON
-        // Most reliable proxy — works with Google News, Microsoft, Reddit
-        buildUrl: (url: string) => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`,
-        headers: {} as Record<string, string>,
-        isJson: true
-    },
-    {
-        name: 'corsproxy.io',
-        buildUrl: (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        headers: {} as Record<string, string>
-    },
-    {
-        name: 'allorigins',
-        buildUrl: (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        headers: {} as Record<string, string>
-    }
-];
-
-// Track which proxies are working
-const proxyHealth = new Map<string, { healthy: boolean; failedAt?: number; lastSuccess?: number }>();
 
 // Domains known to block CORS - skip direct fetch to save time
 const CORS_BLOCKED_DOMAINS = [
@@ -142,7 +114,7 @@ export const fetchFeedWithProxy = async (
     feedUrl: string,
     options: { timeout?: number; retryCount?: number } = {}
 ): Promise<FetchResult> => {
-    const { timeout = 15000, retryCount = 1 } = options;
+    const { timeout = 15000 } = options;
 
     console.log(`[PiCanvas RSS] Starting fetch for ${feedUrl}`);
 
@@ -171,72 +143,9 @@ export const fetchFeedWithProxy = async (
         console.log(`[PiCanvas RSS] Skipping direct fetch for CORS-blocked domain`);
     }
 
-    // Try proxies with fallback
-    for (const proxy of PUBLIC_PROXIES) {
-        // Skip proxies that have recently failed
-        const health = proxyHealth.get(proxy.name);
-        if (health && health.failedAt && Date.now() - health.failedAt < 60000) {
-            console.log(`[PiCanvas RSS] Skipping ${proxy.name} (recently failed)`);
-            continue;
-        }
-
-        for (let attempt = 0; attempt < retryCount; attempt++) {
-            try {
-                const proxyUrl = proxy.buildUrl(feedUrl);
-                console.log(`[PiCanvas RSS] Trying ${proxy.name} (attempt ${attempt + 1})`);
-
-                const response = await fetchWithTimeout(proxyUrl, {
-                    method: 'GET',
-                    headers: {
-                        ...proxy.headers,
-                        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*'
-                    }
-                }, timeout);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const text = await response.text();
-
-                // Handle JSON responses from rss2json
-                if (proxy.isJson) {
-                    try {
-                        const jsonData = JSON.parse(text);
-                        if (jsonData.status === 'ok' && jsonData.items) {
-                            console.log(`[PiCanvas RSS] ${proxy.name} returned JSON with ${jsonData.items.length} items`);
-                            proxyHealth.set(proxy.name, { healthy: true, lastSuccess: Date.now() });
-                            return {
-                                __isRss2Json: true,
-                                feed: jsonData.feed,
-                                items: jsonData.items
-                            } as IRss2JsonResponse;
-                        } else {
-                            throw new Error(`Invalid RSS2JSON response: ${jsonData.status || 'unknown error'}`);
-                        }
-                    } catch {
-                        throw new Error('Failed to parse JSON response');
-                    }
-                }
-
-                if (!isValidXML(text)) {
-                    throw new Error('Response is not valid XML');
-                }
-
-                proxyHealth.set(proxy.name, { healthy: true, lastSuccess: Date.now() });
-                console.log(`[PiCanvas RSS] ${proxy.name} succeeded`);
-                return text;
-
-            } catch (error) {
-                console.warn(`[PiCanvas RSS] ${proxy.name} attempt ${attempt + 1} failed:`, (error as Error).message);
-                if (attempt === retryCount - 1) {
-                    proxyHealth.set(proxy.name, { healthy: false, failedAt: Date.now() });
-                }
-            }
-        }
-    }
-
-    throw new Error(`Failed to fetch feed: ${feedUrl}. All proxies exhausted.`);
+    throw new Error(
+        `Failed to fetch feed directly: ${feedUrl}. The feed must permit browser CORS access or be served through a tenant-controlled integration.`
+    );
 };
 
 /**
@@ -274,17 +183,12 @@ export const normalizeFeedUrl = (url: string): string => {
  * Reset proxy health tracking
  */
 export const resetProxyHealth = (): void => {
-    proxyHealth.clear();
+    // Kept as a compatibility no-op for existing callers.
 };
 
 /**
  * Get proxy health status (for debugging)
  */
 export const getProxyHealth = (): Record<string, { healthy: boolean; failedAt?: number; lastSuccess?: number }> => {
-    const status: Record<string, { healthy: boolean; failedAt?: number; lastSuccess?: number }> = {};
-    PUBLIC_PROXIES.forEach(proxy => {
-        const health = proxyHealth.get(proxy.name);
-        status[proxy.name] = health || { healthy: true };
-    });
-    return status;
+    return {};
 };
